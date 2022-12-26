@@ -16,6 +16,14 @@
 #define valve_2_ON 	gpio_bit_set	(GPIOC, GPIO_PIN_13)
 #define valve_2_OFF gpio_bit_reset(GPIOC, GPIO_PIN_13)
 
+#define modeInitStart 					0
+#define modeStartScreen 				1
+#define modeKeyOff		  				2
+#define modePumpingMeasurement 	3
+#define modeUsbCharging					4
+#define modePressureTest				5
+#define modeMeasurement					6
+#define modeSendSaveBuffMsg			7
 
 /* function declarations */
 

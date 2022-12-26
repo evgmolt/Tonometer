@@ -239,14 +239,14 @@ void TIMER1_IRQHandler(void)
 				if (EN_BUTT_count>=10) {	
 						ILI9341_FillScreen(ILI9341_WHITE);
 						timer_2_stop();
-						mode=5;
+						mode = modePressureTest;
 				}
 				else if (EN_BUTT_count>1 & mode!=4 & mode!=0) {
-					mode=2;
+					mode = modeKeyOff;
 					//device_OFF();					
 				}					
-				if (EN_BUTT_FLAG==0 & mode==1) TFT_print();
-				if (mode==5) time_display(rtc_counter_get());	
+				if (EN_BUTT_FLAG==0 & mode == modeStartScreen) TFT_print();
+				if (mode == modePressureTest) time_display(rtc_counter_get());	
     }
 }
 
@@ -259,7 +259,7 @@ void TIMER2_IRQHandler(void)
 				timer_interrupt_enable(TIMER2, TIMER_INT_UP);
 				timer_enable(TIMER2);			
 
-				if (mode==3){																																								//////////////////////////////////
+				if (mode == modePumpingMeasurement){																																								//////////////////////////////////
 						if (convert_save_16()){
 								if (save_clear_counter<300) convert_NO_save();
 								else if (save_clear_counter>300){
@@ -337,7 +337,7 @@ void TIMER2_IRQHandler(void)
 														Wave_detect_FLAG=0;													
 														_maxD=0;	
 														//MAX_counter=0;
-														mode=6;
+														mode = modeMeasurement;
 												}
 										}										
 								}
@@ -354,7 +354,7 @@ void TIMER2_IRQHandler(void)
 										timer_2_stop();
 										print_error(2);
 										timer_1_start();									
-										mode=1;
+										mode = modeStartScreen;
 								}
 								
 								if (save_clear_counter>9990){
@@ -368,13 +368,13 @@ void TIMER2_IRQHandler(void)
 										timer_2_stop();
 										print_error(3);
 										timer_1_start();									
-										mode=1;
+										mode = modeStartScreen;
 								}
 								
 								
 						}
 				}
-				else if (mode==6) { //convers_save(); //usb_send_i2c_convers();	                          ///////////////////////////////////////////////
+				else if (mode == modeMeasurement) { //convers_save(); //usb_send_i2c_convers();	                          ///////////////////////////////////////////////
 						if (convert_save_16()) {
 								if (save_clear_counter>300){
 										save_dir[save_clear_counter-1]=slim_mas(save_clear, DCArrayWindow, ACArrayWindow);											
@@ -410,9 +410,9 @@ void TIMER2_IRQHandler(void)
 								}						
 						}
 				}
-				else if (mode==7) {
+				else if (mode == modeSendSaveBuffMsg) {
 						if (usb_send_save(save_dir,EnvelopeArray)){			
-								mode=1;
+								mode = modeStartScreen;
 								timer_2_stop();
 								set_FLAG();
 								save_clear_counter=0;
@@ -590,15 +590,15 @@ void EXTI5_9_IRQHandler(void)
 					EN_BUTT_FLAG=1;
 					EN_BUTT_count=0;
 			}
-			if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==0 & mode==2){
+			if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==0 & mode == modeKeyOff){
 					device_OFF();
 			}			
 			if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==0){				
-					if (mode==3 & EN_BUTT_count<2) {
+					if (mode == modePumpingMeasurement & EN_BUTT_count<2) {
 							timer_1_start();
-							mode=1;
+							mode = modeStartScreen;
 					}						
-					else if (mode==1 & EN_BUTT_count<2) {
+					else if (mode == modeStartScreen & EN_BUTT_count<2) {
 							timer_1_stop();							
 							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
 							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);						
@@ -625,23 +625,23 @@ void EXTI5_9_IRQHandler(void)
 							timer_2_start();
 							i2c_out_norm=0;
 							finish_6_flag=0;
-							mode=3; 							
+							mode = modePumpingMeasurement; 							
 					}	
-					else if (mode==6 & EN_BUTT_count<2) {
+					else if (mode == modeMeasurement & EN_BUTT_count<2) {
 							timer_2_stop();
-							mode=1; 							
+							mode = modeStartScreen; 							
 					}
-					else if (mode==5 & EN_BUTT_count<2) {
+					else if (mode == modePressureTest & EN_BUTT_count<2) {
 							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
 							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);	
 							//clear_monitor();	
 							timer_1_start();
-							mode=1;
+							mode = modeStartScreen;
 							//timer_1_start();
 					}
 					else if (EN_BUTT_count>10){
 							//ILI9341_FillScreen(ILI9341_WHITE);
-							mode=5;
+							mode = modePressureTest;
 							timer_1_start();
 							//EN_BUTT_FLAG=0;							
 					}

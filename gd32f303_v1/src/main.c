@@ -160,14 +160,7 @@ mode device:
 8 -
 */
 
-#define modeInitStart 					0
-#define modeStartScreen 				1
-#define modeKeyOff		  				2
-#define modePumpingMeasurement 	3
-#define modeUsbCharging					4
-#define modePressureTest				5
-#define modeMeasurement					6
-#define modeSendSaveBuffMsg			7
+
 
 uint8_t mode = modeInitStart;
 
