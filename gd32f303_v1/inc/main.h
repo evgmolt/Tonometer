@@ -25,6 +25,10 @@
 #define MEASUREMENT 6
 #define SEND_SAVE_BUFF_MSG 7
 
+#define ERROR_DETECT_PRESSURE 9
+#define ERROR_DETECT_INDEX 500
+#define SEC_AFTER_MAX 8 //Time after maximum found when stop pumping
+
 /* function declarations */
 
 void i2c_config(void);
