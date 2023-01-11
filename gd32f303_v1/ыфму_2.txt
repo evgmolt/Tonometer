@@ -1,0 +1,2571 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using HidLibrary;
+using System.IO;
+using Camera_NET;
+using DirectShowLib;
+using System.Runtime.InteropServices.ComTypes;
+using System.Diagnostics;
+using System.Drawing.Imaging;
+using System.Drawing.Printing;
+using SlimDX.DirectInput;
+using System.Media;
+using System.IO.Ports;
+using System.Management;
+using System.Text.RegularExpressions;
+using System.Windows.Forms.DataVisualization.Charting;
+
+namespace ORTOS
+{
+    public partial class Form1 : Form
+    {
+        //
+        // Member data
+        //
+        HidDevice[] mahdDevices;
+        HidDevice mhdDevice;
+        private List<string> cameraResolutions;
+        CameraChoice _CameraChoice;
+        ResolutionList resolutionsPlanto, resolutionsPosture;
+        IMoniker monikerPlanto, monikerPosture;
+        Bitmap img;
+        List<Point> pointsPosture = new List<Point>();
+        List<Point> pointsRentgen = new List<Point>();
+        List<Point> pointsPlanto = new List<Point>();
+        List<Point> pointsPlanto1 = new List<Point>();
+        List<Point> pointsPlanto2 = new List<Point>();
+        List<Point> pointsPlanto2Range = new List<Point>();
+        List<Point> pointsRentRange = new List<Point>();
+        int i = 0;
+        Graphics g;
+        Bitmap sourceRentgen, sourcePosture, sourcePlanto, sourcePlanto2, sourcePlanto3, sourceStab;
+        Boolean setRangeRentgen = false;
+        SolidBrush brush_Grey = new SolidBrush(Color.Black);
+        SolidBrush brush_Green = new SolidBrush(Color.LawnGreen);
+        SolidBrush brush_Gold = new SolidBrush(Color.Gold);
+        SolidBrush brush_White = new SolidBrush(Color.White);
+        SolidBrush brush_Red = new SolidBrush(Color.Red);
+        Color settingsBlack = Color.Black;
+        Color settingsLine = Color.Red;
+        int countPixels, countPoxelsRentgen;
+        Bitmap Bit;
+        Graphics Graf;
+        int Zoom = 2;
+        Magnifier magnifier = null;
+        Boolean isDown = false;
+        int repeatCount = 1;
+        Bitmap screenshot;
+        Font font = new Font(FontFamily.GenericSansSerif, 14, FontStyle.Bold);
+        private const int VendorID = 0x0B123;
+        private const int ProductID = 0x0B123;
+        Boolean start_stabilogram = false;
+        int count = 0;
+        int leftLeg = 0;
+        int rightLeg = 0;
+        Boolean pause_task = false;
+        List<Int32> x = new List<Int32>();
+        List<Int32> y = new List<Int32>();
+        Boolean open_eye = false;
+        Boolean close_eye = false;
+
+        Boolean mode_flag = true;
+        Boolean touch_flag = false;
+        Boolean touch_adj_flag = false;
+        int adj_num = 1;
+        Boolean touch_adj_flag_2 = false;
+        int adj_num_2 = 1;
+
+        //ComPort
+        SerialPort serialPort = new SerialPort();
+        String line = "";
+
+
+
+
+
+        public Form1()
+        {
+            InitializeComponent();
+
+            chart1.Images.Add(new System.Windows.Forms.DataVisualization.Charting.NamedImage("legs", ORTOS.Properties.Resources.leg));
+            chart1.ChartAreas[0].BackImage = chart1.Images[0].Name;
+            chart1.ChartAreas[0].BackImageWrapMode = System.Windows.Forms.DataVisualization.Charting.ChartImageWrapMode.Scaled;
+
+
+            timer2.Start(); ;
+
+
+
+
+
+            _CameraChoice = new CameraChoice();
+            _CameraChoice.UpdateDeviceList();
+            foreach (var cameras in _CameraChoice.Devices)
+            {
+                comboBoxPlanto.Items.Add(cameras.Name);
+                comboBoxPosture.Items.Add(cameras.Name);//Добавление списка камер
+            }
+
+            try
+            {
+                monikerPosture = _CameraChoice.Devices[Properties.Settings.Default.postureCameraIndex].Mon;
+                resolutionsPosture = Camera.GetResolutionList(monikerPosture);
+                cameraControlPosture.SetCamera(monikerPosture, resolutionsPosture[Properties.Settings.Default.postureResolution]);
+
+            }
+
+            catch (Exception e)
+            {
+                status.ForeColor = Color.Red;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Posture: " + e.Message;
+            }
+            try
+            {
+                int a = Properties.Settings.Default.plantoCameraIndex;
+                monikerPlanto = _CameraChoice.Devices[Properties.Settings.Default.plantoCameraIndex].Mon;
+                resolutionsPlanto = Camera.GetResolutionList(monikerPlanto);
+                cameraControlPlanto.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+
+            }
+            catch (Exception e)
+            {
+                status.ForeColor = Color.Red;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Planto: " + e.Message;
+            }
+
+            //Загрука цветов
+            brush_Grey = new SolidBrush(Properties.Settings.Default.colorLine2);
+            brush_Green = new SolidBrush(Properties.Settings.Default.colorText);
+            brush_Gold = new SolidBrush(Properties.Settings.Default.colorPoints);
+            brush_Red = new SolidBrush(Properties.Settings.Default.colorLine);
+            settingsBlack = Properties.Settings.Default.colorLine2;
+            settingsLine = Properties.Settings.Default.colorLine;
+            font = Properties.Settings.Default.fontSize;
+
+            //Подключение к HID Device
+            //ComPort
+
+            try
+            {
+
+                ManagementObjectCollection ManObjReturn;
+                ManagementObjectSearcher ManObjSearch;
+                ManObjSearch = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity WHERE Manufacturer like 'FTDI'");
+                ManObjReturn = ManObjSearch.Get();
+
+                foreach (ManagementObject ManObj in ManObjReturn)
+                {
+                    if (ManObj["Caption"].ToString().Contains("(COM"))
+                    {
+                        var portnames = SerialPort.GetPortNames();
+                        foreach (String port in portnames)
+                        {
+                            if (ManObj["Caption"].ToString().Contains(port))
+                            {
+                                serialPort.PortName = port;
+                            }
+                        }
+                        serialPort.BaudRate = 9600;    //9600   
+                                                       //serialPort.DtrEnable = true;  // <<< For Leonardo
+                                                       //serialPort.RtsEnable = true;  // <<< For Leonardo
+                        serialPort.Open();
+                        serialPort.DataReceived += serialPort_DataReceived;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+
+            try
+            {
+
+                ManagementObjectCollection ManObjReturn;
+                ManagementObjectSearcher ManObjSearch;
+                ManObjSearch = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity WHERE Manufacturer like 'wch.cn'");
+                ManObjReturn = ManObjSearch.Get();
+
+                foreach (ManagementObject ManObj in ManObjReturn)
+                {
+                    if (ManObj["Caption"].ToString().Contains("(COM"))
+                    {
+                        var portnames = SerialPort.GetPortNames();
+                        foreach (String port in portnames)
+                        {
+                            if (ManObj["Caption"].ToString().Contains(port))
+                            {
+                                serialPort.PortName = port;
+                            }
+                        }
+                        serialPort.BaudRate = 9600;    //9600   
+                                                       //serialPort.DtrEnable = true;  // <<< For Leonardo
+                                                       //serialPort.RtsEnable = true;  // <<< For Leonardo
+                        serialPort.Open();
+                        serialPort.DataReceived += serialPort_DataReceived;
+
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+        }
+
+
+        /// <summary>
+        /// Receive ComPort Data
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void serialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+        {
+            if (serialPort.IsOpen)
+            {
+                try
+                {
+                    line = serialPort.ReadLine();
+                }
+                catch (IOException err)
+                {
+                }
+                line = line.Replace(".", ",");
+                Regex Sec = new Regex(@"(-?\d{1,2}.\d)");
+                MatchCollection se = Sec.Matches(line);
+
+                if (se.Count == 4)
+                {
+                    var firstTenzo = Convert.ToDouble(se[0].Value);
+                    var secondTenzo = Convert.ToDouble(se[1].Value);
+                    var thirdTenzo = Convert.ToDouble(se[2].Value);
+                    var fourTenzo = Convert.ToDouble(se[3].Value);
+
+                    if ((firstTenzo > 0.2 && firstTenzo < 2) || (secondTenzo > 0.2 && secondTenzo < 2) || (thirdTenzo > 0.2 && thirdTenzo < 2) || (fourTenzo > 2 && fourTenzo < 2))
+                    {
+                        tareButton.BackColor = System.Drawing.Color.Red;
+                    }
+                    else
+                    {
+                        tareButton.BackColor = SystemColors.Control;
+                    }
+                    yvalue = Convert.ToInt32((Convert.ToDouble(se[0].Value) * 5 + Convert.ToDouble(se[3].Value) * 5) - (Convert.ToDouble(se[1].Value) * 5 + Convert.ToDouble(se[2].Value) * 5)); //Convert.ToDouble(se[0].Value); //
+                    xvalue = Convert.ToInt32((Convert.ToDouble(se[0].Value.ToString()) * 5 + Convert.ToDouble(se[1].Value) * 5) - (Convert.ToDouble(se[2].Value) * 5 + Convert.ToDouble(se[3].Value) * 5)); //Convert.ToDouble(se[1].Value); //                  
+
+                    try
+                    {
+                        if (start_stabilogram && !pause_task)
+                        {
+                            x.Add((int)xvalue);
+                            y.Add((int)yvalue);
+                        }
+
+                        Invoke((MethodInvoker)delegate
+                        {
+                            label42.Text = xvalue.ToString();
+                            label43.Text = yvalue.ToString();
+                            if (Math.Abs(firstTenzo) + Math.Abs(secondTenzo) + Math.Abs(thirdTenzo) + Math.Abs(fourTenzo) > 2)
+                            {
+                                chart2.Series[0].Points.Clear();
+                                if (Math.Abs(xvalue) > 50)
+                                {
+                                    if (Math.Abs(yvalue) > 50)
+                                    {
+                                        chart2.Series[0].Points.AddXY(xvalue / Math.Abs(xvalue) * 50, yvalue / Math.Abs(yvalue) * 50);
+                                    }
+                                    else
+                                    {
+                                        chart2.Series[0].Points.AddXY(xvalue / Math.Abs(xvalue) * 50, yvalue);
+                                    }
+                                }
+                                else
+                                {
+                                    if (Math.Abs(yvalue) > 50)
+                                    {
+                                        chart2.Series[0].Points.AddXY(xvalue, yvalue / Math.Abs(yvalue) * 50);
+                                    }
+                                    else
+                                    {
+                                        chart2.Series[0].Points.AddXY(xvalue, yvalue);
+                                    }
+                                }
+                            }
+
+                            if (Math.Abs(firstTenzo) + Math.Abs(secondTenzo) + Math.Abs(thirdTenzo) + Math.Abs(fourTenzo) < 2)
+                            {
+                                chart2.Series[0].Points.Clear();
+                                chart2.Series[0].Points.AddXY(0, 0);
+                            }
+
+                            int left_leg = -50 + Convert.ToInt32(xvalue);
+                            int right_leg = 50 + Convert.ToInt32(xvalue);
+
+                            if (start_stabilogram && !pause_task)
+                            {
+                                if (xvalue != 0 && yvalue != 0)
+                                {
+                                    if (mode_flag == true) chart1.Series[0].Points.AddXY(xvalue, yvalue);
+                                    else chart1.Series[1].Points.AddXY(xvalue, yvalue);
+                                }
+                            }
+
+                            if (Math.Abs(left_leg) > 50 && Math.Abs(right_leg) > 50)
+                            {
+                                leftLeg1.Value = Math.Abs(0);
+                                rightLeg1.Value = Math.Abs(0);
+                                label20.Text = 0 + "%";
+                                label22.Text = 0 + "%";
+                            }
+
+                            else
+                            {
+                                if (Math.Abs(left_leg) > 100)
+                                {
+                                    leftLeg1.Value = Math.Abs(100);
+                                    rightLeg1.Value = Math.Abs(0);
+                                    label20.Text = 100 + "%";
+                                    label22.Text = 0 + "%";
+                                    if (start_stabilogram && !pause_task)
+                                    {
+                                        count++;
+                                        leftLeg += 100;
+                                        rightLeg += 0;
+                                    }
+                                }
+                                if (Math.Abs(right_leg) > 100)
+                                {
+                                    leftLeg1.Value = Math.Abs(0);
+                                    rightLeg1.Value = Math.Abs(100);
+                                    label20.Text = 0 + "%";
+                                    label22.Text = 100 + "%";
+                                    if (start_stabilogram && !pause_task)
+                                    {
+                                        count++;
+                                        leftLeg += 0;
+                                        rightLeg += 100;
+                                    }
+                                }
+
+                                if (Math.Abs(right_leg) < 100 && Math.Abs(left_leg) < 100 && Math.Abs(xvalue) > 2)
+                                {
+                                    rightLeg1.Value = Math.Abs(right_leg);
+                                    leftLeg1.Value = Math.Abs(left_leg);
+                                    label20.Text = Math.Abs(left_leg) + "%";
+                                    label22.Text = Math.Abs(right_leg) + "%";
+                                    if (start_stabilogram && !pause_task)
+                                    {
+                                        count++;
+                                        leftLeg += Math.Abs(left_leg);
+                                        rightLeg += Math.Abs(right_leg);
+                                    }
+                                }
+                            }
+
+                            if (xvalue == 0)
+                            {
+                                rightLeg1.Value = Math.Abs(0);
+                                leftLeg1.Value = Math.Abs(0);
+                                label20.Text = 50 + "%";
+                                label22.Text = 50 + "%";
+                                if (start_stabilogram && !pause_task)
+                                {
+                                    count++;
+                                    leftLeg += 50;
+                                    rightLeg += 50;
+                                }
+                            }
+                        });
+                    }
+                    catch (Exception)
+                    {
+
+                    }
+                }
+            }
+        }
+
+        //Start Joistic
+
+        Double yvalue = 0;
+        Double xvalue = 0;
+        int zvalue = 0;
+
+
+        //End Joistic
+
+
+        private void OnReport(HidReport report)
+        {
+            var message = report.Data;
+            int o = 0;
+        }
+
+        #region Постурограмма
+        /// <summary>
+        /// Нажатие на постурограмму
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+
+        private void postureImg_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (magnifier != null)
+            {
+                magnifier.TopMost = true;
+            }
+            if (sourcePosture == null)
+            {
+                sourcePosture = new Bitmap(postureImg.Image);
+            }
+
+            if (e.Button == MouseButtons.Right)
+            {
+                if (pointsPosture.Count < 10)
+                {
+                    touch_flag = true;
+                    Bitmap postureBitmap = new Bitmap(postureImg.Width, postureImg.Height);
+                    postureImg.DrawToBitmap(postureBitmap, postureImg.ClientRectangle);
+                    g = Graphics.FromImage(postureBitmap);
+                    int h = postureBitmap.Height;
+                    int w = postureBitmap.Width;
+                    //double x = Convert.ToDouble(postureBitmap.Width) / Convert.ToDouble(postureImg.Width);
+                    //double y = Convert.ToDouble(postureBitmap.Height) / Convert.ToDouble(postureImg.Height);
+
+                    if (pointsPosture.Count < 1)
+                    {
+                        drawGrid();
+                    }
+                    drawPoint(Convert.ToInt32(e.X), Convert.ToInt32(e.Y), g);
+                    pointsPosture.Add(new Point(Convert.ToInt32(e.X), Convert.ToInt32(e.Y)));
+                    if (pointsPosture.Count >= 10)
+                    {
+                        Pen myPen = new Pen(settingsLine);
+                        myPen.Width = 2;
+                        int a = pointsPosture[1].X - pointsPosture[0].X;
+                        g.DrawLine(myPen, pointsPosture[0].X, pointsPosture[0].Y, pointsPosture[1].X, pointsPosture[1].Y);
+
+                        g.DrawLine(myPen, pointsPosture[2].X, pointsPosture[2].Y, pointsPosture[3].X, pointsPosture[3].Y);
+                        g.DrawLine(myPen, pointsPosture[4].X, pointsPosture[4].Y, pointsPosture[5].X, pointsPosture[5].Y);
+                        g.DrawLine(myPen, pointsPosture[6].X, pointsPosture[6].Y, pointsPosture[7].X, pointsPosture[7].Y);
+                        g.DrawLine(myPen, pointsPosture[8].X, pointsPosture[8].Y, pointsPosture[9].X, pointsPosture[9].Y);
+                        Pen myPenGold = new Pen(Color.Goldenrod);
+                        myPenGold.Width = 3;
+                        g.DrawLines(myPenGold, getAveragePoints());
+
+                        head.Text = calculateAngle(pointsPosture[0].X, pointsPosture[0].Y, pointsPosture[1].X, pointsPosture[1].Y);
+                        shoulders.Text = calculateAngle(pointsPosture[2].X, pointsPosture[2].Y, pointsPosture[3].X, pointsPosture[3].Y);
+                        basin.Text = calculateAngle(pointsPosture[4].X, pointsPosture[4].Y, pointsPosture[5].X, pointsPosture[5].Y);
+                        legs.Text = calculateAngle(pointsPosture[6].X, pointsPosture[6].Y, pointsPosture[7].X, pointsPosture[7].Y);
+                        foots.Text = calculateAngle(pointsPosture[8].X, pointsPosture[8].Y, pointsPosture[9].X, pointsPosture[9].Y);
+                        Deviation.Text = calculateAngle(pointsPosture[0].X-pointsPosture[1].X, pointsPosture[0].Y-pointsPosture[1].Y, pointsPosture[8].X-pointsPosture[9].X, pointsPosture[8].Y-pointsPosture[9].Y);
+                    }
+                    g.Dispose();
+                    postureImg.Image = postureBitmap;
+                }
+            }
+            if (e.Button == MouseButtons.Middle)
+            {
+                touch_flag = false;
+                pointsPosture.Clear();
+                postureImg.Image = sourcePosture;
+            }
+
+            if (e.Button == MouseButtons.Left)
+            {
+
+                if (touch_flag)
+                {
+                    if (touch_adj_flag == true)
+                    {
+                        pointsPosture.RemoveAt(adj_num);
+                        pointsPosture.Insert(adj_num, new Point(Convert.ToInt32(e.X), Convert.ToInt32(e.Y)));
+                        postureImg.Image = sourcePosture;
+
+
+                        Bitmap postureBitmap = new Bitmap(postureImg.Width, postureImg.Height);
+                        postureImg.DrawToBitmap(postureBitmap, postureImg.ClientRectangle);
+                        g = Graphics.FromImage(postureBitmap);
+                        int h = postureBitmap.Height;
+                        int w = postureBitmap.Width;
+
+                        drawGrid();
+
+                        for (int i = 0; i < pointsPosture.Count; i++)
+                        {
+                            drawPoint(Convert.ToInt32(pointsPosture[i].X), Convert.ToInt32(pointsPosture[i].Y), g);
+                        }
+                        if (pointsPosture.Count >= 10)
+                        {
+                            Pen myPen = new Pen(settingsLine);
+                            myPen.Width = 2;
+                            int a = pointsPosture[1].X - pointsPosture[0].X;
+                            g.DrawLine(myPen, pointsPosture[0].X, pointsPosture[0].Y, pointsPosture[1].X, pointsPosture[1].Y);
+
+                            g.DrawLine(myPen, pointsPosture[2].X, pointsPosture[2].Y, pointsPosture[3].X, pointsPosture[3].Y);
+                            g.DrawLine(myPen, pointsPosture[4].X, pointsPosture[4].Y, pointsPosture[5].X, pointsPosture[5].Y);
+                            g.DrawLine(myPen, pointsPosture[6].X, pointsPosture[6].Y, pointsPosture[7].X, pointsPosture[7].Y);
+                            g.DrawLine(myPen, pointsPosture[8].X, pointsPosture[8].Y, pointsPosture[9].X, pointsPosture[9].Y);
+                            Pen myPenGold = new Pen(Color.Goldenrod);
+                            myPenGold.Width = 3;
+                            g.DrawLines(myPenGold, getAveragePoints());
+
+                            head.Text = calculateAngle(pointsPosture[0].X, pointsPosture[0].Y, pointsPosture[1].X, pointsPosture[1].Y);
+                            shoulders.Text = calculateAngle(pointsPosture[2].X, pointsPosture[2].Y, pointsPosture[3].X, pointsPosture[3].Y);
+                            basin.Text = calculateAngle(pointsPosture[4].X, pointsPosture[4].Y, pointsPosture[5].X, pointsPosture[5].Y);
+                            legs.Text = calculateAngle(pointsPosture[6].X, pointsPosture[6].Y, pointsPosture[7].X, pointsPosture[7].Y);
+                            foots.Text = calculateAngle(pointsPosture[8].X, pointsPosture[8].Y, pointsPosture[9].X, pointsPosture[9].Y);
+                        }
+                        g.Dispose();
+                        postureImg.Image = postureBitmap;
+
+                        touch_adj_flag = false;
+                    }
+                    else if (touch_adj_flag == false)
+                    {
+                        for (int i = 0; i < pointsPosture.Count; i++)
+                        {
+                            if (e.X + 10 > pointsPosture[i].X && e.X - 10 < pointsPosture[i].X && e.Y + 10 > pointsPosture[i].Y && e.Y - 10 < pointsPosture[i].Y)
+                            {
+                                adj_num = i;
+                                touch_adj_flag = true;
+                            }
+                        }
+                        if (touch_adj_flag == true)
+                        {
+                            Bitmap postureBitmap = new Bitmap(postureImg.Width, postureImg.Height);
+                            postureImg.DrawToBitmap(postureBitmap, postureImg.ClientRectangle);
+                            g = Graphics.FromImage(postureBitmap);
+                            int h = postureBitmap.Height;
+                            int w = postureBitmap.Width;
+                            drawPoint_2(Convert.ToInt32(pointsPosture[adj_num].X), Convert.ToInt32(pointsPosture[adj_num].Y), g);
+                            g.Dispose();
+                            postureImg.Image = postureBitmap;
+                        }
+                    }
+                }
+            }
+
+        }
+
+
+
+
+
+        /// <summary>
+        /// Кнопка снимок на вкладке постурограммы
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void postPhoto_Click(object sender, EventArgs e)
+        {
+            try
+            {
+
+                if (cameraControlPosture.CameraCreated)
+                {
+                    img = cameraControlPosture.SnapshotOutputImage();
+                    postureImg.Image = img;
+                    cameraControlPosture.CloseCamera();
+                    postPhoto.Text = "Возобновить";
+                    postureImg.Visible = true;
+                    cameraControlPosture.Visible = false;
+                }
+                else
+                {
+                    pointsPosture.Clear();
+                    postPhoto.Text = "Снимок";
+                    postureImg.Visible = false;
+                    cameraControlPosture.Visible = true;
+
+
+                    try
+                    {
+                        if (Properties.Settings.Default.postureResolution > resolutionsPosture.Count)
+                        {
+                            cameraControlPosture.SetCamera(monikerPosture, resolutionsPosture[0]);
+                        }
+                        else
+                        {
+                            cameraControlPosture.SetCamera(monikerPosture, resolutionsPosture[Properties.Settings.Default.postureResolution]);
+                        }
+                    }
+                    catch (Exception e3)
+                    {
+                        status.Text = "Posture: " + e3.Message;
+                    }
+                }
+
+            }
+            catch (Exception)
+            {
+                postPhoto.Text = "Error!";
+            }
+        }
+
+        /// <summary>
+        /// Рисуем сетку
+        /// </summary>
+        private void drawGrid()
+        {
+            int numOfCells = 100; //200
+            int cellSize = 30; //15
+            Pen p = new Pen(Color.Gray);
+
+            for (int y = 0; y < numOfCells; ++y)
+            {
+                g.DrawLine(p, 0, y * cellSize, numOfCells * cellSize, y * cellSize);
+            }
+
+            for (int x = 0; x < numOfCells; ++x)
+            {
+                g.DrawLine(p, x * cellSize, 0, x * cellSize, numOfCells * cellSize);
+            }
+            //g.Dispose();
+        }
+
+        #endregion
+
+        #region Плантограмма
+
+        /// <summary>
+        /// Нажатие на ComboBox на плантограмме голени
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void comboBoxPlanto1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            cameraControlPlanto3.CloseCamera();
+            try
+            {
+                monikerPlanto = _CameraChoice.Devices[comboBoxPlanto.SelectedIndex].Mon;
+                resolutionsPlanto = Camera.GetResolutionList(monikerPlanto);
+            }
+            catch (Exception)
+            {
+            }
+
+            try
+            {
+                var a1 = Properties.Settings.Default.plantoResolution;
+                var b = resolutionsPlanto.Count;
+                if (Properties.Settings.Default.plantoResolution > resolutionsPlanto.Count)
+                {
+                    try
+                    {
+                        cameraControlPlanto2.SetCamera(monikerPlanto, resolutionsPlanto[0]);
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+                else
+                {
+                    cameraControlPlanto2.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+                }
+                Properties.Settings.Default.plantoCameraIndex = comboBoxPlanto.SelectedIndex;
+                Properties.Settings.Default.Save();
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Камера запущена.";
+                pointsPlanto.Clear();
+
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
+        /// <summary>
+        /// Снимок на плантограмме голени
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button8_Click(object sender, EventArgs e)
+        {
+            pointsPlanto.Clear();
+
+            if (cameraControlPlanto2.CameraCreated)
+            {
+                sourcePlanto = img = cameraControlPlanto2.SnapshotOutputImage();
+                cameraControlPlanto2.SnapshotOutputImage();
+                cameraControlPlanto2.CloseCamera();
+                PlantPhoto2.Text = "Возобновить";
+                plantoImg2.Visible = true;
+                plantoImg2.Image = img;
+                if (cameraControlPlanto3.Width != 0)
+                {
+                    cameraControlPlanto3.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);// Не было
+                }
+                else
+                {
+                    PlantPhoto3.Text = "Возобновить";
+                }
+            }
+            else
+            {
+                PlantPhoto2.Text = "Снимок";
+                plantoImg2.Visible = false;
+                if (resolutionsPlanto != null)
+                {
+                    try
+                    {
+                        cameraControlPlanto3.CloseCamera();
+                        cameraControlPlanto2.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Кнопка снимок на вкладке плантограммы стопы
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void PlantPhoto_Click(object sender, EventArgs e)
+        {
+            if (cameraControlPlanto3.CameraCreated)
+            {
+                sourcePlanto2 = img = cameraControlPlanto3.SnapshotOutputImage();
+                cameraControlPlanto3.SnapshotOutputImage();
+                cameraControlPlanto3.CloseCamera();
+                PlantPhoto3.Text = "Возобновить";
+                plantoImg3.Visible = true;
+                plantoImg3.Image = img;
+
+            }
+            else
+            {
+                PlantPhoto3.Text = "Снимок";
+                plantoImg3.Visible = false;
+                if (resolutionsPlanto != null)
+                {
+                    try
+                    {
+                        cameraControlPlanto2.CloseCamera();
+                        cameraControlPlanto3.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+
+        }
+
+
+        /// <summary>
+        /// Стопа\Голень
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void tabControlPlanto_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+            if (plantoImg2.Visible != true)
+            {
+                PlantPhoto3.Text = "Снимок";
+
+                cameraControlPlanto3.CloseCamera();
+
+                int a = Properties.Settings.Default.plantoCameraIndex;
+                monikerPlanto = _CameraChoice.Devices[Properties.Settings.Default.plantoCameraIndex].Mon;
+                resolutionsPlanto = Camera.GetResolutionList(monikerPlanto);
+                if (Properties.Settings.Default.plantoResolution > resolutionsPlanto.Count)
+                {
+                    cameraControlPlanto2.SetCamera(monikerPlanto, resolutionsPlanto[0]);
+                }
+                else
+                {
+                    cameraControlPlanto2.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+                }
+
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Камера запущена.";
+            }
+
+            else
+            {
+                PlantPhoto3.Text = "Возобновить";
+            }
+
+
+            if (plantoImg3.Visible != true)
+            {
+
+                PlantPhoto3.Text = "Снимок";
+                cameraControlPlanto2.CloseCamera();
+                monikerPlanto = _CameraChoice.Devices[Properties.Settings.Default.plantoCameraIndex].Mon;
+                resolutionsPlanto = Camera.GetResolutionList(monikerPlanto);
+                if (Properties.Settings.Default.plantoResolution > resolutionsPlanto.Count)
+                {
+                    cameraControlPlanto3.SetCamera(monikerPlanto, resolutionsPlanto[0]);
+                }
+                else
+                {
+                    cameraControlPlanto3.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+                }
+
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Камера запущена.";
+            }
+
+            else
+            {
+                PlantPhoto3.Text = "Возобновить";
+            }
+
+        }
+
+
+        /// <summary>
+        /// Нажатие на плантограмму
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void plantoImg_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (magnifier != null)
+            {
+                magnifier.TopMost = true;
+            }
+
+            //else 
+            if (e.Button == MouseButtons.Right && pointsPlanto.Count < 3)
+            {
+                touch_flag = true;
+
+                if (sourcePlanto == null)
+                {
+
+                    sourcePlanto = new Bitmap(plantoImg.Image);
+                }
+
+                Bitmap plantoBitmap = new Bitmap(plantoImg.Width, plantoImg.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                plantoImg.DrawToBitmap(plantoBitmap, plantoImg.ClientRectangle);
+                g = Graphics.FromImage(plantoBitmap);
+                if (pointsPlanto.Count < 1)
+                {
+                    drawGrid();
+                }
+
+                drawPoint(Convert.ToInt32(e.X), Convert.ToInt32(e.Y), g);
+                pointsPlanto.Add(new Point(Convert.ToInt32(e.X), Convert.ToInt32(e.Y)));
+                if (pointsPlanto.Count > 2 && pointsPlanto.Count < 4)
+                {
+                    Pen myPen = new Pen(settingsLine);
+                    myPen.Width = 2;
+
+                    double angle = Math.Round(calculateAngleDouble(pointsPlanto[2].X, pointsPlanto[2].Y, pointsPlanto[1].X, pointsPlanto[1].Y), 2) * -1;
+                    double ang = Math.Round(90 - angle, 2) * -1;
+                    double taran = Math.Round(calculateAngleDouble(pointsPlanto[1].X, pointsPlanto[1].Y, pointsPlanto[0].X, pointsPlanto[0].Y), 2) * -1;
+
+                    g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto[1].X - 30, pointsPlanto[1].Y - 30, 60, 60), (float)(270), (float)(taran));//10-80
+                    g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto[2].X - 10, pointsPlanto[2].Y - 10, 20, 20), (float)(360 - ang), (float)(ang));//10-80
+                    g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto[2].X - 10, pointsPlanto[2].Y - 10, 20, 20), (float)(360 - ang), (float)(ang));//10-80
+
+                    g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto[1].X, pointsPlanto[1].Y, pointsPlanto[1].X, pointsPlanto[1].Y - 100);
+                    g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto[2].X, pointsPlanto[2].Y, pointsPlanto[2].X + 100, pointsPlanto[2].Y);
+                    g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto[2].X, pointsPlanto[2].Y, pointsPlanto[2].X, pointsPlanto[2].Y - 100);
+                    drawPoint(pointsPlanto[2].X, pointsPlanto[2].Y, g);
+                    drawPoint(pointsPlanto[1].X, pointsPlanto[1].Y, g);
+                    drawPoint(pointsPlanto[0].X, pointsPlanto[0].Y, g);
+
+                    g.DrawString(ang + " °.", font, brush_Green, pointsPlanto[2].X + 50, pointsPlanto[2].Y - 50);
+                    g.DrawString(angle + " °.", font, brush_Green, pointsPlanto[2].X - 50, pointsPlanto[2].Y - 50);
+                    g.DrawString(taran + " °.", font, brush_Green, pointsPlanto[1].X - 50, pointsPlanto[1].Y - 50);
+
+                    g.DrawLine(myPen, pointsPlanto[0].X + 2, pointsPlanto[0].Y + 2, pointsPlanto[1].X - 2, pointsPlanto[1].Y);
+                    g.DrawLine(myPen, pointsPlanto[1].X + 2, pointsPlanto[1].Y + 2, pointsPlanto[2].X - 2, pointsPlanto[2].Y);
+                    label35.Text = taran + "°";
+                    label9.Text = angle + "°";
+                }
+                g.Dispose();
+                plantoImg.Image = plantoBitmap;
+
+            }
+            if (e.Button == MouseButtons.Middle)
+            {
+                touch_flag = false;
+                pointsPlanto.Clear();
+                plantoImg.Image = sourcePlanto;
+
+            }
+
+            if (e.Button == MouseButtons.Left)
+            {
+
+                if (touch_flag)
+                {
+                    if (touch_adj_flag == true)
+                    {
+                        pointsPlanto.RemoveAt(adj_num);
+                        pointsPlanto.Insert(adj_num, new Point(Convert.ToInt32(e.X), Convert.ToInt32(e.Y)));
+                        plantoImg.Image = sourcePlanto;
+
+
+                        Bitmap plantoBitmap = new Bitmap(plantoImg.Width, plantoImg.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                        plantoImg.DrawToBitmap(plantoBitmap, plantoImg.ClientRectangle);
+                        g = Graphics.FromImage(plantoBitmap);
+                        drawGrid();
+                        for (int i = 0; i < pointsPlanto.Count; i++)
+                        {
+                            drawPoint(Convert.ToInt32(pointsPlanto[i].X), Convert.ToInt32(pointsPlanto[i].Y), g);
+                        }
+                        if (pointsPlanto.Count > 2 && pointsPlanto.Count < 4)
+                        {
+                            Pen myPen = new Pen(settingsLine);
+                            myPen.Width = 2;
+
+                            double angle = Math.Round(calculateAngleDouble(pointsPlanto[2].X, pointsPlanto[2].Y, pointsPlanto[1].X, pointsPlanto[1].Y), 2) * -1;
+                            double ang = Math.Round(90 - angle, 2) * -1;
+                            double taran = Math.Round(calculateAngleDouble(pointsPlanto[1].X, pointsPlanto[1].Y, pointsPlanto[0].X, pointsPlanto[0].Y), 2) * -1;
+
+                            g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto[1].X - 30, pointsPlanto[1].Y - 30, 60, 60), (float)(270), (float)(taran));//10-80
+                            g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto[2].X - 10, pointsPlanto[2].Y - 10, 20, 20), (float)(360 - ang), (float)(ang));//10-80
+                            g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto[2].X - 10, pointsPlanto[2].Y - 10, 20, 20), (float)(360 - ang), (float)(ang));//10-80
+
+                            g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto[1].X, pointsPlanto[1].Y, pointsPlanto[1].X, pointsPlanto[1].Y - 100);
+                            g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto[2].X, pointsPlanto[2].Y, pointsPlanto[2].X + 100, pointsPlanto[2].Y);
+                            g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto[2].X, pointsPlanto[2].Y, pointsPlanto[2].X, pointsPlanto[2].Y - 100);
+                            drawPoint(pointsPlanto[2].X, pointsPlanto[2].Y, g);
+                            drawPoint(pointsPlanto[1].X, pointsPlanto[1].Y, g);
+                            drawPoint(pointsPlanto[0].X, pointsPlanto[0].Y, g);
+
+                            g.DrawString(ang + " °.", font, brush_Green, pointsPlanto[2].X + 50, pointsPlanto[2].Y - 50);
+                            g.DrawString(angle + " °.", font, brush_Green, pointsPlanto[2].X - 50, pointsPlanto[2].Y - 50);
+                            g.DrawString(taran + " °.", font, brush_Green, pointsPlanto[1].X - 50, pointsPlanto[1].Y - 50);
+
+                            g.DrawLine(myPen, pointsPlanto[0].X + 2, pointsPlanto[0].Y + 2, pointsPlanto[1].X - 2, pointsPlanto[1].Y);
+                            g.DrawLine(myPen, pointsPlanto[1].X + 2, pointsPlanto[1].Y + 2, pointsPlanto[2].X - 2, pointsPlanto[2].Y);
+                            label35.Text = taran + "°";
+                            label9.Text = angle + "°";
+                        }
+                        g.Dispose();
+                        plantoImg.Image = plantoBitmap;
+
+                        touch_adj_flag = false;
+                    }
+                    else if (touch_adj_flag == false)
+                    {
+                        for (int i = 0; i < pointsPlanto.Count; i++)
+                        {
+                            if (e.X + 10 > pointsPlanto[i].X && e.X - 10 < pointsPlanto[i].X && e.Y + 10 > pointsPlanto[i].Y && e.Y - 10 < pointsPlanto[i].Y)
+                            {
+                                adj_num = i;
+                                touch_adj_flag = true;
+                            }
+                        }
+                        if (touch_adj_flag == true)
+                        {
+                            Bitmap plantoBitmap = new Bitmap(plantoImg.Width, plantoImg.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                            plantoImg.DrawToBitmap(plantoBitmap, plantoImg.ClientRectangle);
+                            g = Graphics.FromImage(plantoBitmap);
+                            drawPoint_2(Convert.ToInt32(pointsPlanto[adj_num].X), Convert.ToInt32(pointsPlanto[adj_num].Y), g);
+
+                            g.Dispose();
+                            plantoImg.Image = plantoBitmap;
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Нажатие на плантограмму 2
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void plantoImg2_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (magnifier != null)
+            {
+                magnifier.TopMost = true;
+            }
+            if (e.Button == MouseButtons.Right && setRangeRentgen)
+            {
+                if (sourcePlanto2 == null)
+                {
+                    sourcePlanto2 = new Bitmap(plantoImg3.Image);
+                }
+
+                if (pointsPlanto2Range.Count > 0)
+                {
+
+                    Bitmap plantoBitmap2 = new Bitmap(plantoImg3.Width, plantoImg3.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                    plantoImg3.DrawToBitmap(plantoBitmap2, plantoImg3.ClientRectangle);
+                    g = Graphics.FromImage(plantoBitmap2);
+                    drawPoint(Convert.ToInt32(e.X), Convert.ToInt32(e.Y), g);
+                    pointsPlanto2Range.Add(new Point(Convert.ToInt32(e.X), Convert.ToInt32(e.Y)));
+                    setRangeRentgen = false;
+
+                    Pen myPen = new Pen(settingsLine);
+                    myPen.Width = 2;
+                    g.DrawLine(myPen, pointsPlanto2Range[0].X, pointsPlanto2Range[0].Y, pointsPlanto2Range[1].X, pointsPlanto2Range[1].Y);
+                    countPixels = pointsPlanto2Range[1].X - pointsPlanto2Range[0].X;//Метка 2
+                    g.DrawString(countPixels + "pix ≈ 10 mm", font, brush_Green, pointsPlanto2Range[1].X - 35, pointsPlanto2Range[1].Y - 25);
+                    g.Dispose();
+                    plantoImg3.Image = plantoBitmap2;
+                }
+                else
+                {
+                    touch_flag = true;
+
+                    Bitmap plantoBitmap2 = new Bitmap(plantoImg3.Width, plantoImg3.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                    plantoImg3.DrawToBitmap(plantoBitmap2, plantoImg3.ClientRectangle);
+                    g = Graphics.FromImage(plantoBitmap2);
+                    double x = Convert.ToDouble(plantoBitmap2.Width) / Convert.ToDouble(plantoImg3.Width);
+                    double y = Convert.ToDouble(plantoBitmap2.Height) / Convert.ToDouble(plantoImg3.Height);
+                    pointsPlanto2Range.Add(new Point(Convert.ToInt32(e.X * x), Convert.ToInt32(e.Y * y)));
+                    drawPoint(Convert.ToInt32(e.X * x), Convert.ToInt32(e.Y * y), g);
+                    g.Dispose();
+                    plantoImg3.Image = plantoBitmap2;
+
+                }
+
+
+            }
+
+            else if (e.Button == MouseButtons.Right && pointsPlanto2.Count < 10 && pointsPlanto2Range.Count > 0)
+            {
+
+                if (sourcePlanto2 == null)
+                {
+                    sourcePlanto2 = new Bitmap(plantoImg3.Image);
+                }
+
+                Bitmap plantoBitmap2 = new Bitmap(plantoImg3.Width, plantoImg3.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                plantoImg3.DrawToBitmap(plantoBitmap2, plantoImg3.ClientRectangle);
+                g = Graphics.FromImage(plantoBitmap2);
+                double x = Convert.ToDouble(plantoBitmap2.Width) / Convert.ToDouble(plantoImg3.Width);
+                double y = Convert.ToDouble(plantoBitmap2.Height) / Convert.ToDouble(plantoImg3.Height);
+
+
+                drawPoint(Convert.ToInt32(e.X * x), Convert.ToInt32(e.Y * y), g);
+
+                pointsPlanto2.Add(new Point(Convert.ToInt32(e.X * x), Convert.ToInt32(e.Y * y)));
+                if (pointsPlanto2.Count > 1 && pointsPlanto2.Count < 3)
+                {
+
+                    Pen myPen = new Pen(settingsLine);
+                    myPen.Width = 2;
+                    g.DrawLine(myPen, pointsPlanto2[0].X, pointsPlanto2[0].Y, pointsPlanto2[1].X, pointsPlanto2[1].Y);
+                    g.DrawLine(new Pen(Color.Black, 3), pointsPlanto2[1].X, pointsPlanto2[1].Y, pointsPlanto2[1].X, pointsPlanto2[0].Y);
+                    drawPoint(pointsPlanto2[0].X, pointsPlanto2[0].Y, g);
+                    drawPoint(pointsPlanto2[1].X, pointsPlanto2[1].Y, g);
+                    double angle = Math.Round(calculateAngleDouble(pointsPlanto2[1].X, pointsPlanto2[1].Y, pointsPlanto2[0].X, pointsPlanto2[0].Y), 2);
+
+                    g.DrawArc(new Pen(Color.Black, 3), new Rectangle(pointsPlanto2[1].X - 25, pointsPlanto2[1].Y - 25, 50, 50), 270, (float)angle);
+
+                    g.DrawString(Math.Abs(angle) + " °.", font, brush_Green, pointsPlanto2[1].X - 50, pointsPlanto2[1].Y - 50);
+
+                    label17.Text = Math.Abs(angle) + " °";
+
+                }
+                else if (pointsPlanto2.Count > 4)
+                {
+
+                    Pen myPen = new Pen(settingsLine);
+                    myPen.Width = 2;
+
+                    g.DrawLine(myPen, pointsPlanto2[2].X, pointsPlanto2[2].Y, pointsPlanto2[3].X, pointsPlanto2[3].Y);
+                    g.DrawLine(myPen, pointsPlanto2[3].X, pointsPlanto2[3].Y, pointsPlanto2[4].X - 2, pointsPlanto2[3].Y);
+                    drawPoint(pointsPlanto2[2].X, pointsPlanto2[2].Y, g);
+                    drawPoint(pointsPlanto2[3].X, pointsPlanto2[3].Y, g);
+                    drawPoint(pointsPlanto2[4].X, pointsPlanto2[3].Y, g);
+                    if (countPixels != 0)
+                    {
+                        double difference = Math.Round((double)(pointsPlanto2[2].X - pointsPlanto2[3].X) / countPixels, 2);
+                        double difference2 = Math.Round((double)(pointsPlanto2[3].X - pointsPlanto2[4].X) / countPixels, 2);
+                        double difference3 = Math.Round((double)(pointsPlanto2[2].X - pointsPlanto2[4].X) / countPixels, 2);
+                        //g.DrawString(Math.Abs(difference) + " cм.", font, brush_Green, pointsPlanto2[2].X + 20, pointsPlanto2[2].Y -25);
+                        // g.DrawString(Math.Abs(difference2) + " см.", font, brush_Green, pointsPlanto2[4].X-20, pointsPlanto2[3].Y - 25);
+                        // g.DrawString(Math.Abs(difference3) + " см.", font, brush_Green, pointsPlanto2[3].X, pointsPlanto2[2].Y + 15);
+                        label26.Text = Math.Abs(difference) + " см";
+                        label28.Text = Math.Abs(difference2) + " см";
+                        label24.Text = Math.Abs(difference3) + " см";
+                    }
+
+
+                }
+                if (pointsPlanto2.Count > 6 && pointsPlanto2.Count < 8)
+                {
+                    Pen myPen = new Pen(settingsLine);
+                    myPen.Width = 2;
+                    g.DrawLine(myPen, pointsPlanto2[5].X, pointsPlanto2[5].Y, pointsPlanto2[6].X, pointsPlanto2[6].Y);
+                    g.DrawLine(new Pen(Color.Black, 3), pointsPlanto2[6].X, pointsPlanto2[6].Y, pointsPlanto2[6].X, pointsPlanto2[5].Y);
+                    drawPoint(pointsPlanto2[5].X, pointsPlanto2[5].Y, g);
+                    drawPoint(pointsPlanto2[6].X, pointsPlanto2[6].Y, g);
+
+                    // string a = calculateAngle(pointsPlanto2[1].X, pointsPlanto2[1].Y, pointsPlanto2[2].X, pointsPlanto2[2].Y);
+
+
+                    // SolidBrush brush_White = new SolidBrush(Color.White);
+                    // double v = ((double)(countPixels / sizeOfPicsels.Value));
+                    double angle = Math.Round(calculateAngleDouble(pointsPlanto2[6].X, pointsPlanto2[6].Y, pointsPlanto2[5].X, pointsPlanto2[5].Y), 2);
+
+                    g.DrawArc(new Pen(Color.Black, 3), new Rectangle(pointsPlanto2[6].X - 25, pointsPlanto2[6].Y - 25, 50, 50), 270, (float)angle);
+
+                    g.DrawString(Math.Abs(angle) + " °.", font, brush_Green, pointsPlanto2[6].X - 50, pointsPlanto2[6].Y - 50);
+
+                    label17.Text += "/" + angle + " °";
+                }
+                else if (pointsPlanto2.Count > 9)
+                {
+                    Pen myPen = new Pen(settingsLine);
+                    myPen.Width = 2;
+
+                    g.DrawLine(myPen, pointsPlanto2[7].X, pointsPlanto2[7].Y, pointsPlanto2[8].X, pointsPlanto2[8].Y);
+                    g.DrawLine(myPen, pointsPlanto2[8].X, pointsPlanto2[8].Y, pointsPlanto2[9].X - 2, pointsPlanto2[8].Y);
+                    drawPoint(pointsPlanto2[7].X, pointsPlanto2[7].Y, g);
+                    drawPoint(pointsPlanto2[8].X, pointsPlanto2[8].Y, g);
+                    drawPoint(pointsPlanto2[9].X, pointsPlanto2[8].Y, g);
+                    if (countPixels != 0)
+                    {
+                        double difference = Math.Round((double)(pointsPlanto2[7].X - pointsPlanto2[8].X) / countPixels, 2);
+                        double difference2 = Math.Round((double)(pointsPlanto2[8].X - pointsPlanto2[9].X) / countPixels, 2);
+                        double difference3 = Math.Round((double)(pointsPlanto2[7].X - pointsPlanto2[9].X) / countPixels, 2);
+                        g.DrawString(difference + " cм.", font, brush_Green, pointsPlanto2[7].X - 35, pointsPlanto2[7].Y - 25);
+                        g.DrawString(difference2 + " см.", font, brush_Green, pointsPlanto2[9].X, pointsPlanto2[8].Y - 25);
+                        g.DrawString(difference3 + " см.", font, brush_Green, pointsPlanto2[8].X, pointsPlanto2[7].Y + 15);
+                        label26.Text += "/" + difference + " см";
+                        label28.Text += "/" + difference2 + " см";
+                        label24.Text += "/" + difference3 + " см";
+                    }
+                }
+
+                g.Dispose();
+
+                plantoImg3.Image = plantoBitmap2;
+
+            }
+            if (e.Button == MouseButtons.Middle)
+            {
+                pointsPlanto2Range.Clear();
+                pointsPlanto2.Clear();
+                plantoImg3.Image = sourcePlanto3;
+            }
+
+
+            if (e.Button == MouseButtons.Left)
+            {
+                if (touch_flag)
+                {
+                    if (touch_adj_flag == true || touch_adj_flag_2 == true)
+                    {
+                        plantoImg3.Image = sourcePlanto3;
+                        Bitmap plantoBitmap2 = new Bitmap(plantoImg3.Width, plantoImg3.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                        plantoImg3.DrawToBitmap(plantoBitmap2, plantoImg3.ClientRectangle);
+                        g = Graphics.FromImage(plantoBitmap2);
+                        double x = Convert.ToDouble(plantoBitmap2.Width) / Convert.ToDouble(plantoImg3.Width);
+                        double y = Convert.ToDouble(plantoBitmap2.Height) / Convert.ToDouble(plantoImg3.Height);
+
+                        if (touch_adj_flag == true)
+                        {
+                            pointsPlanto2Range.RemoveAt(adj_num);
+                            pointsPlanto2Range.Insert(adj_num, new Point(Convert.ToInt32(e.X * x), Convert.ToInt32(e.Y * y)));
+
+                        }
+                        else
+                        {
+                            pointsPlanto2.RemoveAt(adj_num_2);
+                            pointsPlanto2.Insert(adj_num_2, new Point(Convert.ToInt32(e.X * x), Convert.ToInt32(e.Y * y)));
+
+                        }
+
+                        for (int i = 0; i < pointsPlanto2Range.Count; i++)
+                        {
+                            drawPoint(Convert.ToInt32(pointsPlanto2Range[i].X), Convert.ToInt32(pointsPlanto2Range[i].Y), g);
+                        }
+                        if (pointsPlanto2Range.Count > 0)
+                        {
+                            Pen myPen = new Pen(settingsLine);
+                            myPen.Width = 2;
+                            g.DrawLine(myPen, pointsPlanto2Range[0].X, pointsPlanto2Range[0].Y, pointsPlanto2Range[1].X, pointsPlanto2Range[1].Y);
+                            countPixels = pointsPlanto2Range[1].X - pointsPlanto2Range[0].X;//Метка 2
+                            g.DrawString(countPixels + "pix ≈ 10 mm", font, brush_Green, pointsPlanto2Range[1].X - 35, pointsPlanto2Range[1].Y - 25);
+                        }
+                        for (int i = 0; i < pointsPlanto2.Count; i++)
+                        {
+                            drawPoint(Convert.ToInt32(pointsPlanto2[i].X), Convert.ToInt32(pointsPlanto2[i].Y), g);
+                        }
+
+                        sourcePlanto2 = new Bitmap(plantoImg3.Image);
+                        if (true)
+                        {
+
+                            Pen myPen = new Pen(settingsLine);
+                            myPen.Width = 2;
+                            g.DrawLine(myPen, pointsPlanto2[0].X, pointsPlanto2[0].Y, pointsPlanto2[1].X, pointsPlanto2[1].Y);
+                            g.DrawLine(new Pen(Color.Black, 3), pointsPlanto2[1].X, pointsPlanto2[1].Y, pointsPlanto2[1].X, pointsPlanto2[0].Y);
+                            drawPoint(pointsPlanto2[0].X, pointsPlanto2[0].Y, g);
+                            drawPoint(pointsPlanto2[1].X, pointsPlanto2[1].Y, g);
+                            double angle = Math.Round(calculateAngleDouble(pointsPlanto2[1].X, pointsPlanto2[1].Y, pointsPlanto2[0].X, pointsPlanto2[0].Y), 2);
+
+                            g.DrawArc(new Pen(Color.Black, 3), new Rectangle(pointsPlanto2[1].X - 25, pointsPlanto2[1].Y - 25, 50, 50), 270, (float)angle);
+
+                            g.DrawString(Math.Abs(angle) + " °.", font, brush_Green, pointsPlanto2[1].X - 50, pointsPlanto2[1].Y - 50);
+
+                            label17.Text = Math.Abs(angle) + " °";
+
+                        }
+                        if (true)
+                        {
+
+                            Pen myPen = new Pen(settingsLine);
+                            myPen.Width = 2;
+
+                            g.DrawLine(myPen, pointsPlanto2[2].X, pointsPlanto2[2].Y, pointsPlanto2[3].X, pointsPlanto2[3].Y);
+                            g.DrawLine(myPen, pointsPlanto2[3].X, pointsPlanto2[3].Y, pointsPlanto2[4].X - 2, pointsPlanto2[3].Y);
+                            drawPoint(pointsPlanto2[2].X, pointsPlanto2[2].Y, g);
+                            drawPoint(pointsPlanto2[3].X, pointsPlanto2[3].Y, g);
+                            drawPoint(pointsPlanto2[4].X, pointsPlanto2[3].Y, g);
+                            if (countPixels != 0)
+                            {
+                                double difference = Math.Round((double)(pointsPlanto2[2].X - pointsPlanto2[3].X) / countPixels, 2);
+                                double difference2 = Math.Round((double)(pointsPlanto2[3].X - pointsPlanto2[4].X) / countPixels, 2);
+                                double difference3 = Math.Round((double)(pointsPlanto2[2].X - pointsPlanto2[4].X) / countPixels, 2);
+                                //g.DrawString(Math.Abs(difference) + " cм.", font, brush_Green, pointsPlanto2[2].X + 20, pointsPlanto2[2].Y -25);
+                                // g.DrawString(Math.Abs(difference2) + " см.", font, brush_Green, pointsPlanto2[4].X-20, pointsPlanto2[3].Y - 25);
+                                // g.DrawString(Math.Abs(difference3) + " см.", font, brush_Green, pointsPlanto2[3].X, pointsPlanto2[2].Y + 15);
+                                label26.Text = Math.Abs(difference) + " см";
+                                label28.Text = Math.Abs(difference2) + " см";
+                                label24.Text = Math.Abs(difference3) + " см";
+                            }
+
+
+                        }
+                        if (true)
+                        {
+                            Pen myPen = new Pen(settingsLine);
+                            myPen.Width = 2;
+                            g.DrawLine(myPen, pointsPlanto2[5].X, pointsPlanto2[5].Y, pointsPlanto2[6].X, pointsPlanto2[6].Y);
+                            g.DrawLine(new Pen(Color.Black, 3), pointsPlanto2[6].X, pointsPlanto2[6].Y, pointsPlanto2[6].X, pointsPlanto2[5].Y);
+                            drawPoint(pointsPlanto2[5].X, pointsPlanto2[5].Y, g);
+                            drawPoint(pointsPlanto2[6].X, pointsPlanto2[6].Y, g);
+
+                            // string a = calculateAngle(pointsPlanto2[1].X, pointsPlanto2[1].Y, pointsPlanto2[2].X, pointsPlanto2[2].Y);
+
+
+                            // SolidBrush brush_White = new SolidBrush(Color.White);
+                            // double v = ((double)(countPixels / sizeOfPicsels.Value));
+                            double angle = Math.Round(calculateAngleDouble(pointsPlanto2[6].X, pointsPlanto2[6].Y, pointsPlanto2[5].X, pointsPlanto2[5].Y), 2);
+
+                            g.DrawArc(new Pen(Color.Black, 3), new Rectangle(pointsPlanto2[6].X - 25, pointsPlanto2[6].Y - 25, 50, 50), 270, (float)angle);
+
+                            g.DrawString(Math.Abs(angle) + " °.", font, brush_Green, pointsPlanto2[6].X - 50, pointsPlanto2[6].Y - 50);
+
+                            label17.Text += "/" + angle + " °";
+                        }
+                        if (true)
+                        {
+                            Pen myPen = new Pen(settingsLine);
+                            myPen.Width = 2;
+
+                            g.DrawLine(myPen, pointsPlanto2[7].X, pointsPlanto2[7].Y, pointsPlanto2[8].X, pointsPlanto2[8].Y);
+                            g.DrawLine(myPen, pointsPlanto2[8].X, pointsPlanto2[8].Y, pointsPlanto2[9].X - 2, pointsPlanto2[8].Y);
+                            drawPoint(pointsPlanto2[7].X, pointsPlanto2[7].Y, g);
+                            drawPoint(pointsPlanto2[8].X, pointsPlanto2[8].Y, g);
+                            drawPoint(pointsPlanto2[9].X, pointsPlanto2[8].Y, g);
+                            if (countPixels != 0)
+                            {
+                                double difference = Math.Round((double)(pointsPlanto2[7].X - pointsPlanto2[8].X) / countPixels, 2);
+                                double difference2 = Math.Round((double)(pointsPlanto2[8].X - pointsPlanto2[9].X) / countPixels, 2);
+                                double difference3 = Math.Round((double)(pointsPlanto2[7].X - pointsPlanto2[9].X) / countPixels, 2);
+                                g.DrawString(difference + " cм.", font, brush_Green, pointsPlanto2[7].X - 35, pointsPlanto2[7].Y - 25);
+                                g.DrawString(difference2 + " см.", font, brush_Green, pointsPlanto2[9].X, pointsPlanto2[8].Y - 25);
+                                g.DrawString(difference3 + " см.", font, brush_Green, pointsPlanto2[8].X, pointsPlanto2[7].Y + 15);
+                                label26.Text += "/" + difference + " см";
+                                label28.Text += "/" + difference2 + " см";
+                                label24.Text += "/" + difference3 + " см";
+                            }
+                        }
+
+                        g.Dispose();
+                        plantoImg3.Image = plantoBitmap2;
+
+                        touch_adj_flag = false;
+                        touch_adj_flag_2 = false;
+                    }
+                    else if (touch_adj_flag == false & touch_adj_flag_2 == false)
+                    {
+                        Bitmap plantoBitmap2 = new Bitmap(plantoImg3.Width, plantoImg3.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                        plantoImg3.DrawToBitmap(plantoBitmap2, plantoImg3.ClientRectangle);
+                        g = Graphics.FromImage(plantoBitmap2);
+                        double x = Convert.ToDouble(plantoBitmap2.Width) / Convert.ToDouble(plantoImg3.Width);
+                        double y = Convert.ToDouble(plantoBitmap2.Height) / Convert.ToDouble(plantoImg3.Height);
+
+                        for (int i = 0; i < pointsPlanto2Range.Count; i++)
+                        {
+                            if (e.X * x + 10 > pointsPlanto2Range[i].X && e.X * x - 10 < pointsPlanto2Range[i].X && e.Y * y + 10 > pointsPlanto2Range[i].Y && e.Y * y - 10 < pointsPlanto2Range[i].Y)
+                            {
+                                adj_num = i;
+                                touch_adj_flag = true;
+
+                                drawPoint_2(Convert.ToInt32(pointsPlanto2Range[adj_num].X), Convert.ToInt32(pointsPlanto2Range[adj_num].Y), g);
+
+                                g.Dispose();
+                                plantoImg3.Image = plantoBitmap2;
+                            }
+                        }
+
+                        for (int i = 0; i < pointsPlanto2.Count; i++)
+                        {
+                            if (e.X * x + 10 > pointsPlanto2[i].X && e.X * x - 10 < pointsPlanto2[i].X && e.Y * y + 10 > pointsPlanto2[i].Y && e.Y * y - 10 < pointsPlanto2[i].Y)
+                            {
+                                adj_num_2 = i;
+                                touch_adj_flag_2 = true;
+
+                                drawPoint_2(Convert.ToInt32(pointsPlanto2[adj_num_2].X), Convert.ToInt32(pointsPlanto2[adj_num_2].Y), g);
+
+                                g.Dispose();
+                                plantoImg3.Image = plantoBitmap2;
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+        /// <summary>
+        /// Выставление соответсвия пикселей сантиметрам на плантограмме
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button2_Click(object sender, EventArgs e)
+        {
+            setRangeRentgen = true;
+        }
+
+        #endregion
+
+
+
+        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            cameraControlPosture.CloseCamera();
+            cameraControlPlanto2.CloseCamera();
+        }
+
+        private void settings_Click(object sender, EventArgs e)
+        {
+            //this.Hide();
+            Settings settings = new Settings(resolutionsPosture, resolutionsPlanto);
+            settings.TopMost = true;
+            settings.ShowDialog();
+            if (monikerPosture != null && resolutionsPosture != null && resolutionsPosture[settings.indexOfResPost] != null)
+            {
+                if (monikerPlanto != null && resolutionsPlanto[settings.indexOfResPlant] != null)
+                {
+                    try
+                    {
+                        if (settings.indexOfResPlant != 0)
+                        {
+                            cameraControlPlanto.CloseCamera();
+                            cameraControlPlanto2.CloseCamera();
+                            cameraControlPlanto3.CloseCamera();
+                            cameraControlPlanto.SetCamera(monikerPlanto, resolutionsPlanto[settings.indexOfResPlant]);
+                            Properties.Settings.Default.plantoResolution = settings.indexOfResPlant;
+                            Properties.Settings.Default.Save();
+                        }
+                    }
+                    catch (Exception)
+                    {
+
+                        status.ForeColor = Color.Red;
+                        status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                        status.Text = "Ошибка при инициализации камеры.";
+                    }
+
+                }
+                try
+                {
+                    if (settings.indexOfResPost != 0)
+                    {
+                        cameraControlPosture.CloseCamera();
+                        cameraControlPosture.SetCamera(monikerPosture, resolutionsPosture[settings.indexOfResPost]);
+                        Properties.Settings.Default.postureResolution = settings.indexOfResPost;
+                        Properties.Settings.Default.Save();
+                    }
+
+                }
+                catch (Exception)
+                {
+
+                    status.ForeColor = Color.Red;
+                    status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                    status.Text = "Ошибка при инициализации камеры.";
+                }
+
+            }
+
+            //Загрука цветов
+            brush_Grey = new SolidBrush(Properties.Settings.Default.colorLine2);
+            brush_Green = new SolidBrush(Properties.Settings.Default.colorText);
+            brush_Gold = new SolidBrush(Properties.Settings.Default.colorPoints);
+            brush_Red = new SolidBrush(Properties.Settings.Default.colorLine);
+            settingsBlack = Properties.Settings.Default.colorLine2;
+            settingsLine = Properties.Settings.Default.colorLine;
+            font = Properties.Settings.Default.fontSize;
+        }
+
+
+
+
+        /// <summary>
+        /// Рисуем кружочек, красивый такой
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="g"></param>
+        private void drawPoint(int x, int y, Graphics g)
+        {
+            int Coef = 0;
+            if (g.VisibleClipBounds.Width > 800 || g.VisibleClipBounds.Height > 500)
+            {
+                Coef = 1;
+            }
+
+            Point dPoint = new Point(x - 4 + Coef, y - 4 + Coef);
+            Point dPoint1 = new Point(x - 3 + Coef, y - 3 + Coef);
+            Point dPoint2 = new Point(x - 2 + Coef, y - 2 + Coef);
+            Rectangle rect2 = new Rectangle(dPoint2, new Size(4 + Coef, 4 + Coef));
+            Rectangle rect = new Rectangle(dPoint1, new Size(6 + Coef, 6 + Coef));
+            Rectangle rect1 = new Rectangle(dPoint, new Size(8 + Coef, 8 + Coef));
+            //g.FillRectangle(brush, rect);
+            g.FillEllipse(brush_Gold, rect1);
+            g.FillEllipse(brush_Grey, rect);
+            g.FillEllipse(brush_Gold, rect2);
+
+        }
+
+        private void drawPoint_2(int x, int y, Graphics g)
+        {
+            int Coef = 0;
+            if (g.VisibleClipBounds.Width > 800 || g.VisibleClipBounds.Height > 500)
+            {
+                Coef = 1;
+            }
+
+            Point dPoint = new Point(x - 4 + Coef, y - 4 + Coef);
+            Point dPoint1 = new Point(x - 3 + Coef, y - 3 + Coef);
+            Point dPoint2 = new Point(x - 2 + Coef, y - 2 + Coef);
+            Rectangle rect2 = new Rectangle(dPoint2, new Size(5 + Coef, 5 + Coef));
+            Rectangle rect = new Rectangle(dPoint1, new Size(7 + Coef, 7 + Coef));
+            Rectangle rect1 = new Rectangle(dPoint, new Size(9 + Coef, 9 + Coef));
+            //g.FillRectangle(brush, rect);
+            g.FillEllipse(brush_Green, rect1);
+            g.FillEllipse(brush_Grey, rect);
+            g.FillEllipse(brush_Green, rect2);
+
+        }
+
+
+        private void drawLine(int x1, int y1, int x2, int y2, Graphics g)
+        {
+
+            g.DrawLine(Pens.Red, x2, y2, x1, y1);
+        }
+
+
+        private void postureImg_MouseHover(object sender, EventArgs e)
+        {
+            postureImg.Focus();
+        }
+
+
+        /// <summary>
+        /// Нажатие на лупу
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button1_Click(object sender, EventArgs e)
+        {
+            magnifier = new Magnifier();
+            magnifier.TopMost = true;
+            magnifier.Show();
+
+        }
+
+
+        /// <summary>
+        /// Когда водим мышкой
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void pictureBox_MouseMove(object sender, MouseEventArgs e)
+        {
+            zoom();
+        }
+
+
+        /// <summary>
+        /// Пульт управления (Создание скриншота и отправка его на печать)
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void takeScreenshot_Click(object sender, EventArgs e)
+        {
+            if (serialPort.IsOpen)
+            {
+                IR ir = new IR(serialPort);
+                ir.TopMost = true;
+                ir.ShowDialog();
+            }
+
+
+
+
+
+            /*screenshot = new Bitmap(1123,794);
+            panel1.DrawToBitmap(screenshot, panel1.ClientRectangle);
+
+
+           // screenshot = new Bitmap(TakeScreenshot(), 1123, 794);
+            PrintDialog printDialog = new PrintDialog();
+            PrintDocument doc = new PrintDocument();
+            doc.PrintPage += getBitmap;
+            doc.DefaultPageSettings.Landscape = true;
+            printDialog.Document = doc;
+            if (printDialog.ShowDialog() == DialogResult.OK)
+            {
+                doc.Print();
+            }*/
+        }
+
+
+        private void getBitmap(object sender, PrintPageEventArgs e)
+        {
+            //e.Graphics.DrawImageUnscaled(screenshot, 0, 0);
+            e.Graphics.DrawImage(screenshot, 0, 0);
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+
+        void Foo()
+        {
+            mode_flag = true;
+            label2.BeginInvoke((MethodInvoker)(() => label2.Text = ""));
+            label2.BeginInvoke((MethodInvoker)(() => label46.Text = ""));
+            Invoke((MethodInvoker)delegate
+            {
+                progressBar1.Value = 0;
+                progressBar2.Value = 0;
+            });
+            count = 0;
+            rightLeg = 0;
+            leftLeg = 0;
+            x.Clear();
+            y.Clear();
+            open_eye = false;
+            close_eye = false;
+            chart1.BeginInvoke((MethodInvoker)(() => chart1.Series[0].Points.Clear()));
+            chart1.BeginInvoke((MethodInvoker)(() => chart1.Series[1].Points.Clear()));
+            start_stabilogram = true;
+
+            for (int i = 0; i < 30; i++)//Было 20
+            {
+                if (pause_task)
+                {
+                    i--;
+                }
+                open_eye = true;
+                Thread.Sleep(1000);
+                progressBar1.BeginInvoke((MethodInvoker)(() => progressBar1.Value = i * 5));
+
+            }
+            if (x.Count > 0 && y.Count > 0)
+            {
+
+                label30.BeginInvoke((MethodInvoker)(() => label30.Text = x.Sum() / x.Count + ""));
+                label27.BeginInvoke((MethodInvoker)(() => label27.Text = y.Sum() / y.Count + ""));
+            }
+            open_eye = false;
+            close_eye = true;
+            Thread.Sleep(1000);
+            x.Clear();
+            y.Clear();
+            try
+            {
+                SoundPlayer s = new SoundPlayer(ORTOS.Properties.Resources.CloseEyes);
+                s.Play();
+            }
+            catch (Exception)
+            {
+
+                MessageBox.Show("Что то пошло не так. Невозможно проговорить \"Закройте глаза\"");
+            }
+
+            if (count > 0)
+            {
+                int ll = (int)leftLeg / count;
+                int rl = (int)rightLeg / count;
+                if (rl < ll)
+                {
+                    label2.BeginInvoke((MethodInvoker)(() => label2.Text = "Давление на левую ногу " + ll + " %"));
+                }
+                else if (rl > ll)
+                {
+                    label2.BeginInvoke((MethodInvoker)(() => label2.Text = "Давление на правую ногу " + rl + " %"));
+                }
+                else
+                {
+                    label2.BeginInvoke((MethodInvoker)(() => label2.Text = "Давление одинаковое."));
+                }
+            }
+
+            pause_task = true;
+            label2.BeginInvoke((MethodInvoker)(() => button3.Text = "Продолжить"));
+            while (pause_task) { }
+            mode_flag = false;
+
+            for (int i = 0; i < 30; i++)
+            {
+                if (pause_task)
+                {
+                    i--;
+                }
+
+                Thread.Sleep(1000);
+                progressBar2.BeginInvoke((MethodInvoker)(() => progressBar2.Value = i * 5));
+            }
+            start_stabilogram = false;
+
+            if (x.Count > 0 && y.Count > 0)
+            {
+
+                label39.BeginInvoke((MethodInvoker)(() => label39.Text = x.Sum() / x.Count + ""));
+                label37.BeginInvoke((MethodInvoker)(() => label37.Text = y.Sum() / y.Count + ""));
+            }
+
+            try
+            {
+                SoundPlayer s = new SoundPlayer(ORTOS.Properties.Resources.TestEnded);
+                s.Play();
+            }
+            catch (Exception)
+            {
+
+                MessageBox.Show("Что то пошло не так. Невозможно проговорить \"Закройте глаза\"");
+            }
+
+            if (count > 0)
+            {
+                int ll = (int)leftLeg / count;
+                int rl = (int)rightLeg / count;
+                if (rl < ll)
+                {
+                    label2.BeginInvoke((MethodInvoker)(() => label46.Text = "Давление на левую ногу " + ll + " %"));
+                }
+                else if (rl > ll)
+                {
+                    label2.BeginInvoke((MethodInvoker)(() => label46.Text = "Давление на правую ногу " + rl  + " %"));
+                }
+                else
+                {
+                    label2.BeginInvoke((MethodInvoker)(() => label46.Text = "Давление одинаковое."));
+                }
+            }
+
+            label2.BeginInvoke((MethodInvoker)(() => button3.Text = "Старт"));
+
+        }
+
+        public Bitmap AppendBitmap(Bitmap source, Bitmap target, int spacing)
+        {
+            int w = Math.Max(source.Width, target.Width);
+            int h = source.Height + target.Height + spacing;
+            Bitmap bmp = new Bitmap(w, h);
+
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                g.DrawImage(source, 0, 0);
+                g.DrawImage(target, 0, source.Height + spacing);
+            }
+
+            return bmp;
+        }
+
+        private void groupBox2_SizeChanged_1(object sender, EventArgs e)
+        {
+            saveRentgen.Left = groupBox2.Width / 2 - 60;
+            label16.Left = groupBox2.Width / 2 - 20;
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+
+            Bitmap img1 = new Bitmap(panel2.Width, panel2.Height);
+            panel2.DrawToBitmap(img1, panel2.ClientRectangle);
+            Bitmap img2 = new Bitmap(panel1.Width, panel1.Height);
+            panel1.DrawToBitmap(img2, panel1.ClientRectangle);
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "jpeg files (*.jpg)|*.jpg";
+            saveFileDialog.RestoreDirectory = true;
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && img1 != null && img2 != null)
+            {
+                AppendBitmap(img1, img2, 0).Save(saveFileDialog.FileName);
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Успешно сохранено в " + saveFileDialog.FileName;
+            }
+
+        }
+
+        private void pictureBoxRent_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button10_Click(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Minimized;
+        }
+
+
+        /// <summary>
+        /// Для отслеживания подключенных в фоне устройств
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void timer2_Tick(object sender, EventArgs e)
+        {
+            _CameraChoice = new CameraChoice();
+            _CameraChoice.UpdateDeviceList();
+            if (comboBoxPosture.Items.Count < _CameraChoice.Devices.Count)
+            {
+
+                comboBoxPosture.Items.Clear();
+                comboBoxPlanto.Items.Clear();
+                foreach (var cameras in _CameraChoice.Devices)
+                {
+
+                    comboBoxPosture.Items.Add(cameras.Name);//Добавление списка камер          
+                    comboBoxPlanto.Items.Add(cameras.Name);
+
+                }
+            }
+
+            //ComPort
+            if (!serialPort.IsOpen)
+            {
+
+                try
+                {
+
+
+                    ManagementObjectCollection ManObjReturn;
+                    ManagementObjectSearcher ManObjSearch;
+                    ManObjSearch = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity WHERE Manufacturer like 'FTDI'");
+                    ManObjReturn = ManObjSearch.Get();
+
+                    foreach (ManagementObject ManObj in ManObjReturn)
+                    {
+                        if (ManObj["Caption"].ToString().Contains("(COM"))
+                        {
+
+                            var portnames = SerialPort.GetPortNames();
+                            foreach (String port in portnames)
+                            {
+
+                                if (ManObj["Caption"].ToString().Contains(port))
+                                {
+                                    serialPort.PortName = port;
+                                }
+
+                            }
+
+                            serialPort.BaudRate = 9600;    //9600   
+                                                           //serialPort.DtrEnable = true;  // <<< For Leonardo
+                                                           //serialPort.RtsEnable = true;  // <<< For Leonardo
+                            serialPort.Open();
+                            serialPort.DataReceived += serialPort_DataReceived;
+                        }
+                    }
+
+                }
+                catch (Exception)
+                {
+                }
+                try
+                {
+
+                    ManagementObjectCollection ManObjReturn;
+                    ManagementObjectSearcher ManObjSearch;
+                    ManObjSearch = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity WHERE Manufacturer like 'wch.cn'");
+                    ManObjReturn = ManObjSearch.Get();
+
+                    foreach (ManagementObject ManObj in ManObjReturn)
+                    {
+                        if (ManObj["Caption"].ToString().Contains("(COM"))
+                        {
+                            var portnames = SerialPort.GetPortNames();
+                            foreach (String port in portnames)
+                            {
+                                if (ManObj["Caption"].ToString().Contains(port))
+                                {
+                                    serialPort.PortName = port;
+                                }
+                            }
+                            serialPort.BaudRate = 9600;    //9600   
+                                                           //serialPort.DtrEnable = true;  // <<< For Leonardo
+                                                           //serialPort.RtsEnable = true;  // <<< For Leonardo
+                            serialPort.Open();
+                            serialPort.DataReceived += serialPort_DataReceived;
+
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
+            }
+        }
+        /// <summary>
+        /// Undo Button
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        /// 
+        private void button11_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button11_Click_1(object sender, EventArgs e)
+        {
+
+            if (serialPort.IsOpen)
+            {
+
+                serialPort.Write("0");
+            }
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+
+            sourceStab = new Bitmap(groupBox3.Width, groupBox3.Height);
+            groupBox3.DrawToBitmap(sourceStab, groupBox3.ClientRectangle);
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "jpeg files (*.jpg)|*.jpg";
+            saveFileDialog.RestoreDirectory = true;
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && sourceStab != null)
+            {
+                sourceStab.Save(saveFileDialog.FileName);
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Успешно сохранено в " + saveFileDialog.FileName;
+            }
+        }
+
+        private void comboBoxPosture_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+            try
+            {
+                cameraControlPlanto.CloseCamera();
+                monikerPosture = _CameraChoice.Devices[comboBoxPosture.SelectedIndex].Mon;
+                resolutionsPosture = Camera.GetResolutionList(monikerPosture);
+            }
+            catch (Exception)
+            {
+            }
+
+            try
+            {
+                if (Properties.Settings.Default.postureResolution > resolutionsPosture.Count)
+                {
+                    cameraControlPosture.SetCamera(monikerPosture, resolutionsPosture[0]);
+                }
+                else
+                {
+                    cameraControlPosture.SetCamera(monikerPosture, resolutionsPosture[Properties.Settings.Default.postureResolution]);
+                }
+
+                Properties.Settings.Default.postureCameraIndex = comboBoxPosture.SelectedIndex;
+                Properties.Settings.Default.Save();
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Камера запущена.";
+
+                pointsPosture.Clear();
+
+
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
+        private void savePosture_Click_1(object sender, EventArgs e)
+        {
+            cameraControlPosture.Visible = false;
+            Bitmap imgPosture = new Bitmap(groupBox1.Width, groupBox1.Height);
+            groupBox1.DrawToBitmap(imgPosture, groupBox1.ClientRectangle);
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "jpeg files (*.jpg)|*.jpg";
+            saveFileDialog.RestoreDirectory = true;
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && imgPosture != null)
+            {
+                imgPosture.Save(saveFileDialog.FileName);
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Успешно сохранено в " + saveFileDialog.FileName;
+            }
+
+        }
+
+        private void richTextBox3_TextChanged(object sender, EventArgs e)
+        {
+            calcDiff();
+        }
+
+        private void richTextBox4_TextChanged(object sender, EventArgs e)
+        {
+            calcDiff();
+        }
+
+        private void comboBoxPlanto1_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void comboBoxPlanto_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+            try
+            {
+                //cameraControlPosture.CloseCamera();
+                monikerPlanto = _CameraChoice.Devices[comboBoxPlanto.SelectedIndex].Mon;
+                resolutionsPlanto = Camera.GetResolutionList(monikerPlanto);
+            }
+            catch (Exception)
+            {
+            }
+
+            try
+            {
+                if (Properties.Settings.Default.plantoResolution > resolutionsPlanto.Count)
+                {
+                    cameraControlPlanto.SetCamera(monikerPlanto, resolutionsPlanto[0]);
+
+                }
+                else
+                {
+                    cameraControlPlanto.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+                }
+                Properties.Settings.Default.plantoCameraIndex = comboBoxPlanto.SelectedIndex;
+                Properties.Settings.Default.Save();
+                int a = Properties.Settings.Default.plantoCameraIndex;
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Камера запущена.";
+
+                pointsPlanto.Clear();
+
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
+        private void PlantPhoto_Click_1(object sender, EventArgs e)
+        {
+
+            if (cameraControlPlanto.CameraCreated)
+            {
+                sourcePlanto = img = cameraControlPlanto.SnapshotOutputImage();
+                cameraControlPlanto.CloseCamera();
+                PlantPhoto.Text = "Возобновить";
+                plantoImg2.Visible = false;
+                plantoImg.Image = img;
+                plantoImg.Visible = true;
+                cameraControlPlanto.Visible = false;
+
+                try
+                {
+                    if (Properties.Settings.Default.plantoResolution > resolutionsPlanto.Count)
+                    {
+                        cameraControlPlanto2.SetCamera(monikerPlanto, resolutionsPlanto[0]);
+                    }
+                    else
+                    {
+                        cameraControlPlanto2.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+                    }
+                }
+                catch (Exception e2)
+                {
+                    status.Text = "Planto2: " + e2.Message;
+                }
+
+            }
+
+            else
+            {
+                pointsPlanto.Clear();
+                pointsPlanto1.Clear();
+                PlantPhoto.Text = "Снимок";
+                plantoImg.Visible = false;
+                cameraControlPlanto.Visible = true;
+                cameraControlPlanto2.Visible = true;
+                cameraControlPlanto3.Visible = true;
+                plantoImg2.Visible = false;
+                plantoImg3.Visible = false;
+
+                cameraControlPlanto2.CloseCamera();
+                cameraControlPlanto3.CloseCamera();
+
+
+                try
+                {
+                    if (Properties.Settings.Default.plantoResolution > resolutionsPlanto.Count)
+                    {
+                        cameraControlPlanto.SetCamera(monikerPlanto, resolutionsPlanto[0]);
+                    }
+                    else
+                    {
+                        cameraControlPlanto.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+                    }
+
+                }
+                catch (Exception e3)
+                {
+                    status.Text = "Planto: " + e3.Message;
+                }
+
+            }
+        }
+
+        private void PlantPhoto2_Click(object sender, EventArgs e)
+        {
+
+            if (cameraControlPlanto2.CameraCreated)
+            {
+                sourcePlanto2 = img = cameraControlPlanto2.SnapshotOutputImage();
+                cameraControlPlanto2.CloseCamera();
+                plantoImg2.Visible = true;
+                cameraControlPlanto2.Visible = false;
+                plantoImg3.Visible = false;
+                plantoImg2.Image = img;
+
+                try
+                {
+                    if (Properties.Settings.Default.plantoResolution > resolutionsPlanto.Count)
+                    {
+                        cameraControlPlanto3.SetCamera(monikerPlanto, resolutionsPlanto[0]);
+                    }
+                    else
+                    {
+                        cameraControlPlanto3.SetCamera(monikerPlanto, resolutionsPlanto[Properties.Settings.Default.plantoResolution]);
+                    }
+                }
+                catch (Exception e2)
+                {
+                    status.Text = "Planto3: " + e2.Message;
+                }
+
+
+
+            }
+
+        }
+
+        private void splitContainer1_SplitterMoved(object sender, SplitterEventArgs e)
+        {
+
+        }
+
+        private void tareButton_Click(object sender, EventArgs e)
+        {
+            if (serialPort.IsOpen)
+            {
+
+                serialPort.Write("0");
+            }
+        }
+
+        private void button3_Click_1(object sender, EventArgs e)
+        {
+            if (button3.Text == "Продолжить")
+            {
+                pause_task = false;
+                button3.Text = "Пауза";
+            }
+            else if (button3.Text == "Пауза")
+            {
+                pause_task = true;
+                button3.Text = "Продолжить";
+            }
+
+            else if (button3.Text == "Старт")
+            {
+                button3.Text = "Пауза";
+                label30.Text = "";
+                label27.Text = "";
+                label39.Text = "";
+                label37.Text = "";
+                Task.Factory.StartNew(() => Foo(), TaskCreationOptions.LongRunning);
+            }
+
+
+        }
+
+        private void button5_Click_1(object sender, EventArgs e)
+        {
+
+            sourceStab = new Bitmap(groupBox3.Width, groupBox3.Height);
+            groupBox3.DrawToBitmap(sourceStab, groupBox3.ClientRectangle);
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "jpeg files (*.jpg)|*.jpg";
+            saveFileDialog.RestoreDirectory = true;
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && sourceStab != null)
+            {
+                sourceStab.Save(saveFileDialog.FileName);
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Успешно сохранено в " + saveFileDialog.FileName;
+            }
+        }
+
+
+
+        private void savePlanto3_Click(object sender, EventArgs e)
+        {
+            Bitmap imgPosture = new Bitmap(groupBox4.Width, groupBox4.Height);
+            groupBox4.DrawToBitmap(imgPosture, groupBox4.ClientRectangle);
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "jpeg files (*.jpg)|*.jpg";
+            saveFileDialog.RestoreDirectory = true;
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && imgPosture != null)
+            {
+                imgPosture.Save(saveFileDialog.FileName);
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Успешно сохранено в " + saveFileDialog.FileName;
+            }
+        }
+
+        private void savePlanto2_Click(object sender, EventArgs e)
+        {
+
+            Bitmap imgPosture = new Bitmap(groupBox5.Width, groupBox5.Height);
+            groupBox5.DrawToBitmap(imgPosture, groupBox5.ClientRectangle);
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "jpeg files (*.jpg)|*.jpg";
+            saveFileDialog.RestoreDirectory = true;
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && imgPosture != null)
+            {
+                imgPosture.Save(saveFileDialog.FileName);
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Успешно сохранено в " + saveFileDialog.FileName;
+            }
+
+        }
+
+        private void savePlanto_Click_1(object sender, EventArgs e)
+        {
+            Bitmap imgPosture = new Bitmap(groupBox10.Width, groupBox10.Height);
+            groupBox10.DrawToBitmap(imgPosture, groupBox10.ClientRectangle);
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "jpeg files (*.jpg)|*.jpg";
+            saveFileDialog.RestoreDirectory = true;
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && imgPosture != null)
+            {
+                imgPosture.Save(saveFileDialog.FileName);
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Успешно сохранено в " + saveFileDialog.FileName;
+            }
+
+        }
+
+        private void plantoImg2_MouseClick_1(object sender, MouseEventArgs e)
+        {
+            if (magnifier != null)
+            {
+                magnifier.TopMost = true;
+            }
+
+            if (e.Button == MouseButtons.Right && pointsPlanto1.Count < 3)
+            {
+                touch_flag = true;
+
+                if (sourcePlanto2 == null)
+                {
+
+                    sourcePlanto2 = new Bitmap(plantoImg2.Image);
+                }
+
+                Bitmap plantoBitmap2 = new Bitmap(plantoImg2.Width, plantoImg2.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                plantoImg2.DrawToBitmap(plantoBitmap2, plantoImg2.ClientRectangle);
+                g = Graphics.FromImage(plantoBitmap2);
+                if (pointsPlanto1.Count < 1)
+                {
+                    drawGrid();
+                }
+
+
+                drawPoint(Convert.ToInt32(e.X), Convert.ToInt32(e.Y), g);
+                pointsPlanto1.Add(new Point(Convert.ToInt32(e.X), Convert.ToInt32(e.Y)));
+                if (pointsPlanto1.Count > 2)
+                {
+                    Pen myPen = new Pen(settingsLine);
+                    myPen.Width = 2;
+
+
+                    double angle = Math.Round(calculateAngleDouble(pointsPlanto1[2].X, pointsPlanto1[2].Y, pointsPlanto1[1].X, pointsPlanto1[1].Y), 2);
+                    double ang = Math.Round(90 - angle, 2);
+                    double taran = Math.Round(calculateAngleDouble(pointsPlanto1[1].X, pointsPlanto1[1].Y, pointsPlanto1[0].X, pointsPlanto1[0].Y), 2);
+
+
+                    g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto1[1].X - 30, pointsPlanto1[1].Y - 30, 60, 60), (float)(270), (float)(taran));//10-80
+                    g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto1[2].X - 10, pointsPlanto1[2].Y - 10, 20, 20), (float)(360 - ang), (float)(ang));//10-80
+                    g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto1[2].X - 10, pointsPlanto1[2].Y - 10, 20, 20), (float)(360 - ang), (float)(ang));//10-80
+
+                    g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto1[1].X, pointsPlanto1[1].Y, pointsPlanto1[1].X, pointsPlanto1[1].Y - 100);
+                    g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto1[2].X, pointsPlanto1[2].Y, pointsPlanto1[2].X + 100, pointsPlanto1[2].Y);
+                    g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto1[2].X, pointsPlanto1[2].Y, pointsPlanto1[2].X, pointsPlanto1[2].Y - 100);
+                    drawPoint(pointsPlanto1[2].X, pointsPlanto1[2].Y, g);
+                    drawPoint(pointsPlanto1[1].X, pointsPlanto1[1].Y, g);
+                    drawPoint(pointsPlanto1[0].X, pointsPlanto1[0].Y, g);
+
+                    g.DrawString(ang + " °.", font, brush_Green, pointsPlanto1[2].X + 50, pointsPlanto1[2].Y - 50);
+                    g.DrawString(angle + " °.", font, brush_Green, pointsPlanto1[2].X - 50, pointsPlanto1[2].Y - 50);
+                    g.DrawString(taran + " °.", font, brush_Green, pointsPlanto1[1].X - 50, pointsPlanto1[1].Y - 50);
+
+                    g.DrawLine(myPen, pointsPlanto1[0].X + 2, pointsPlanto1[0].Y + 2, pointsPlanto1[1].X - 2, pointsPlanto1[1].Y);
+                    g.DrawLine(myPen, pointsPlanto1[1].X + 2, pointsPlanto1[1].Y + 2, pointsPlanto1[2].X - 2, pointsPlanto1[2].Y);
+                    label7.Text = angle + "°";
+                    label3.Text = taran + "°";
+
+                }
+
+                g.Dispose();
+                plantoImg2.Image = plantoBitmap2;
+
+            }
+            if (e.Button == MouseButtons.Middle)
+            {
+                pointsPlanto1.Clear();
+                plantoImg2.Image = sourcePlanto2;
+                touch_flag = false;
+            }
+            if (e.Button == MouseButtons.Left)
+            {
+                if (touch_flag)
+                {
+                    if (touch_adj_flag == true)
+                    {
+                        pointsPlanto1.RemoveAt(adj_num);
+                        pointsPlanto1.Insert(adj_num, new Point(Convert.ToInt32(e.X), Convert.ToInt32(e.Y)));
+                        plantoImg2.Image = sourcePlanto2;
+
+                        Bitmap plantoBitmap2 = new Bitmap(plantoImg2.Width, plantoImg2.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                        plantoImg2.DrawToBitmap(plantoBitmap2, plantoImg2.ClientRectangle);
+                        g = Graphics.FromImage(plantoBitmap2);
+                        drawGrid();
+                        for (int i = 0; i < pointsPlanto1.Count; i++)
+                        {
+                            drawPoint(Convert.ToInt32(pointsPlanto1[i].X), Convert.ToInt32(pointsPlanto1[i].Y), g);
+                        }
+                        if (pointsPlanto1.Count > 2 && pointsPlanto1.Count < 4)
+                        {
+                            Pen myPen = new Pen(settingsLine);
+                            myPen.Width = 2;
+
+
+                            double angle = Math.Round(calculateAngleDouble(pointsPlanto1[2].X, pointsPlanto1[2].Y, pointsPlanto1[1].X, pointsPlanto1[1].Y), 2);
+                            double ang = Math.Round(90 - angle, 2);
+                            double taran = Math.Round(calculateAngleDouble(pointsPlanto1[1].X, pointsPlanto1[1].Y, pointsPlanto1[0].X, pointsPlanto1[0].Y), 2);
+
+
+                            g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto1[1].X - 30, pointsPlanto1[1].Y - 30, 60, 60), (float)(270), (float)(taran));//10-80
+                            g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto1[2].X - 10, pointsPlanto1[2].Y - 10, 20, 20), (float)(360 - ang), (float)(ang));//10-80
+                            g.DrawArc(new Pen(settingsBlack, 3), new Rectangle(pointsPlanto1[2].X - 10, pointsPlanto1[2].Y - 10, 20, 20), (float)(360 - ang), (float)(ang));//10-80
+
+                            g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto1[1].X, pointsPlanto1[1].Y, pointsPlanto1[1].X, pointsPlanto1[1].Y - 100);
+                            g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto1[2].X, pointsPlanto1[2].Y, pointsPlanto1[2].X + 100, pointsPlanto1[2].Y);
+                            g.DrawLine(new Pen(settingsBlack, 3), pointsPlanto1[2].X, pointsPlanto1[2].Y, pointsPlanto1[2].X, pointsPlanto1[2].Y - 100);
+                            drawPoint(pointsPlanto1[2].X, pointsPlanto1[2].Y, g);
+                            drawPoint(pointsPlanto1[1].X, pointsPlanto1[1].Y, g);
+                            drawPoint(pointsPlanto1[0].X, pointsPlanto1[0].Y, g);
+
+                            g.DrawString(ang + " °.", font, brush_Green, pointsPlanto1[2].X + 50, pointsPlanto1[2].Y - 50);
+                            g.DrawString(angle + " °.", font, brush_Green, pointsPlanto1[2].X - 50, pointsPlanto1[2].Y - 50);
+                            g.DrawString(taran + " °.", font, brush_Green, pointsPlanto1[1].X - 50, pointsPlanto1[1].Y - 50);
+
+                            g.DrawLine(myPen, pointsPlanto1[0].X + 2, pointsPlanto1[0].Y + 2, pointsPlanto1[1].X - 2, pointsPlanto1[1].Y);
+                            g.DrawLine(myPen, pointsPlanto1[1].X + 2, pointsPlanto1[1].Y + 2, pointsPlanto1[2].X - 2, pointsPlanto1[2].Y);
+                            label7.Text = angle + "°";
+                            label3.Text = taran + "°";
+                        }
+                        g.Dispose();
+                        plantoImg2.Image = plantoBitmap2;
+
+                        touch_adj_flag = false;
+                    }
+                    else if (touch_adj_flag == false)
+                    {
+                        for (int i = 0; i < pointsPlanto1.Count; i++)
+                        {
+                            if (e.X + 10 > pointsPlanto1[i].X && e.X - 10 < pointsPlanto1[i].X && e.Y + 10 > pointsPlanto1[i].Y && e.Y - 10 < pointsPlanto1[i].Y)
+                            {
+                                adj_num = i;
+                                touch_adj_flag = true;
+                            }
+                        }
+                        if (touch_adj_flag == true)
+                        {
+                            Bitmap plantoBitmap2 = new Bitmap(plantoImg2.Width, plantoImg2.Height);//new Bitmap(sourceRentgen.Width, sourceRentgen.Height);
+                            plantoImg2.DrawToBitmap(plantoBitmap2, plantoImg2.ClientRectangle);
+                            g = Graphics.FromImage(plantoBitmap2);
+                            drawPoint_2(Convert.ToInt32(pointsPlanto1[adj_num].X), Convert.ToInt32(pointsPlanto1[adj_num].Y), g);
+
+                            g.Dispose();
+                            plantoImg2.Image = plantoBitmap2;
+                        }
+                    }
+                }
+            }
+
+        }
+
+        private void saveRentgen_Click(object sender, EventArgs e)
+        {
+
+            Bitmap imgRent = new Bitmap(groupBox2.Width, groupBox2.Height);
+            groupBox2.DrawToBitmap(imgRent, groupBox2.ClientRectangle);
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "jpeg files (*.jpg)|*.jpg";
+            saveFileDialog.RestoreDirectory = true;
+            if (saveFileDialog.ShowDialog() == DialogResult.OK && imgRent != null)
+            {
+                imgRent.Save(saveFileDialog.FileName);
+                status.ForeColor = Color.Green;
+                status.Font = new Font("Microsoft Sans Serif", 8, FontStyle.Regular);
+                status.Text = "Успешно сохранено в " + saveFileDialog.FileName;
+            }
+        }
+
+        private void printDocument1_PrintPage(object sender, PrintPageEventArgs e)
+        {
+            e.Graphics.DrawImage(screenshot, 0, 0);
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+
+            calcDiff();
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            calcDiff();
+        }
+
+        private void postureImg_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void chart1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label46_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void chart3_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void label46_Click_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void PlantPhoto3_Click(object sender, EventArgs e)
+        {
+
+            if (cameraControlPlanto3.CameraCreated)
+            {
+                sourcePlanto3 = img = cameraControlPlanto3.SnapshotOutputImage();
+                cameraControlPlanto3.CloseCamera();
+                plantoImg3.Visible = true;
+                cameraControlPlanto3.Visible = false;
+                plantoImg3.Image = img;
+            }
+        }
+
+        private Bitmap TakeScreenshot()
+        {
+            //Create a new bitmap.
+            var bmpScreenshot = new Bitmap(Screen.PrimaryScreen.Bounds.Width,
+                                           Screen.PrimaryScreen.Bounds.Height,
+                                           System.Drawing.Imaging.PixelFormat.Format32bppArgb);//Screen.PrimaryScreen.Bounds.Width,
+                                                                                               //Screen.PrimaryScreen.Bounds.Height,
+
+            // Create a graphics object from the bitmap.
+            using (var gfxScreenshot = Graphics.FromImage(bmpScreenshot))
+            {
+                // Take the screenshot from the upper left corner to the right bottom corner.
+                gfxScreenshot.CopyFromScreen(Screen.PrimaryScreen.Bounds.X,
+                                        Screen.PrimaryScreen.Bounds.Y,
+                                        0,
+                                        0,
+                                        Screen.PrimaryScreen.Bounds.Size,
+                                        CopyPixelOperation.SourceCopy);
+            }
+
+            return bmpScreenshot;
+        }
+
+
+        /// <summary>
+        /// Отправка зумированного изображения в окно
+        /// </summary>
+        private void zoom()
+        {
+            if (magnifier != null)
+            {
+                magnifier.TopMost = true;
+                PictureBox magnifPic = magnifier.getPictureBox();
+                Bit = new Bitmap(magnifPic.Width / Zoom, magnifPic.Height / Zoom, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                Graf = Graphics.FromImage(Bit);
+                Graf.CopyFromScreen(MousePosition.X - magnifPic.Width / (Zoom * 2), MousePosition.Y - magnifPic.Height / (Zoom * 2), 0, 0, magnifPic.Size, CopyPixelOperation.SourceCopy);
+
+                drawLine(magnifPic.Width / 4, 0, magnifPic.Width / 4, magnifPic.Height / 4 - 3, Graf);
+                drawLine(magnifPic.Width / 4, magnifPic.Height / 4 + 3, magnifPic.Width / 4, magnifPic.Height, Graf);
+                //drawLine(magnifPic.Width / 4, magnifPic.Height/2+3, magnifPic.Width / 4, magnifPic.Width, Graf);
+
+                drawLine(0, magnifPic.Height / 4, magnifPic.Width / 4 - 3, magnifPic.Height / 4, Graf);
+                drawLine(magnifPic.Width / 4 + 3, magnifPic.Height / 4, magnifPic.Width, magnifPic.Height / 4, Graf);
+                magnifier.showImage(Bit);
+            }
+        }
+
+
+        void calcDiff()
+        {
+            double a = 0;
+            try
+            {
+                a = Math.Round((double)(Convert.ToDouble(textBox1.Text) - Convert.ToDouble(textBox3.Text)), 2);
+            }
+            catch (Exception)
+            {
+
+            }
+            if (a > 0)
+            {
+                label16.Text = "Л - " + Math.Abs(a);
+            }
+            if (a < 0)
+            {
+                label16.Text = "П - " + Math.Abs(a);
+            }
+
+        }
+
+
+        private string calculateAngle(int x1, int y1, int x2, int y2)
+        {
+            float xDiff = x2 - x1;
+            float yDiff = y2 - y1;
+            double angle = Math.Atan2(y: yDiff, x: xDiff) * 180.0 / Math.PI;
+            if (angle < 0)
+            {
+
+                return "Смещено влево на " + Convert.ToString(Math.Round(Math.Abs(angle), 1)) + "°";
+            }
+            else
+            {
+                return "Смещено вправо на " + Convert.ToString(Math.Round(angle, 1)) + "°";
+            }
+        }
+
+        private double calculateAngleDouble(int x1, int y1, int x2, int y2)
+        {
+            float xDiff = x2 - x1;
+            float yDiff = y2 - y1;
+            double angle = Math.Atan2(y: yDiff, x: xDiff) * 180.0 / Math.PI;
+
+            return 90 + Math.Round(angle, 1);
+
+        }
+
+        private PointF[] getAveragePoints()
+        {
+            PointF[] a = new PointF[7];
+            a[0] = new PointF(pointsPosture[1].X - (pointsPosture[1].X - pointsPosture[0].X) / 2, 0);
+            a[1] = new PointF(pointsPosture[1].X - (pointsPosture[1].X - pointsPosture[0].X) / 2, pointsPosture[1].Y - (pointsPosture[1].Y - pointsPosture[0].Y) / 2);
+            a[2] = new PointF(pointsPosture[3].X - (pointsPosture[3].X - pointsPosture[2].X) / 2, pointsPosture[3].Y - (pointsPosture[3].Y - pointsPosture[2].Y) / 2);
+            a[3] = new PointF(pointsPosture[5].X - (pointsPosture[5].X - pointsPosture[4].X) / 2, pointsPosture[5].Y - (pointsPosture[5].Y - pointsPosture[4].Y) / 2);
+            a[4] = new PointF(pointsPosture[7].X - (pointsPosture[7].X - pointsPosture[6].X) / 2, pointsPosture[7].Y - (pointsPosture[7].Y - pointsPosture[6].Y) / 2);
+            a[5] = new PointF(pointsPosture[9].X - (pointsPosture[9].X - pointsPosture[8].X) / 2, pointsPosture[9].Y - (pointsPosture[9].Y - pointsPosture[8].Y) / 2);
+            a[6] = new PointF(pointsPosture[9].X - (pointsPosture[9].X - pointsPosture[8].X) / 2, postureImg.Height);
+
+            return a;
+        }
+
+
+
+        private void exit_Click(object sender, EventArgs e)
+        {
+            cameraControlPlanto2.CloseCamera();
+            cameraControlPosture.CloseCamera();
+            Application.Exit();
+        }
+    }
+
+
+
+
+    public class VerticalProgressBar : ProgressBar
+    {
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams cp = base.CreateParams;
+                cp.Style |= 0x04;
+                return cp;
+            }
+        }
+    }
+
+}

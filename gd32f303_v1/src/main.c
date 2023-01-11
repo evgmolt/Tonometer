@@ -159,10 +159,7 @@ mode device:
 7 - send save buff msg
 8 -
 */
-
-
-
-uint8_t mode = modeInitStart;
+uint8_t mode=0;
 
 uint8_t sim800_FLAG=0;
 uint8_t rang_bat_old=99;
@@ -253,6 +250,8 @@ void nvic_config_2(void)
     nvic_irq_enable(TIMER2_IRQn, 1, 1);
 }
 
+
+
 int main(void)
 {
 		uint16_t i;	
@@ -305,7 +304,7 @@ int main(void)
 		ILI9341_Init();
 		ILI9341_Touch_init();
 		
-		if (mode == modeUsbCharging){
+		if (mode==4){
 				ILI9341_FillScreen(ILI9341_BLACK);
 				ILI9341_FillRectangle(50, 150, 150, 70, ILI9341_BLACK);
 				ILI9341_FillRectangle(52, 152, 146, 66, ILI9341_WHITE);
@@ -317,9 +316,11 @@ int main(void)
 		button_interrupt_config();
 		
 		uint8_t buff2[10]={0};
-		EN_BUTT_FLAG=1;			
+		EN_BUTT_FLAG=1;
+		
+			
 
-		if (mode == modeInitStart){		
+		if (mode==0){		
 		ILI9341_DrawImage(72, 279, 31, 30, (const uint16_t*)heart);
 		ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);
 		ILI9341_DrawImage(22, 258, 29, 18, (const uint16_t*)gsm);
@@ -330,7 +331,7 @@ int main(void)
 		print_num_H(888,235,120,RED);
 		print_num_H(888,235,250,BLACK);		
 		}
-		else if (mode == modePressureTest){
+		else if (mode==5){
 				ILI9341_FillRectangle(70, 150, 100, 50, ILI9341_WHITE);
 		}	
 		
@@ -403,13 +404,13 @@ int main(void)
 		//time_set(23,59,55);
 		//write_backup_register(cur_day, cur_month, cur_year);		
 		
-		if (mode == modeInitStart) mode = modeStartScreen;
+		if (mode==0) mode=1;
 	
     while (1) {	
 			
 			//boot_mode();
 			
-			if (mode == modeKeyOff){				
+			if (mode==2){				
 					device_OFF();
 			}
 			
@@ -456,7 +457,7 @@ int main(void)
 			*/
 			
 			
-			if (mode == modePumpingMeasurement){
+			if (mode==3){
 					ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
 					comp_ON;
 					valve_1_ON;
@@ -472,16 +473,16 @@ int main(void)
 							silence_time_start=0;
 							_maxD=0;							
 							puls_counter=0;						
-							mode = modeMeasurement;		
+							mode=6;		
 					}						
 			}	
-			else if (mode == modeStartScreen){	
+			else if (mode==1){	
 					//clear_monitor();
 					comp_OFF;
 					valve_1_OFF;
 					valve_2_OFF;						
 			}
-			else if (mode == modeMeasurement){				
+			else if (mode==6){				
 					if (i2c_out_norm>=0 & i2c_out_norm<400) print_num_H(i2c_out_norm,235,120,RED);
 					comp_OFF;
 					valve_2_OFF;
@@ -538,18 +539,18 @@ int main(void)
 							
 							valve_1_OFF;
 							valve_2_OFF;
-							mode = modeSendSaveBuffMsg;								
+							mode=7;								
 							timer_1_start();
 					}					
 			}
-			else if (mode == modePressureTest){	
+			else if (mode==5){	
 					convert_NO_save();
 					print_num_H(i2c_out_norm,235,10,YELLOW);
 					//print_num_H(i2c_out_norm,235,120,RED);
 					usb_send_16(i2c_out,0);
 					delay_1ms(200);
 			}
-			else if (mode == modeUsbCharging){	
+			else if (mode==4){	
 					if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
 					print_bat_charg();				
 					delay_1ms(2000);				
@@ -1661,11 +1662,11 @@ uint8_t boot_mode(void){
 				delay_1ms(10);
 				if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)){
 						gpio_bit_set(GPIOC, GPIO_PIN_9);	
-						mode = modeInitStart;
+						mode=0;
 				}
 				else if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)){
 						//gpio_bit_set(GPIOC, GPIO_PIN_9);	
-						mode = modeUsbCharging;
+						mode=4;
 				}
 		}
 }
