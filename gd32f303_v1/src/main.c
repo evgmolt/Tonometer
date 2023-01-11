@@ -70,6 +70,7 @@ OF SUCH DAMAGE.
 
 
 #define NCoef 2 
+#define AVER_SIZE 10
 
 /* enter the second interruption,set the second interrupt flag to 1 */
 __IO uint32_t timedisplay;
@@ -137,7 +138,10 @@ int16_t XMax = 0;
 int DerivativeShift = 13;
 int DerivativeAverageWidth = 4;
 
-int16_t i2c_out_norm=0;
+int16_t CurrentPressure=0;
+int16_t ArrayForAver[AVER_SIZE] = {0};
+int8_t ArrayForAverIndex = 0;
+
 int16_t i2c_out=0;
 int i2c_out_K=0;
 uint8_t indicate_charge_toggle=1;
@@ -453,7 +457,7 @@ int main(void)
 			ILI9341_WriteString(5, 200, buff2, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
 			sprintf(buff2,"%2d",EN_BUTT_count);
 			ILI9341_WriteString(5, 220, buff2, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-			//sprintf(buff2,"%3d",i2c_out_norm);
+			//sprintf(buff2,"%3d",CurrentPressure);
 			//ILI9341_WriteString(5, 240, buff2, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
 			*/
 			
@@ -464,9 +468,9 @@ int main(void)
 					valve_1_ON;
 					valve_2_ON;						
 					
-					if (i2c_out_norm>=0 & i2c_out_norm<400) print_num_H(i2c_out_norm,235,120,RED);
+					if (CurrentPressure>=0 & CurrentPressure<400) print_num_H(GetAver(CurrentPressure),235,120,GREEN);
 				
-					if (i2c_out_norm>=190) {
+					if (CurrentPressure>=190) {
 							_detectLevel = _detectLevel_start;						
 							save_clear_counter=0;		
 							save_dir_counter=0;		
@@ -484,7 +488,7 @@ int main(void)
 					valve_2_OFF;						
 			}
 			else if (mode == MEASUREMENT){				
-					if (i2c_out_norm>=0 & i2c_out_norm<400) print_num_H(i2c_out_norm,235,120,RED);
+					if (CurrentPressure>=0 & CurrentPressure<400) print_num_H(CurrentPressure,235,120,RED);
 					comp_OFF;
 					valve_2_OFF;
 					if (save_clear_counter>1+size_pack*(count_send_bluetooth+1)){						
@@ -503,7 +507,7 @@ int main(void)
 							my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
 							count_send_bluetooth++;
 					}
-					if (i2c_out_norm<=50){
+					if (CurrentPressure<=50){
 							//timer_2_stop();						                           ///////////////////////////////////////////////
 						
 							ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
@@ -546,8 +550,8 @@ int main(void)
 			}
 			else if (mode == PRESSURE_TEST){	
 					convert_NO_save();
-					print_num_H(i2c_out_norm,235,10,YELLOW);
-					//print_num_H(i2c_out_norm,235,120,RED);
+					print_num_H(CurrentPressure,235,10,YELLOW);
+					//print_num_H(CurrentPressure,235,120,RED);
 					usb_send_16(i2c_out,0);
 					delay_1ms(200);
 			}
@@ -576,6 +580,15 @@ int main(void)
     }
 }
 
+int16_t GetAver(int16_t nextValue)
+{
+	ArrayForAver[ArrayForAverIndex] = nextValue;
+	ArrayForAverIndex++;
+	if (ArrayForAverIndex > AVER_SIZE) ArrayForAverIndex = 0;
+	int16_t sum = 0;
+	for (int i = 0; i < AVER_SIZE; i++) sum += ArrayForAver[i];
+	return sum / AVER_SIZE;
+}
 
 void print_num_H(uint16_t num, uint16_t X0, uint16_t Y0, uint8_t color){
 	double now=0;
@@ -1224,9 +1237,9 @@ void i2c_print(void){
 	uint8_t buff1[10]={0};
 	i2c_convers();
 	i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-	i2c_out_norm=((((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K)/rate);
+	CurrentPressure=((((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K)/rate);
 	sprintf(buff1,"%6d",i2c_out);
-	sprintf(buff1,"%6d",i2c_out_norm);
+	sprintf(buff1,"%6d",CurrentPressure);
 }
 
 void button_interrupt_config(void){
@@ -1284,7 +1297,7 @@ void usb_send_i2c_convers(void){
 		i2c_convers();	
 		uint8_t send_buff[3]={25,i2c_receiver[1],i2c_receiver[0]};
 		i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-		i2c_out_norm=i2c_out/rate;
+		CurrentPressure=i2c_out/rate;
 		usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 3);
 }
 
@@ -1332,7 +1345,7 @@ short int convert_save_16(void){
 short int convert_NO_save(void){			
 		if (ADS1115_read_IT()==0) return 0;
 		i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-		i2c_out_norm=i2c_out/rate;	
+		CurrentPressure=i2c_out/rate;	
 		return i2c_out;
 }
 
@@ -1595,8 +1608,8 @@ int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
     }
 		ACLevel/=AC;
 		i2c_out=ACLevel;
-		i2c_out_norm=i2c_out/rate;
-		if (i2c_out_norm<0 & save_clear_counter<500) i2c_out_norm=0;
+		CurrentPressure=i2c_out/rate;
+		if (CurrentPressure<0 & save_clear_counter<500) CurrentPressure=0;
 		mass_in[save_clear_counter-1]=ACLevel;	
 		
 		

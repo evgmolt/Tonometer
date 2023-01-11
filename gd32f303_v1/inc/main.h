@@ -57,6 +57,7 @@ void usart_config_1(void);
 void my_send_string_UART_1(char *buf, uint8_t num);
 void SIM_recieve_OK(void);
 void str_clear(char *buff, uint16_t len);
+int16_t GetAver(int16_t nextValue);
 void print_num_H(uint16_t num, uint16_t X0, uint16_t Y0, uint8_t color);
 void time_set(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss);
 void time_init(void);

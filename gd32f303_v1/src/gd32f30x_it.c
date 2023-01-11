@@ -42,7 +42,7 @@ OF SUCH DAMAGE.
 
 extern __IO uint32_t timedisplay;
 extern uint8_t mode;
-extern int16_t i2c_out_norm;
+extern int16_t CurrentPressure;
 extern short int  save_clear[10000];
 extern uint32_t save_clear_counter;
 extern uint32_t send_counter;
@@ -274,7 +274,7 @@ void TIMER2_IRQHandler(void)
 												_maxD=cur_dir_save;
 												MAX_counter=save_clear_counter;
 										}
-										if (i2c_out_norm>90){												
+										if (CurrentPressure>90){												
 												if (save_clear_counter>MAX_counter+8*128){	
 														save_clear_counter=0;		
 														save_dir_counter=0;		
@@ -287,7 +287,7 @@ void TIMER2_IRQHandler(void)
 								}
 								
 								
-								if (save_clear_counter>400 & i2c_out_norm<10){
+								if (save_clear_counter>400 & CurrentPressure<10){
 										save_clear_counter=0;		
 										save_dir_counter=0;		
 										Wave_detect_FLAG=0;	
@@ -549,7 +549,7 @@ void EXTI5_9_IRQHandler(void)
 												
 							count_send_bluetooth=0;
 						
-							i2c_out_norm=0;
+							CurrentPressure=0;
 							i2c_calibration();
 							comp_ON;
 							valve_1_ON;
@@ -567,7 +567,7 @@ void EXTI5_9_IRQHandler(void)
 							puls_counter=0;			
 							detect_FLAG=0;
 							timer_2_start();
-							i2c_out_norm=0;
+							CurrentPressure=0;
 							finish_6_flag=0;
 							mode = PUMPING_MANAGEMENT; 							
 					}	
