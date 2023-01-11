@@ -16,6 +16,14 @@
 #define valve_2_ON 	gpio_bit_set	(GPIOC, GPIO_PIN_13)
 #define valve_2_OFF gpio_bit_reset(GPIOC, GPIO_PIN_13)
 
+#define INIT_START 0
+#define START_SCREEN 1
+#define KEY_OFF 2
+#define PUMPING_MANAGEMENT 3
+#define USB_CHARGING 4
+#define PRESSURE_TEST 5
+#define MEASUREMENT 6
+#define SEND_SAVE_BUFF_MSG 7
 
 /* function declarations */
 

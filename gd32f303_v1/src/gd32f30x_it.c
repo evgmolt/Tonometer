@@ -239,14 +239,14 @@ void TIMER1_IRQHandler(void)
 				if (EN_BUTT_count>=10) {	
 						ILI9341_FillScreen(ILI9341_WHITE);
 						timer_2_stop();
-						mode=5;
+						mode = PRESSURE_TEST;
 				}
 				else if (EN_BUTT_count>1 & mode!=4 & mode!=0) {
-					mode=2;
+					mode = KEY_OFF;
 					//device_OFF();					
 				}					
-				if (EN_BUTT_FLAG==0 & mode==1) TFT_print();
-				if (mode==5) time_display(rtc_counter_get());	
+				if (EN_BUTT_FLAG==0 & mode == START_SCREEN) TFT_print();
+				if (mode == PRESSURE_TEST) time_display(rtc_counter_get());	
     }
 }
 
@@ -259,69 +259,13 @@ void TIMER2_IRQHandler(void)
 				timer_interrupt_enable(TIMER2, TIMER_INT_UP);
 				timer_enable(TIMER2);			
 
-				if (mode==3){																																								//////////////////////////////////
+				if (mode == PUMPING_MANAGEMENT){																																								//////////////////////////////////
 						if (convert_save_16()){
 								if (save_clear_counter<300) convert_NO_save();
 								else if (save_clear_counter>300){
 										save_dir[save_clear_counter-1]=slim_mas(save_clear, 30, 4);											
 								}	
 								else 		save_dir[save_clear_counter-1]=0;				
-								/*					
-								if (save_clear_counter>=400){
-										//save_dir[save_dir_counter-1]=GetDerivative(save_dir, save_dir_counter-1);
-										cur_dir_save=GetDerivative(save_dir, save_clear_counter-1);
-										usb_send_16(cur_dir_save,_maxD);		//save_clear[save_clear_counter-1]);
-										if (cur_dir_save>_detectLevel_comp_UP & Wave_detect_FLAG==0 & (save_clear_counter-1)>(silence_time_start+_lockInterval)){										
-												sector_start_scan=save_clear_counter;	
-												silence_time_start=save_clear_counter;
-												Wave_detect_FLAG=1;												
-										}							
-										if (Wave_detect_FLAG==1){
-												if (save_clear_counter<(sector_start_scan+sector_scan)){
-														if (cur_dir_save>_maxD){
-																_maxD=cur_dir_save;
-																MAX_counter=save_clear_counter;														
-														}												
-												}
-												else {//if (cur_dir_save<_detectLevel_comp_UP){												
-														if (_maxD<=_detectLevel_comp_DOWN & i2c_out_norm>150){							
-															
-																save_clear_counter=0;		
-																save_dir_counter=0;		
-																Wave_detect_FLAG=0;	
-																_maxD=0;		
-																_detectLevel_comp_UP=10;
-																_detectLevel=_detectLevel_start;
-																silence_time_start=0;
-																mode=6;
-														}	
-														else												
-														{		
-																//usb_send_16(cur_dir_save,1000);											
-																Wave_ind_FLAG=1;	
-																detect_FLAG=1;
-																//silence_time_start=MAX_counter-1;
-																_detectLevel_comp_UP=_maxD*0.7;
-																//if (_detectLevel_comp_UP<10) _detectLevel_comp_UP=10;
-														}												
-														_maxD=0;
-														Wave_detect_FLAG=0;
-												}	
-										}
-										
-										if (detect_FLAG==1 & save_clear_counter>(silence_time_start+finish_time)){
-												save_clear_counter=0;		
-												save_dir_counter=0;		
-												Wave_detect_FLAG=0;	
-												_maxD=0;		
-												_detectLevel_comp_UP=15;
-												_detectLevel=_detectLevel_start;
-												silence_time_start=0;	
-												//print_error(1);											
-												mode=6;
-										}										
-								}	
-								*/
 								
 								if (save_clear_counter>=400){										
 										cur_dir_save=GetDerivative(save_dir, save_clear_counter-1);
@@ -337,7 +281,7 @@ void TIMER2_IRQHandler(void)
 														Wave_detect_FLAG=0;													
 														_maxD=0;	
 														//MAX_counter=0;
-														mode=6;
+														mode = MEASUREMENT;
 												}
 										}										
 								}
@@ -354,7 +298,7 @@ void TIMER2_IRQHandler(void)
 										timer_2_stop();
 										print_error(2);
 										timer_1_start();									
-										mode=1;
+										mode = START_SCREEN;
 								}
 								
 								if (save_clear_counter>9990){
@@ -368,13 +312,13 @@ void TIMER2_IRQHandler(void)
 										timer_2_stop();
 										print_error(3);
 										timer_1_start();									
-										mode=1;
+										mode = START_SCREEN;
 								}
 								
 								
 						}
 				}
-				else if (mode==6) { //convers_save(); //usb_send_i2c_convers();	                          ///////////////////////////////////////////////
+				else if (mode == MEASUREMENT) { //convers_save(); //usb_send_i2c_convers();	                          ///////////////////////////////////////////////
 						if (convert_save_16()) {
 								if (save_clear_counter>300){
 										save_dir[save_clear_counter-1]=slim_mas(save_clear, DCArrayWindow, ACArrayWindow);											
@@ -410,9 +354,9 @@ void TIMER2_IRQHandler(void)
 								}						
 						}
 				}
-				else if (mode==7) {
+				else if (mode == SEND_SAVE_BUFF_MSG) {
 						if (usb_send_save(save_dir,EnvelopeArray)){			
-								mode=1;
+								mode = INIT_START;
 								timer_2_stop();
 								set_FLAG();
 								save_clear_counter=0;
@@ -590,15 +534,15 @@ void EXTI5_9_IRQHandler(void)
 					EN_BUTT_FLAG=1;
 					EN_BUTT_count=0;
 			}
-			if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==0 & mode==2){
+			if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==0 & mode == KEY_OFF){
 					device_OFF();
 			}			
 			if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==0){				
-					if (mode==3 & EN_BUTT_count<2) {
+					if (mode == PUMPING_MANAGEMENT & EN_BUTT_count<2) {
 							timer_1_start();
-							mode=1;
+							mode = START_SCREEN;
 					}						
-					else if (mode==1 & EN_BUTT_count<2) {
+					else if (mode == START_SCREEN & EN_BUTT_count<2) {
 							timer_1_stop();							
 							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
 							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);						
@@ -625,30 +569,29 @@ void EXTI5_9_IRQHandler(void)
 							timer_2_start();
 							i2c_out_norm=0;
 							finish_6_flag=0;
-							mode=3; 							
+							mode = PUMPING_MANAGEMENT; 							
 					}	
-					else if (mode==6 & EN_BUTT_count<2) {
+					else if (mode == MEASUREMENT & EN_BUTT_count<2) {
 							timer_2_stop();
-							mode=1; 							
+							mode = START_SCREEN; 							
 					}
-					else if (mode==5 & EN_BUTT_count<2) {
+					else if (mode == PRESSURE_TEST & EN_BUTT_count<2) {
 							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
 							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);	
 							//clear_monitor();	
 							timer_1_start();
-							mode=1;
+							mode = START_SCREEN;
 							//timer_1_start();
 					}
 					else if (EN_BUTT_count>10){
 							//ILI9341_FillScreen(ILI9341_WHITE);
-							mode=5;
+							mode = PRESSURE_TEST;
 							timer_1_start();
 							//EN_BUTT_FLAG=0;							
 					}
 					
 					EN_BUTT_count=0;
 					EN_BUTT_FLAG=0;
-					//mode=0;
 			}	
 	}
 	exti_interrupt_flag_clear(EXTI_8);
