@@ -53,6 +53,7 @@ extern short int EnvelopeArray[10000];
 extern uint16_t count_send_bluetooth;
 extern uint8_t start_send_ble_flag;
 extern uint8_t start_finish_ble_flag;
+extern uint16_t frequency;
 
 const int LoLimit = 50;  //ms - 200 
 const int HiLimit = 250; //ms - 30
@@ -274,8 +275,8 @@ void TIMER2_IRQHandler(void)
 												_maxD=cur_dir_save;
 												MAX_counter=save_clear_counter;
 										}
-										if (CurrentPressure>90){												
-												if (save_clear_counter>MAX_counter+8*128){	
+										if (CurrentPressure > MIN_PRESSURE){												
+												if (save_clear_counter > MAX_counter + SEC_AFTER_MAX * frequency){	
 														save_clear_counter=0;		
 														save_dir_counter=0;		
 														Wave_detect_FLAG=0;													

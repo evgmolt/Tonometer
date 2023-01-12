@@ -24,6 +24,9 @@
 #define PRESSURE_TEST 5
 #define MEASUREMENT 6
 #define SEND_SAVE_BUFF_MSG 7
+#define STOP_MEAS_LEVEL 60
+#define MIN_PRESSURE 120
+#define SEC_AFTER_MAX 6
 
 /* function declarations */
 

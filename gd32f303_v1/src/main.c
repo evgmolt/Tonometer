@@ -488,7 +488,7 @@ int main(void)
 					valve_2_OFF;						
 			}
 			else if (mode == MEASUREMENT){				
-					if (CurrentPressure>=0 & CurrentPressure<400) print_num_H(CurrentPressure,235,120,RED);
+					if (CurrentPressure>=0 & CurrentPressure<400) print_num_H(CurrentPressure,235,120,GREEN);
 					comp_OFF;
 					valve_2_OFF;
 					if (save_clear_counter>1+size_pack*(count_send_bluetooth+1)){						
@@ -507,7 +507,7 @@ int main(void)
 							my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
 							count_send_bluetooth++;
 					}
-					if (CurrentPressure<=50){
+					if (CurrentPressure <= STOP_MEAS_LEVEL){
 							//timer_2_stop();						                           ///////////////////////////////////////////////
 						
 							ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
@@ -584,7 +584,7 @@ int16_t GetAver(int16_t nextValue)
 {
 	ArrayForAver[ArrayForAverIndex] = nextValue;
 	ArrayForAverIndex++;
-	if (ArrayForAverIndex > AVER_SIZE) ArrayForAverIndex = 0;
+	if (ArrayForAverIndex > AVER_SIZE - 1) ArrayForAverIndex = 0;
 	int16_t sum = 0;
 	for (int i = 0; i < AVER_SIZE; i++) sum += ArrayForAver[i];
 	return sum / AVER_SIZE;
