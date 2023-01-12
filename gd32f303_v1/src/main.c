@@ -185,7 +185,7 @@ uint16_t count_send_bluetooth=0;
 uint16_t size_pack=20;
 
 short int save_clear[10000]={0};
-uint32_t save_clear_counter=0;
+uint32_t main_index=0;
 short int save_dir[10000]={0};
 uint32_t save_dir_counter=0;
 short int EnvelopeArray[10000]={0};
@@ -470,9 +470,9 @@ int main(void)
 					
 					if (CurrentPressure>=0 & CurrentPressure<400) print_num_H(GetAver(CurrentPressure),235,120,GREEN);
 				
-					if (CurrentPressure>=190) {
+					if (CurrentPressure >= MAX_ALLOWED_PRESSURE) {
 							_detectLevel = _detectLevel_start;						
-							save_clear_counter=0;		
+							main_index=0;		
 							save_dir_counter=0;		
 							Wave_detect_FLAG=0;	
 							silence_time_start=0;
@@ -491,7 +491,7 @@ int main(void)
 					if (CurrentPressure>=0 & CurrentPressure<400) print_num_H(CurrentPressure,235,120,GREEN);
 					comp_OFF;
 					valve_2_OFF;
-					if (save_clear_counter>1+size_pack*(count_send_bluetooth+1)){						
+					if (main_index>1+size_pack*(count_send_bluetooth+1)){						
 							uint8_t c_summ=0;							
 							uint8_t cur_buff_ble[400]={'0','2',0x05,count_send_bluetooth&0xFF,(count_send_bluetooth>>8)&0xFF,size_pack};
 							
@@ -509,6 +509,10 @@ int main(void)
 					}
 					if (CurrentPressure <= STOP_MEAS_LEVEL){
 							//timer_2_stop();						                           ///////////////////////////////////////////////
+
+  						for (int i = 0; i < AVER_SIZE; i++) {
+								ArrayForAver[i] = 0;
+							}
 						
 							ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
 							ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
@@ -521,7 +525,7 @@ int main(void)
 							f_PSys_Dia();
 							puls_convert();	
 							bonus_byte=0;
-							if (save_clear_counter>1000 & PSys>10 & PSys<300 & PDia>10 & PDia<300 & puls_out>10 & puls_out<300) {
+							if (main_index>1000 & PSys>10 & PSys<300 & PDia>10 & PDia<300 & puls_out>10 & puls_out<300) {
 									ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
 									ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);	
 									print_SIS(PSys);
@@ -1269,7 +1273,7 @@ void button_interrupt_config(void){
 void set_FLAG(void){
 		//ILI9341_FillRectangle(5, 70, 30, 30, ILI9341_BLACK);
 		//uint8_t buff1[10]={0};
-		//sprintf(buff1,"%6d",save_clear_counter);
+		//sprintf(buff1,"%6d",main_index);
 		//ILI9341_WriteString(5, 90, buff1, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
 		
 }
@@ -1331,15 +1335,15 @@ uint8_t usb_send_save(int16_t *mass1, int16_t *mass2){
 	uint8_t send_buff[5]={25,send_L1,send_H1,send_L2,send_H2};
 	usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 5);
 	send_counter++;
-	if (send_counter>=save_clear_counter) return 1;
+	if (send_counter>=main_index) return 1;
 	else return 0;
 }
 short int convert_save_16(void){			
 		if (ADS1115_read_IT()==0) return 0;
 
-		save_clear[save_clear_counter]=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-		if (save_clear[save_clear_counter-1]<0) save_clear[save_clear_counter-1]=0;
-		save_clear_counter++;			
+		save_clear[main_index]=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
+		if (save_clear[main_index-1]<0) save_clear[main_index-1]=0;
+		main_index++;			
 		return 1;
 }
 short int convert_NO_save(void){			
@@ -1515,7 +1519,7 @@ void f_PSys_Dia(void){
 					break;
 			}
 	}
-	for (int i = XMax; i < save_clear_counter; i++)
+	for (int i = XMax; i < main_index; i++)
 	{
     if (EnvelopeArray[i] < ValueDia)
     {
@@ -1600,17 +1604,17 @@ int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
 		int32_t DCLevel = 0;
 		int32_t ACLevel = 0;					
 		for(int r=0;r<DC;r++){
-				DCLevel+=mass_in[save_clear_counter-1-r];
+				DCLevel+=mass_in[main_index-1-r];
 		}
 		DCLevel/=DC;	
 		for (int j=0;j<AC;j++){
-       ACLevel+=mass_in[save_clear_counter-1-j];
+       ACLevel+=mass_in[main_index-1-j];
     }
 		ACLevel/=AC;
 		i2c_out=ACLevel;
 		CurrentPressure=i2c_out/rate;
-		if (CurrentPressure<0 & save_clear_counter<500) CurrentPressure=0;
-		mass_in[save_clear_counter-1]=ACLevel;	
+		if (CurrentPressure<0 & main_index<500) CurrentPressure=0;
+		mass_in[main_index-1]=ACLevel;	
 		
 		
 		float ACoef[NCoef+1] = { 

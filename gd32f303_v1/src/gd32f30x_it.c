@@ -44,7 +44,7 @@ extern __IO uint32_t timedisplay;
 extern uint8_t mode;
 extern int16_t CurrentPressure;
 extern short int  save_clear[10000];
-extern uint32_t save_clear_counter;
+extern uint32_t main_index;
 extern uint32_t send_counter;
 extern int i2c_out_K;
 extern short int save_dir[10000];
@@ -262,22 +262,22 @@ void TIMER2_IRQHandler(void)
 
 				if (mode == PUMPING_MANAGEMENT){																																								//////////////////////////////////
 						if (convert_save_16()){
-								if (save_clear_counter<300) convert_NO_save();
-								else if (save_clear_counter>300){
-										save_dir[save_clear_counter-1]=slim_mas(save_clear, 30, 4);											
+								if (main_index<300) convert_NO_save();
+								else if (main_index>300){
+										save_dir[main_index-1]=slim_mas(save_clear, 30, 4);											
 								}	
-								else 		save_dir[save_clear_counter-1]=0;				
+								else 		save_dir[main_index-1]=0;				
 								
-								if (save_clear_counter>=400){										
-										cur_dir_save=GetDerivative(save_dir, save_clear_counter-1);
+								if (main_index >= DELAY_AFTER_START){										
+										cur_dir_save=GetDerivative(save_dir, main_index-1);
 										usb_send_16(cur_dir_save,_maxD);
 										if (cur_dir_save>_maxD){
 												_maxD=cur_dir_save;
-												MAX_counter=save_clear_counter;
+												MAX_counter=main_index;
 										}
 										if (CurrentPressure > MIN_PRESSURE){												
-												if (save_clear_counter > MAX_counter + SEC_AFTER_MAX * frequency){	
-														save_clear_counter=0;		
+												if (main_index > MAX_counter + SEC_AFTER_MAX * frequency){	
+														main_index=0;		
 														save_dir_counter=0;		
 														Wave_detect_FLAG=0;													
 														_maxD=0;	
@@ -288,8 +288,8 @@ void TIMER2_IRQHandler(void)
 								}
 								
 								
-								if (save_clear_counter>400 & CurrentPressure<10){
-										save_clear_counter=0;		
+								if (main_index>400 & CurrentPressure<10){
+										main_index=0;		
 										save_dir_counter=0;		
 										Wave_detect_FLAG=0;	
 										_maxD=0;		
@@ -302,8 +302,8 @@ void TIMER2_IRQHandler(void)
 										mode = START_SCREEN;
 								}
 								
-								if (save_clear_counter>9990){
-										save_clear_counter=0;		
+								if (main_index>9990){
+										main_index=0;		
 										save_dir_counter=0;		
 										Wave_detect_FLAG=0;	
 										_maxD=0;		
@@ -321,22 +321,22 @@ void TIMER2_IRQHandler(void)
 				}
 				else if (mode == MEASUREMENT) { //convers_save(); //usb_send_i2c_convers();	                          ///////////////////////////////////////////////
 						if (convert_save_16()) {
-								if (save_clear_counter>300){
-										save_dir[save_clear_counter-1]=slim_mas(save_clear, DCArrayWindow, ACArrayWindow);											
+								if (main_index>300){
+										save_dir[main_index-1]=slim_mas(save_clear, DCArrayWindow, ACArrayWindow);											
 								}	
-								else 		save_dir[save_clear_counter-1]=0;				
+								else 		save_dir[main_index-1]=0;				
 													
-								if (save_clear_counter>=400){										
-										cur_dir_save=GetDerivative(save_dir, save_clear_counter-1);
-										usb_send_16(cur_dir_save, _maxD); //save_clear[save_clear_counter-1]);  //_maxD);	 cur_dir_save
+								if (main_index >= DELAY_AFTER_PUMPING){										
+										cur_dir_save=GetDerivative(save_dir, main_index-1);
+										usb_send_16(cur_dir_save, _maxD); //save_clear[main_index-1]);  //_maxD);	 cur_dir_save
 									
-										//if (Wave_detect_FLAG==1 & save_clear_counter > (silence_time_start+_lockInterval*4)) finish_6_flag=1;
+										//if (Wave_detect_FLAG==1 & main_index > (silence_time_start+_lockInterval*4)) finish_6_flag=1;
 											
-										if (cur_dir_save>_detectLevel & (save_clear_counter-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
-										if (Wave_detect_FLAG==1 & (save_clear_counter-1)>(silence_time_start+_lockInterval)){
+										if (cur_dir_save>_detectLevel & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
+										if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval)){
 												if (cur_dir_save>_maxD) {
 														_maxD=cur_dir_save;
-														MAX_counter=save_clear_counter-1;
+														MAX_counter=main_index-1;
 												}
 												else if (cur_dir_save<_detectLevel){
 														Wave_detect_time_OLD=Wave_detect_time;
@@ -360,7 +360,7 @@ void TIMER2_IRQHandler(void)
 								mode = INIT_START;
 								timer_2_stop();
 								set_FLAG();
-								save_clear_counter=0;
+								main_index=0;
 								send_counter=0;
 						}
 				}				
@@ -543,7 +543,7 @@ void EXTI5_9_IRQHandler(void)
 							timer_1_start();
 							mode = START_SCREEN;
 					}						
-					else if (mode == START_SCREEN & EN_BUTT_count<2) {
+					else if (mode == START_SCREEN & EN_BUTT_count<2 || mode == SEND_SAVE_BUFF_MSG) {
 							timer_1_stop();							
 							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
 							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);						
@@ -558,7 +558,7 @@ void EXTI5_9_IRQHandler(void)
 							//timer_2_stop();	
 							_lockInterval=50;
 							sector_start_scan=0;
-							save_clear_counter=0;		
+							main_index=0;		
 							save_dir_counter=0;		
 							Wave_detect_FLAG=0;	
 							_maxD=0;		

@@ -24,9 +24,13 @@
 #define PRESSURE_TEST 5
 #define MEASUREMENT 6
 #define SEND_SAVE_BUFF_MSG 7
+
 #define STOP_MEAS_LEVEL 60
 #define MIN_PRESSURE 120
 #define SEC_AFTER_MAX 6
+#define DELAY_AFTER_PUMPING 400
+#define DELAY_AFTER_START 400
+#define MAX_ALLOWED_PRESSURE 176
 
 /* function declarations */
 
