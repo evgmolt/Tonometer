@@ -1,4 +1,4 @@
-/*!
+ /*!
     \file    main.c
     \brief   USB CDC ACM device
 
@@ -69,7 +69,7 @@ OF SUCH DAMAGE.
 #define FMC_WRITE_END_ADDR      ((uint32_t)0x0807E030U)
 
 
-#define NCoef 2 
+#define NCOEF 2 
 #define AVER_SIZE 10
 #define MIN_SYS 80
 #define MAX_SYS 250
@@ -686,10 +686,6 @@ void i2c_config(void){
     i2c_ack_config(I2C0, I2C_ACK_ENABLE);
 }
 
-void SIM_recieve_OK(void){
-		usbd_ep_send (&usbd_cdc, CDC_IN_EP, "OK", 3);
-}
-
 void TFT_print(void){
 		uint8_t buff[100]={0};
 		uint16_t adc_1=0;
@@ -812,8 +808,6 @@ uint8_t ADS1115_read_IT(void){
 		return 0;
 }
 
-
-
 void i2c_convers(void){	
 		while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));
     /* send a start condition to I2C bus */
@@ -869,9 +863,7 @@ void i2c_convers(void){
     /* enable acknowledge */
     i2c_ack_config(I2C0, I2C_ACK_ENABLE);
 //		i2c_transmitter[1]=0x01;
-	
-	
-		
+			
 		/* wait until I2C bus is idle */
     while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));
     /* send a start condition to I2C bus */
@@ -951,7 +943,6 @@ void adc_config(void){
 
     adc_regular_channel_config(ADC0, 0, ADC_CHANNEL_9, ADC_SAMPLETIME_7POINT5);
     //adc_regular_channel_config(ADC0, 1, ADC_CHANNEL_3, ADC_SAMPLETIME_7POINT5);
-
 
     /* ADC trigger config */
     adc_external_trigger_source_config(ADC0, ADC_REGULAR_CHANNEL, ADC0_1_2_EXTTRIG_REGULAR_NONE);
@@ -1050,12 +1041,6 @@ void usart_config_1(void){
     usart_enable(USART1);
 }
 
-void my_send_string_UART_1(char *buf, uint8_t num){
-		for(int j1=0;j1<num;j1++){
-				usart_data_transmit(USART1, (uint8_t)buf[j1]);
-				while(RESET == usart_flag_get(USART1, USART_FLAG_TBE));			
-		}
-}
 void str_clear(char *buff, uint16_t len){
 		for (int i=0;i<len;i++){
 				buff[i]=0;
@@ -1294,14 +1279,17 @@ void timer_2_start(void){
     timer_interrupt_enable(TIMER2, TIMER_INT_UP);
     timer_enable(TIMER2);
 }
+
 void timer_2_stop(void){
 	timer_disable(TIMER2);			
 }
+
 void timer_1_start(void){
 		timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);
     timer_interrupt_enable(TIMER1, TIMER_INT_UP);
     timer_enable(TIMER1);
 }
+
 void timer_1_stop(void){
 	timer_disable(TIMER1);			
 }
@@ -1322,6 +1310,7 @@ uint8_t usb_send_save(int16_t *mass1, int16_t *mass2){
 	if (send_counter>=main_index) return 1;
 	else return 0;
 }
+
 short int convert_save_16(void){			
 		if (ADS1115_read_IT()==0) return 0;
 
@@ -1330,6 +1319,7 @@ short int convert_save_16(void){
 		main_index++;			
 		return 1;
 }
+
 short int convert_NO_save(void){			
 		if (ADS1115_read_IT()==0) return 0;
 		i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
@@ -1481,8 +1471,6 @@ void f_sorting_MAX(void){
 		}		
 }
 
-
-
 void f_PSys_Dia(void){
 	double MaximumAmplitude=-100;
 	
@@ -1513,6 +1501,7 @@ void f_PSys_Dia(void){
     }
 	}
 }
+
 uint16_t puls_convert(void){
 		double level = 0.06;
 		uint16_t intervals[50]={0};
@@ -1570,7 +1559,6 @@ uint16_t puls_convert(void){
 		return puls_out;
 }
 
-
 void clear_monitor(void){
 		ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);
 		ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);
@@ -1601,24 +1589,24 @@ int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
 		mass_in[main_index-1]=ACLevel;	
 		
 		
-		float ACoef[NCoef+1] = { 
+		float ACoef[NCOEF+1] = { 
         0.97913295295553560000, 
         -1.95826590591107120000, 
         0.97913295295553560000 
     }; 
  
-    float BCoef[NCoef+1] = { 
+    float BCoef[NCOEF+1] = { 
         1.00000000000000000000, 
         -1.95778812550116580000, 
         0.95837795232608958000 
     }; 
  
-    static float y[NCoef+1]; //output samples 
-    static float x[NCoef+1]; //input samples 
+    static float y[NCOEF+1]; //output samples 
+    static float x[NCOEF+1]; //input samples 
     int n; 
  
     //shift the old samples 
-    for(n=NCoef; n>0; n--) { 
+    for(n=NCOEF; n>0; n--) { 
        x[n] = x[n-1]; 
        y[n] = y[n-1]; 
     } 
@@ -1626,11 +1614,8 @@ int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
     //Calculate the new output 
     x[0] = ACLevel; 
     y[0] = ACoef[0] * x[0]; 
-    for(n=1; n<=NCoef; n++) 
-        y[0] += ACoef[n] * x[n] - BCoef[n] * y[n]; 
-		
-		
-		
+    for(n=1; n<=NCOEF; n++) 
+        y[0] += ACoef[n] * x[n] - BCoef[n] * y[n]; 	
 		return (int16_t)y[0];
 		//return ACLevel-DCLevel;
 }
@@ -1653,10 +1638,6 @@ void print_error(uint8_t K){
 				sprintf(_buff,"measurement error");		
 				ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);			
 		}
-}
-
-void cur_slim(uint16_t *mass, int16_t AC){
-		
 }
 
 uint8_t boot_mode(void){
