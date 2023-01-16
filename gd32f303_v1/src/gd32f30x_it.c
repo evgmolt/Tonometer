@@ -109,6 +109,12 @@ int ACArrayWindow = 6;
 
 uint8_t UART0_flag=0;
 
+int button_touched = 0;
+int button_pressed = 0;
+int button_released = 0;
+int button_touched_counter = 0;
+int button_pressed_counter = 0;
+
 extern usb_dev usbd_cdc;
 /*!
     \brief      this function handles NMI exception
@@ -232,12 +238,47 @@ void TIMER1_IRQHandler(void)
 				timer_interrupt_enable(TIMER1, TIMER_INT_UP);
 				timer_enable(TIMER1);			
 			
+				button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
+				if (button_touched) {
+					button_touched_counter++;
+					if (button_touched_counter > DEBONCE_INTERVAL) {
+						button_pressed = 1;
+					}
+				}
+				else {
+					button_touched = 0;
+					button_pressed = 0;
+					button_touched_counter = 0;
+				}
+				
+				if (button_pressed) {
+					button_pressed_counter++;
+				}
+				else {
+					if (button_pressed_counter > 0) {
+						button_released = 1;
+					}
+				}
+				
+				if (mode == INIT_START) {
+						if (button_pressed_counter > GO_TO_TEST_INTERVAL) {
+							ILI9341_FillScreen(ILI9341_WHITE);
+							timer_2_stop();
+							mode = PRESSURE_TEST;
+						}
+				}
+				else {
+					if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
+						device_OFF();
+					}
+				}
+			
 				//bluetooth_check();
 			
-				if (EN_BUTT_FLAG==1){
+/*				if (EN_BUTT_FLAG == 1) {
 						EN_BUTT_count++;
 				}				 
-				if (EN_BUTT_count>=10) {	
+				if (EN_BUTT_count >= 10) {	
 						ILI9341_FillScreen(ILI9341_WHITE);
 						timer_2_stop();
 						mode = PRESSURE_TEST;
@@ -247,7 +288,7 @@ void TIMER1_IRQHandler(void)
 					//device_OFF();					
 				}					
 				if (EN_BUTT_FLAG==0 & mode == START_SCREEN) TFT_print();
-				if (mode == PRESSURE_TEST) time_display(rtc_counter_get());	
+				if (mode == PRESSURE_TEST) time_display(rtc_counter_get());	*/
     }
 }
 
@@ -528,22 +569,23 @@ void RTC_IRQHandler(void)
     }
 }
 
-void EXTI5_9_IRQHandler(void)
+/*void EXTI5_9_IRQHandler(void)
 {
 	if (RESET != exti_interrupt_flag_get(EXTI_8)){
-			if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)){
+		int statusBtn = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
+			if (statusBtn){
 					EN_BUTT_FLAG=1;
 					EN_BUTT_count=0;
 			}
-			if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==0 & mode == KEY_OFF){
+			if (statusBtn == 0 & mode == KEY_OFF){
 					device_OFF();
 			}			
-			if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==0){				
+			if (statusBtn == 0){				
 					if (mode == PUMPING_MANAGEMENT & EN_BUTT_count<2) {
 							timer_1_start();
 							mode = START_SCREEN;
 					}						
-					else if (mode == START_SCREEN & EN_BUTT_count<2 || mode == SEND_SAVE_BUFF_MSG) {
+					else if (mode == START_SCREEN & EN_BUTT_count<2) {
 							timer_1_stop();							
 							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
 							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);						
@@ -596,4 +638,17 @@ void EXTI5_9_IRQHandler(void)
 			}	
 	}
 	exti_interrupt_flag_clear(EXTI_8);
+}*/
+
+void EXTI5_9_IRQHandler(void)
+{
+	if (RESET != exti_interrupt_flag_get(EXTI_8)){
+		int statusBtn = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
+			if (statusBtn){
+//					EN_BUTT_FLAG=1;
+//					EN_BUTT_count=0;
+			}
+	}
+	exti_interrupt_flag_clear(EXTI_8);
 }
+

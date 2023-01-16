@@ -32,6 +32,10 @@
 #define DELAY_AFTER_START 400
 #define MAX_ALLOWED_PRESSURE 176
 
+#define DEBONCE_INTERVAL 4
+#define GO_TO_TEST_INTERVAL 120
+#define SWITCH_OFF_INTERVAL 80
+
 /* function declarations */
 
 void i2c_config(void);
@@ -138,5 +142,12 @@ void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uin
 
 void print_SIS(int16_t IN);
 void print_DIA(int16_t IN);
+
+extern int button_touched;
+extern int button_pressed;
+extern int button_released;
+extern int button_touched_counter;
+extern int button_pressed_counter;
+
 
 #endif /* __MAIN_H */

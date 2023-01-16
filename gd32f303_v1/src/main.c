@@ -205,7 +205,7 @@ void timer_config_1(void)
     /* initialize TIMER init parameter struct */
     timer_struct_para_init(&timer_initpara);
     /* TIMER1 configuration */
-    timer_initpara.prescaler         = 11999;
+    timer_initpara.prescaler         = 119;//99;
     timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
     timer_initpara.counterdirection  = TIMER_COUNTER_UP;
     timer_initpara.period            = 9999;
@@ -412,8 +412,11 @@ int main(void)
 		if (mode == INIT_START) mode = START_SCREEN;
 	
     while (1) {	
-			
-			//boot_mode();
+
+/*			if (button_pressed) {
+				if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
+					device_OFF();
+				}*/
 			
 			if (mode == KEY_OFF){				
 					device_OFF();
@@ -440,26 +443,6 @@ int main(void)
 					ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);
 					Wave_ind_FLAG=0;
 			}
-			
-			/*
-       if(ILI9341_TouchGetCoordinates(&x, &y)) {
-						//ILI9341_DrawPixel(240-x, 320-y, ILI9341_WHITE); 
-						sprintf(buff097,"%4d",x);
-						ILI9341_WriteString(1, 70, buff097, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-						sprintf(buff097,"%4d",y);
-						ILI9341_WriteString(1, 90, buff097, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-       }
-			*/ 		
-			
-		
-			/*	
-			sprintf(buff2,"%2d",mode);
-			ILI9341_WriteString(5, 200, buff2, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-			sprintf(buff2,"%2d",EN_BUTT_count);
-			ILI9341_WriteString(5, 220, buff2, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-			//sprintf(buff2,"%3d",CurrentPressure);
-			//ILI9341_WriteString(5, 240, buff2, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-			*/
 			
 			
 			if (mode == PUMPING_MANAGEMENT){
