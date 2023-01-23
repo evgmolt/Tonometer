@@ -42,7 +42,7 @@ OF SUCH DAMAGE.
 
 extern __IO uint32_t timedisplay;
 extern uint8_t mode;
-extern int16_t CurrentPressure;
+extern int16_t current_pressure;
 extern short int  save_clear[10000];
 extern uint32_t main_index;
 extern uint32_t send_counter;
@@ -76,14 +76,14 @@ uint8_t slim_count=0;
 float slim_K=1;
 
 int16_t _detectLevel_start = 4;
-int16_t _detectLevel = 4;
+double _detectLevel = 4;
 int16_t _detectLevel_comp_UP = 15;
 int16_t _detectLevel_comp_DOWN = 8;
 int16_t _minDetectLevel = 5;
 int16_t _lockInterval = 50;
-double _detectLevelCoeff=0.6;
+double _detectLevelCoeff=0.7;
 int16_t cur_dir_save=0;
-int16_t _maxD=0;
+double _maxD=0;
 uint8_t Wave_detect_FLAG=0;
 int16_t Wave_detect_time=0;
 int16_t Wave_detect_time_OLD=0;
@@ -100,12 +100,11 @@ uint8_t finish_6_flag=0;
 uint16_t detect_FLAG=0;
 uint16_t finish_time=500;
 
-
 uint32_t MAX_counter=0;
 uint16_t Time_measurement=50; 
 
-int DCArrayWindow = 60;
-int ACArrayWindow = 6;
+int16_t DCArrayWindow = 60;
+int16_t ACArrayWindow = 6;
 
 uint8_t UART0_flag=0;
 
@@ -248,6 +247,7 @@ void TIMER1_IRQHandler(void)
 				else {
 					button_touched = 0;
 					button_pressed = 0;
+					button_released = 0;
 					button_touched_counter = 0;
 				}
 				
@@ -259,42 +259,25 @@ void TIMER1_IRQHandler(void)
 						button_released = 1;
 					}
 				}
-				
+
 				if (mode == INIT_START) {
 						if (button_pressed_counter > GO_TO_TEST_INTERVAL) {
 							ILI9341_FillScreen(ILI9341_WHITE);
 							timer_2_stop();
 							mode = PRESSURE_TEST;
+							button_pressed_counter = 0;
 						}
 				}
 				else {
 					if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
-						device_OFF();
+						mode = KEY_OFF;
 					}
 				}
-			
-				//bluetooth_check();
-			
-/*				if (EN_BUTT_FLAG == 1) {
-						EN_BUTT_count++;
-				}				 
-				if (EN_BUTT_count >= 10) {	
-						ILI9341_FillScreen(ILI9341_WHITE);
-						timer_2_stop();
-						mode = PRESSURE_TEST;
-				}
-				else if (EN_BUTT_count>1 & mode!=4 & mode!=0) {
-					mode = KEY_OFF;
-					//device_OFF();					
-				}					
-				if (EN_BUTT_FLAG==0 & mode == START_SCREEN) TFT_print();
-				if (mode == PRESSURE_TEST) time_display(rtc_counter_get());	*/
     }
 }
 
 void TIMER2_IRQHandler(void)
 {
-		int16_t  CUR_adc=0;	
     if(SET == timer_interrupt_flag_get(TIMER2, TIMER_INT_FLAG_UP)){
         /* clear update interrupt bit */
         timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);		
@@ -311,12 +294,12 @@ void TIMER2_IRQHandler(void)
 								
 								if (main_index >= DELAY_AFTER_START){										
 										cur_dir_save=GetDerivative(save_dir, main_index-1);
-										usb_send_16(cur_dir_save,_maxD);
+										usb_send_16(cur_dir_save,(short)_maxD);
 										if (cur_dir_save>_maxD){
 												_maxD=cur_dir_save;
 												MAX_counter=main_index;
 										}
-										if (CurrentPressure > MIN_PRESSURE){												
+										if (current_pressure > MIN_PRESSURE){												
 												if (main_index > MAX_counter + SEC_AFTER_MAX * frequency){	
 														main_index=0;		
 														save_dir_counter=0;		
@@ -329,7 +312,7 @@ void TIMER2_IRQHandler(void)
 								}
 								
 								
-								if (main_index>400 & CurrentPressure<10){
+								if (main_index>400 & current_pressure<10){
 										main_index=0;		
 										save_dir_counter=0;		
 										Wave_detect_FLAG=0;	
@@ -387,7 +370,7 @@ void TIMER2_IRQHandler(void)
 														_lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
 														if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
 														silence_time_start=MAX_counter-1;
-														_detectLevel=_maxD*0.7;
+														_detectLevel=_maxD * _detectLevelCoeff;
 														if (_detectLevel<4) _detectLevel=4;
 														_maxD=0;
 														Wave_detect_FLAG=0;
@@ -471,7 +454,7 @@ void SysTick_Handler(void)
     delay_decrement();
 }
 void my_delay(int time){
-	int count;
+	int count = 0;
 	for(int j=0;j<time;j++) count++;
 }
 
@@ -592,9 +575,9 @@ void RTC_IRQHandler(void)
 												
 							count_send_bluetooth=0;
 						
-							CurrentPressure=0;
+							current_pressure=0;
 							i2c_calibration();
-							comp_ON;
+							pump_ON;
 							valve_1_ON;
 							valve_2_ON;
 							//timer_2_stop();	
@@ -610,7 +593,7 @@ void RTC_IRQHandler(void)
 							puls_counter=0;			
 							detect_FLAG=0;
 							timer_2_start();
-							CurrentPressure=0;
+							current_pressure=0;
 							finish_6_flag=0;
 							mode = PUMPING_MANAGEMENT; 							
 					}	

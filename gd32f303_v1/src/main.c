@@ -70,7 +70,6 @@ OF SUCH DAMAGE.
 
 
 #define NCoef 2 
-#define AVER_SIZE 10
 
 /* enter the second interruption,set the second interrupt flag to 1 */
 __IO uint32_t timedisplay;
@@ -84,11 +83,11 @@ extern uint8_t EN_BUTT_count;
 extern uint8_t Wave_ind_FLAG;
 extern uint8_t Wave_detect_FLAG;
 extern int16_t T_Wave;
-extern int16_t _detectLevel;
+extern double _detectLevel;
 extern int16_t silence_time_start;
 extern int16_t puls_buff[50];
 extern uint8_t puls_counter;
-extern int16_t _maxD;
+extern double _maxD;
 extern int16_t _detectLevel_start;
 extern uint8_t UART0_buff[200];
 extern uint8_t UART0_count;
@@ -138,7 +137,7 @@ int16_t XMax = 0;
 int DerivativeShift = 13;
 int DerivativeAverageWidth = 4;
 
-int16_t CurrentPressure=0;
+int16_t current_pressure=0;
 int16_t ArrayForAver[AVER_SIZE] = {0};
 int8_t ArrayForAverIndex = 0;
 
@@ -191,7 +190,7 @@ uint32_t save_dir_counter=0;
 short int EnvelopeArray[10000]={0};
 
 uint32_t send_counter=0;
-float rate=18.69;
+double rate=18.69;
 
 void timer_config_1(void)
 {
@@ -259,8 +258,6 @@ void nvic_config_2(void)
 
 int main(void)
 {
-		uint16_t i;	
-		
 		nvic_configuration();	  // RTC
 		time_init();						// RTC
 	
@@ -348,7 +345,7 @@ int main(void)
 		EN_BUTT_FLAG=0;	
 		
 			
-		comp_OFF;
+		pump_OFF;
 		valve_1_OFF;
 		valve_2_OFF;	
 		
@@ -386,9 +383,6 @@ int main(void)
 				ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);	
 		}		
 			
-		uint16_t count_0=0; 		
-
-					
 		i2c_calibration();	
 		
 		//uint16_t x, y;
@@ -409,17 +403,161 @@ int main(void)
 		//time_set(23,59,55);
 		//write_backup_register(cur_day, cur_month, cur_year);		
 		
-		if (mode == INIT_START) mode = START_SCREEN;
+//if (mode == INIT_START) mode = START_SCREEN;
+		timer_1_start();
 	
     while (1) {	
 
-/*			if (button_pressed) {
-				if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
+			switch (mode)
+			{
+				case INIT_START:
+					if (!button_pressed) {
+						mode = START_SCREEN;
+						button_released = 0;
+  					button_pressed_counter = 0;
+					}
+					break;
+				case START_SCREEN:
+					TFT_print();
+					if (button_released) {
+//							timer_1_stop();							
+							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
+							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);						
+
+						
+							count_send_bluetooth=0;
+						
+							current_pressure=0;
+							i2c_calibration();
+							pump_ON;
+							valve_1_ON;
+							valve_2_ON;
+							_lockInterval=50;
+							sector_start_scan=0;
+							main_index = 0;		
+							save_dir_counter=0;		
+							Wave_detect_FLAG=0;	
+							_maxD=0;		
+							_detectLevel_comp_UP=15;
+							_detectLevel=_detectLevel_start;
+							silence_time_start=0;
+							puls_counter=0;			
+							detect_FLAG=0;
+							timer_2_start();
+							finish_6_flag=0;
+							mode = PUMPING_MANAGEMENT;
+							button_released = 0;
+							button_pressed_counter = 0;
+					}
+					break;
+				case KEY_OFF:
 					device_OFF();
-				}*/
-			
-			if (mode == KEY_OFF){				
-					device_OFF();
+					break;
+				case PUMPING_MANAGEMENT:
+					ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
+					if (button_released)
+					{
+							mode = START_SCREEN;
+							pump_OFF;
+							valve_1_OFF;
+							valve_2_OFF;
+							button_released = 0;
+							button_pressed_counter = 0;
+					}
+					if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
+				
+					if (current_pressure >= MAX_ALLOWED_PRESSURE) {
+							_detectLevel = _detectLevel_start;						
+							main_index=0;		
+							save_dir_counter=0;		
+							Wave_detect_FLAG=0;	
+							silence_time_start=0;
+							_maxD=0;							
+							puls_counter=0;						
+							mode = MEASUREMENT;		
+					}						
+					break;
+				case USB_CHARGING:
+					if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
+					print_bat_charg();				
+					delay_1ms(2000);				
+					if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) device_OFF();						
+					break;
+				case PRESSURE_TEST:
+					convert_NO_save();
+					print_num_H(current_pressure,235,10,YELLOW);
+					//print_num_H(current_pressure,235,120,RED);
+					usb_send_16(i2c_out,0);
+					delay_1ms(200);
+					time_display(rtc_counter_get());
+					break;
+				case MEASUREMENT:
+					if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
+					pump_OFF;
+					valve_2_OFF;
+					if (main_index>1+size_pack*(count_send_bluetooth+1)){						
+							uint8_t c_summ=0;							
+							uint8_t cur_buff_ble[400]={'0','2',0x05,count_send_bluetooth&0xFF,(count_send_bluetooth>>8)&0xFF,size_pack};
+							
+							for (int f=0;f<size_pack;f++){
+									int16_t cur_press=(((save_clear[count_send_bluetooth*size_pack+f]-i2c_out_K)*100)/rate);
+									cur_buff_ble[6+f*2]=cur_press&0xFF;
+									cur_buff_ble[6+f*2+1]=(cur_press>>8)&0xFF;
+							}							
+							for (int f=0;f<size_pack*2+6;f++){
+									c_summ+=cur_buff_ble[f];
+							}
+							cur_buff_ble[size_pack*2+6]=c_summ;
+							my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
+							count_send_bluetooth++;
+					}
+					if (current_pressure <= STOP_MEAS_LEVEL){
+							//timer_2_stop();						                           ///////////////////////////////////////////////
+
+  						for (int i = 0; i < AVER_SIZE; i++) {
+								ArrayForAver[i] = 0;
+							}
+						
+							ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
+							ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
+							ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);	
+						
+							str_clear(EnvelopeArray,10000);
+							GetArrayOfWaveIndexes(save_dir, puls_buff, puls_buff_NEW);
+							f_sorting_MAX();
+							CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
+							f_PSys_Dia();
+							puls_convert();	
+							bonus_byte=0;
+							if (main_index>1000 & PSys>10 & PSys<300 & PDia>10 & PDia<300 & puls_out>10 & puls_out<300) {
+									ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
+									ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);	
+									print_SIS(PSys);
+									print_DIA(PDia);									
+									print_num_H((int16_t)puls_out,235,250,BLACK);
+								
+									cur_tim = rtc_counter_get();
+									m_hh = cur_tim / 3600;
+									m_mm = (cur_tim % 3600) / 60;
+									m_ss = (cur_tim % 3600) % 60;
+									check_backup_register(&cur_day, &cur_month, &cur_year);
+									if 	(cur_year>=255)	cur_year-=2000;
+									//send_result_measurement(14, 15, 16, 17, 18, 19, 20, 21, 22, 23);																							
+							}
+							else {
+									bonus_byte|=0x80;
+									print_error(4);							
+							}
+							send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
+							
+							valve_1_OFF;
+							valve_2_OFF;
+							mode = SEND_SAVE_BUFF_MSG;								
+							timer_1_start();
+					}					
+					break;
+				case SEND_SAVE_BUFF_MSG:
+					break;
 			}
 			
 			if (UART0_flag==1){					
@@ -443,127 +581,12 @@ int main(void)
 					ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);
 					Wave_ind_FLAG=0;
 			}
-			
-			
-			if (mode == PUMPING_MANAGEMENT){
-					ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
-					comp_ON;
-					valve_1_ON;
-					valve_2_ON;						
-					
-					if (CurrentPressure>=0 & CurrentPressure<400) print_num_H(GetAver(CurrentPressure),235,120,GREEN);
-				
-					if (CurrentPressure >= MAX_ALLOWED_PRESSURE) {
-							_detectLevel = _detectLevel_start;						
-							main_index=0;		
-							save_dir_counter=0;		
-							Wave_detect_FLAG=0;	
-							silence_time_start=0;
-							_maxD=0;							
-							puls_counter=0;						
-							mode = MEASUREMENT;		
-					}						
-			}	
-			else if (mode == START_SCREEN){	
-					//clear_monitor();
-					comp_OFF;
-					valve_1_OFF;
-					valve_2_OFF;						
-			}
-			else if (mode == MEASUREMENT){				
-					if (CurrentPressure>=0 & CurrentPressure<400) print_num_H(CurrentPressure,235,120,GREEN);
-					comp_OFF;
-					valve_2_OFF;
-					if (main_index>1+size_pack*(count_send_bluetooth+1)){						
-							uint8_t c_summ=0;							
-							uint8_t cur_buff_ble[400]={'0','2',0x05,count_send_bluetooth&0xFF,(count_send_bluetooth>>8)&0xFF,size_pack};
-							
-							for (int f=0;f<size_pack;f++){
-									int16_t cur_press=(((save_clear[count_send_bluetooth*size_pack+f]-i2c_out_K)*100)/rate);
-									cur_buff_ble[6+f*2]=cur_press&0xFF;
-									cur_buff_ble[6+f*2+1]=(cur_press>>8)&0xFF;
-							}							
-							for (int f=0;f<size_pack*2+6;f++){
-									c_summ+=cur_buff_ble[f];
-							}
-							cur_buff_ble[size_pack*2+6]=c_summ;
-							my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
-							count_send_bluetooth++;
-					}
-					if (CurrentPressure <= STOP_MEAS_LEVEL){
-							//timer_2_stop();						                           ///////////////////////////////////////////////
-
-  						for (int i = 0; i < AVER_SIZE; i++) {
-								ArrayForAver[i] = 0;
-							}
 						
-							ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
-							ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
-							ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);	
-						
-							str_clear(EnvelopeArray,10000);
-							GetArrayOfWaveIndexes(save_dir, puls_buff, puls_buff_NEW);
-							f_sorting_MAX();
-							CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
-							f_PSys_Dia();
-							puls_convert();	
-							bonus_byte=0;
-							if (main_index>1000 & PSys>10 & PSys<300 & PDia>10 & PDia<300 & puls_out>10 & puls_out<300) {
-									ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
-									ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);	
-									print_SIS(PSys);
-									print_DIA(PDia);									
-									print_num_H((uint16_t)puls_out,235,250,BLACK);
-								
-									cur_tim = rtc_counter_get();
-									m_hh = cur_tim / 3600;
-									m_mm = (cur_tim % 3600) / 60;
-									m_ss = (cur_tim % 3600) % 60;
-									check_backup_register(&cur_day, &cur_month, &cur_year);
-									if 	(cur_year>=255)	cur_year-=2000;
-									//send_result_measurement(14, 15, 16, 17, 18, 19, 20, 21, 22, 23);																							
-							}
-							else {
-									bonus_byte|=0x80;
-									print_error(4);							
-							}
-							send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
-							
-							valve_1_OFF;
-							valve_2_OFF;
-							mode = SEND_SAVE_BUFF_MSG;								
-							timer_1_start();
-					}					
-			}
-			else if (mode == PRESSURE_TEST){	
-					convert_NO_save();
-					print_num_H(CurrentPressure,235,10,YELLOW);
-					//print_num_H(CurrentPressure,235,120,RED);
-					usb_send_16(i2c_out,0);
-					delay_1ms(200);
-			}
-			else if (mode == USB_CHARGING){	
-					if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
-					print_bat_charg();				
-					delay_1ms(2000);				
-					if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) device_OFF();						
-			}	
-			
-			//usbd_ep_send (&usbd_cdc, CDC_IN_EP, "(HC)-->\n", strlen("(HC)-->\n"));		
-			
-	/*		
-			ILI9341_DrawImage(0, 0, 240, 320, (const uint16_t*)img_t_c_3);
-			while(ILI9341_TouchGetCoordinates(&x, &y)==0) {my_delay(9999);}
-			ILI9341_DrawImage(0, 0, 240, 320, (const uint16_t*)img_t_c_4);
-			while(ILI9341_TouchGetCoordinates(&x, &y)==0) {my_delay(9999);}
-	*/	
-			
-			
-        if (0U == cdc_acm_check_ready(&usbd_cdc)) {
-            cdc_acm_data_receive(&usbd_cdc);
-        } else {
-            cdc_acm_data_send(&usbd_cdc);
-        }			
+			if (0U == cdc_acm_check_ready(&usbd_cdc)) {
+					cdc_acm_data_receive(&usbd_cdc);
+			} else {
+					cdc_acm_data_send(&usbd_cdc);
+			}			
     }
 }
 
@@ -577,7 +600,7 @@ int16_t GetAver(int16_t nextValue)
 	return sum / AVER_SIZE;
 }
 
-void print_num_H(uint16_t num, uint16_t X0, uint16_t Y0, uint8_t color){
+void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color){
 	double now=0;
 	uint16_t now1=0;
 	uint8_t max;
@@ -1143,18 +1166,18 @@ void time_display(uint32_t timevar){
 				cur_month=1;
 				write_backup_register(cur_day, cur_month, cur_year);
 		}
-		sprintf(buff,"%2d:",thh);
+		sprintf(buff,"%02d:",thh);
 		ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%2d:",tmm);
+		sprintf(buff,"%02d:",tmm);
 		ILI9341_WriteString(160, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%2d",tss);
+		sprintf(buff,"%02d",tss);
 		ILI9341_WriteString(190, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);	
 		
-		sprintf(buff,"%2d.",cur_day);
+		sprintf(buff,"%02d.",cur_day);
 		ILI9341_WriteString(130, 260, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%2d.",cur_month);
+		sprintf(buff,"%02d.",cur_month);
 		ILI9341_WriteString(160, 260, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%4d",cur_year);
+		sprintf(buff,"%04d",cur_year);
 		ILI9341_WriteString(190, 260, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
 }
 
@@ -1224,9 +1247,9 @@ void i2c_print(void){
 	uint8_t buff1[10]={0};
 	i2c_convers();
 	i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-	CurrentPressure=((((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K)/rate);
+	current_pressure=((((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K)/rate);
 	sprintf(buff1,"%6d",i2c_out);
-	sprintf(buff1,"%6d",CurrentPressure);
+	sprintf(buff1,"%6d",current_pressure);
 }
 
 void button_interrupt_config(void){
@@ -1264,7 +1287,7 @@ void reset_FLAG(void){
 		ILI9341_FillRectangle(5, 70, 30, 30, ILI9341_WHITE);
 }
 void device_OFF(void){
-		comp_OFF;
+		pump_OFF;
 		valve_1_OFF;
 		valve_2_OFF;
 		ILI9341_FillScreen(ILI9341_BLACK);
@@ -1284,7 +1307,7 @@ void usb_send_i2c_convers(void){
 		i2c_convers();	
 		uint8_t send_buff[3]={25,i2c_receiver[1],i2c_receiver[0]};
 		i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-		CurrentPressure=i2c_out/rate;
+		current_pressure=i2c_out/rate;
 		usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 3);
 }
 
@@ -1332,7 +1355,7 @@ short int convert_save_16(void){
 short int convert_NO_save(void){			
 		if (ADS1115_read_IT()==0) return 0;
 		i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-		CurrentPressure=i2c_out/rate;	
+		current_pressure=i2c_out/rate;	
 		return i2c_out;
 }
 
@@ -1595,8 +1618,8 @@ int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
     }
 		ACLevel/=AC;
 		i2c_out=ACLevel;
-		CurrentPressure=i2c_out/rate;
-		if (CurrentPressure<0 & main_index<500) CurrentPressure=0;
+		current_pressure=i2c_out/rate;
+		if (current_pressure<0 & main_index<500) current_pressure=0;
 		mass_in[main_index-1]=ACLevel;	
 		
 		
@@ -1651,10 +1674,6 @@ void print_error(uint8_t K){
 				sprintf(_buff,"measurement error");		
 				ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);			
 		}
-		
-}
-
-void cur_slim(uint16_t *mass, int16_t AC){
 		
 }
 
