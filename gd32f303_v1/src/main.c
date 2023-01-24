@@ -170,7 +170,7 @@ uint16_t adc_value[8];
 uint16_t num_string=0;
 
 uint16_t count_send_bluetooth=0;
-uint16_t size_pack=20;
+uint8_t size_pack=20;
 
 short int save_clear[10000]={0};
 uint32_t main_index=0;
@@ -327,8 +327,7 @@ int main(void)
 		while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}
 		
 		EN_BUTT_FLAG=0;	
-		
-			
+					
 		PUMP_OFF;
 		VALVE_1_OFF;
 		VALVE_2_OFF;	
@@ -369,8 +368,6 @@ int main(void)
 			
 		i2c_calibration();	
 		
-		//uint16_t x, y;
-		
 		fmc_program_check();
 		delay_1ms(200);
 		str_clear(UART0_buff,200);		
@@ -387,11 +384,10 @@ int main(void)
 		//time_set(23,59,55);
 		//write_backup_register(cur_day, cur_month, cur_year);		
 		
-//if (mode == INIT_START) mode = START_SCREEN;
 		timer_1_start();
 	
     while (1) {	
-
+			bluetooth_check();
 			switch (mode)
 			{
 				case INIT_START:
@@ -437,6 +433,7 @@ int main(void)
 					device_OFF();
 					break;
 				case PUMPING_MANAGEMENT:
+					shutdown_counter = 0;
 					ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
 					if (button_released) abort_meas();
 					if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
@@ -459,6 +456,7 @@ int main(void)
 					if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) device_OFF();						
 					break;
 				case PRESSURE_TEST:
+					shutdown_counter = 0;
 					convert_NO_save();
 					print_num_H(current_pressure,235,10,YELLOW);
 					//print_num_H(current_pressure,235,120,RED);
@@ -467,13 +465,14 @@ int main(void)
 					print_time(rtc_counter_get());
 					break;
 				case MEASUREMENT:
+					shutdown_counter = 0;
 					if (button_released) abort_meas();
 					if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
 					PUMP_OFF;
 					VALVE_2_OFF;
 					if (main_index>1+size_pack*(count_send_bluetooth+1)){						
 							uint8_t c_summ=0;							
-							uint8_t cur_buff_ble[400]={'0','2',0x05,count_send_bluetooth&0xFF,(count_send_bluetooth>>8)&0xFF,size_pack};
+							uint8_t cur_buff_ble[400]={'0', '2', 0x05, count_send_bluetooth&0xFF, (count_send_bluetooth>>8)&0xFF, size_pack};
 							
 							for (int f=0;f<size_pack;f++){
 									int16_t cur_press=(((save_clear[count_send_bluetooth*size_pack+f]-i2c_out_K)*100)/rate);
@@ -533,6 +532,7 @@ int main(void)
 					}					
 					break;
 				case SEND_SAVE_BUFF_MSG:
+					shutdown_counter = 0;
 					break;
 			}
 			
@@ -1242,16 +1242,10 @@ void button_interrupt_config(void){
     exti_interrupt_flag_clear(EXTI_8);
 }
 
-void set_FLAG(void){
-		//ILI9341_FillRectangle(5, 70, 30, 30, ILI9341_BLACK);
-		//uint8_t buff1[10]={0};
-		//sprintf(buff1,"%6d",main_index);
-		//ILI9341_WriteString(5, 90, buff1, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-		
-}
 void reset_FLAG(void){
 		ILI9341_FillRectangle(5, 70, 30, 30, ILI9341_WHITE);
 }
+
 void device_OFF(void){
 		PUMP_OFF;
 		VALVE_1_OFF;
@@ -1259,6 +1253,7 @@ void device_OFF(void){
 		ILI9341_FillScreen(ILI9341_BLACK);
 		gpio_bit_reset(GPIOC, GPIO_PIN_9);
 }
+
 void i2c_calibration(void){
 		uint8_t buff1[10]={0};
 		i2c_out_K=0;
@@ -1266,7 +1261,7 @@ void i2c_calibration(void){
 				while (ADS1115_read_IT()==0){}
 				i2c_out_K+=((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF);				
 		}
-		i2c_out_K=i2c_out_K/20;
+		i2c_out_K = i2c_out_K/20;
 }
 
 void usb_send_i2c_convers(void){
@@ -1282,9 +1277,11 @@ void timer_2_start(void){
     timer_interrupt_enable(TIMER2, TIMER_INT_UP);
     timer_enable(TIMER2);
 }
+
 void timer_2_stop(void){
 	timer_disable(TIMER2);			
 }
+
 void timer_1_start(void){
 		timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);
     timer_interrupt_enable(TIMER1, TIMER_INT_UP);
@@ -1404,7 +1401,6 @@ uint16_t puls_convert(void){
 		return puls_out;
 }
 
-
 void clear_monitor(void){
 		ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);
 		ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);
@@ -1417,7 +1413,6 @@ void clear_monitor(void){
 		ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
 		ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);	
 }
-
 
 void print_error(uint8_t K){
 		ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
@@ -1435,8 +1430,7 @@ void print_error(uint8_t K){
 		if (K==4){
 				sprintf(_buff,"measurement error");		
 				ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);			
-		}
-		
+		}		
 }
 
 uint8_t boot_mode(void){
@@ -1465,13 +1459,16 @@ void print_bat_charg(void){
 				indicate_charge_toggle=1;
 		}
 }
-void bluetooth_init(void){
-		//my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));	
-		//delay_1ms(1000);		
-}
+
 void bluetooth_check(void){
-		if (finder(UART0_buff,"OK",0,0)) bluetooth_status=0;
-		else bluetooth_status=1;	
+		if (finder(UART0_buff,"OK",0,0)) {
+			bluetooth_status=0;
+			ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);
+		}
+		else {
+			ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);
+			bluetooth_status=1;	
+		}
 		my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));			
 }
 
@@ -1549,22 +1546,6 @@ uint8_t finder_msg(uint8_t *buff){
 									
 										time_set((uint32_t)cur_thh,(uint32_t)cur_tmm,(uint32_t)cur_tss);
 										write_backup_register((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
-		/*									
-		uint8_t buff[100]={0};
-		sprintf(buff,"%2d:",cur_thh);
-		ILI9341_WriteString(130, 50, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%2d:",cur_tmm);
-		ILI9341_WriteString(160, 50, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%2d",cur_tss);
-		ILI9341_WriteString(190, 50, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);	
-		
-		sprintf(buff,"%2d.",cur_day);
-		ILI9341_WriteString(130, 80, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%2d.",cur_month);
-		ILI9341_WriteString(160, 80, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%4d",cur_year);
-		ILI9341_WriteString(190, 80, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-*/
 									
 										buff[j]=0xFF;
 										return 2;

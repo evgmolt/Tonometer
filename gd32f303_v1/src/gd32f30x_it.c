@@ -272,8 +272,11 @@ void TIMER1_IRQHandler(void)
 						if (button_pressed_counter > GO_TO_TEST_INTERVAL) {
 							ILI9341_FillScreen(ILI9341_WHITE);
 							timer_2_stop();
-							mode = PRESSURE_TEST;
+							i2c_calibration();
+							VALVE_1_ON;
+							VALVE_2_ON;
 							button_pressed_counter = 0;
+							mode = PRESSURE_TEST;
 						}
 				}
 				else {
@@ -391,7 +394,6 @@ void TIMER2_IRQHandler(void)
 						if (usb_send_save(save_dir,EnvelopeArray)){			
 								mode = INIT_START;
 								timer_2_stop();
-								set_FLAG();
 								main_index=0;
 								send_counter=0;
 						}
@@ -559,7 +561,6 @@ void RTC_IRQHandler(void)
         }
     }
 }
-
 
 void EXTI5_9_IRQHandler(void)
 {

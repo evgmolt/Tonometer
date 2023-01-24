@@ -79,7 +79,6 @@ void i2c_print(void);
 void button_interrupt_config(void);
 
 void reset_FLAG(void);
-void set_FLAG(void);
 void device_OFF(void);
 void i2c_calibration(void);
 
@@ -262,7 +261,7 @@ extern uint8_t buff097[10];
 extern uint16_t num_string;
 
 extern uint16_t count_send_bluetooth;
-extern uint16_t size_pack;
+extern uint8_t size_pack;
 
 extern short int save_clear[10000];
 extern uint32_t main_index;
