@@ -9,12 +9,12 @@
 #define YELLOW 	0x3
 #define BLACK 	0x4
 
-#define pump_ON 		gpio_bit_set	(GPIOC, GPIO_PIN_11)
-#define pump_OFF 		gpio_bit_reset(GPIOC, GPIO_PIN_11)
-#define valve_1_ON 	gpio_bit_set	(GPIOC, GPIO_PIN_12)
-#define valve_1_OFF gpio_bit_reset(GPIOC, GPIO_PIN_12)
-#define valve_2_ON 	gpio_bit_set	(GPIOC, GPIO_PIN_13)
-#define valve_2_OFF gpio_bit_reset(GPIOC, GPIO_PIN_13)
+#define PUMP_ON 		gpio_bit_set	(GPIOC, GPIO_PIN_11)
+#define PUMP_OFF 		gpio_bit_reset(GPIOC, GPIO_PIN_11)
+#define VALVE_1_ON 	gpio_bit_set	(GPIOC, GPIO_PIN_12)
+#define VALVE_1_OFF gpio_bit_reset(GPIOC, GPIO_PIN_12)
+#define VALVE_2_ON 	gpio_bit_set	(GPIOC, GPIO_PIN_13)
+#define VALVE_2_OFF gpio_bit_reset(GPIOC, GPIO_PIN_13)
 
 #define INIT_START 0
 #define START_SCREEN 1
@@ -36,6 +36,7 @@
 #define DEBONCE_INTERVAL 4
 #define GO_TO_TEST_INTERVAL 500
 #define SWITCH_OFF_INTERVAL 120
+#define SHUTDOWN_INTERVAL 10000 //100 seconds
 
 /* function declarations */
 
@@ -55,7 +56,7 @@ void spi_config(void);
 
 void nvic_configuration(void);
 void rtc_configuration(void);
-void time_display(uint32_t timevar);
+void print_time(uint32_t timevar);
 
 
 void usb_send_i2c_convers(void);
@@ -143,6 +144,8 @@ void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uin
 
 void print_SIS(int16_t IN);
 void print_DIA(int16_t IN);
+
+void abort_meas(void);
 
 extern uint16_t detect_FLAG;
 extern uint16_t finish_time;
@@ -270,6 +273,7 @@ extern short int EnvelopeArray[10000];
 extern uint32_t send_counter;
 extern double rate;
 
+extern int shutdown_counter;
 
 extern int button_touched;
 extern int button_pressed;

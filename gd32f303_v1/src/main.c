@@ -60,6 +60,7 @@ OF SUCH DAMAGE.
 #include "text_H_RED.h"
 #include "text_H_YELLOW.h"
 #include "text_L_BLACK.h"
+#include "DataProcessing.h"
 
 //#include ""
 
@@ -69,7 +70,6 @@ OF SUCH DAMAGE.
 #define FMC_WRITE_END_ADDR      ((uint32_t)0x0807E030U)
 
 
-#define NCoef 2 
 
 /* enter the second interruption,set the second interrupt flag to 1 */
 __IO uint32_t timedisplay;
@@ -151,18 +151,7 @@ uint32_t cur_tim=0;
 
 uint8_t bluetooth_status=0;
 uint8_t bonus_byte=0;
-/*
-mode device:
-0 - init start;
-1 - start screen
-2 - key off
-3 - pumping measurement
-4 - usb charging
-5 - pressure test
-6 - measurement
-7 - send save buff msg
-8 -
-*/
+
 uint8_t mode = INIT_START;
 
 uint8_t sim800_FLAG=0;
@@ -254,8 +243,6 @@ void nvic_config_2(void)
     nvic_irq_enable(TIMER2_IRQn, 1, 1);
 }
 
-
-
 int main(void)
 {
 		nvic_configuration();	  // RTC
@@ -317,11 +304,8 @@ int main(void)
 		
 		button_interrupt_config();
 		
-		uint8_t buff2[10]={0};
 		EN_BUTT_FLAG=1;
 		
-			
-
 		if (mode == INIT_START){		
 		ILI9341_DrawImage(72, 279, 31, 30, (const uint16_t*)heart);
 		ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);
@@ -345,9 +329,9 @@ int main(void)
 		EN_BUTT_FLAG=0;	
 		
 			
-		pump_OFF;
-		valve_1_OFF;
-		valve_2_OFF;	
+		PUMP_OFF;
+		VALVE_1_OFF;
+		VALVE_2_OFF;	
 		
 		/*
 		my_send_string_UART_0("AT+NAME=TONOMETER\0\n",strlen("AT+NAME=TONOMETER\0\n"));
@@ -423,15 +407,14 @@ int main(void)
 //							timer_1_stop();							
 							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
 							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);						
-
 						
 							count_send_bluetooth=0;
 						
 							current_pressure=0;
 							i2c_calibration();
-							pump_ON;
-							valve_1_ON;
-							valve_2_ON;
+							PUMP_ON;
+							VALVE_1_ON;
+							VALVE_2_ON;
 							_lockInterval=50;
 							sector_start_scan=0;
 							main_index = 0;		
@@ -455,15 +438,7 @@ int main(void)
 					break;
 				case PUMPING_MANAGEMENT:
 					ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
-					if (button_released)
-					{
-							mode = START_SCREEN;
-							pump_OFF;
-							valve_1_OFF;
-							valve_2_OFF;
-							button_released = 0;
-							button_pressed_counter = 0;
-					}
+					if (button_released) abort_meas();
 					if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
 				
 					if (current_pressure >= MAX_ALLOWED_PRESSURE) {
@@ -489,12 +464,13 @@ int main(void)
 					//print_num_H(current_pressure,235,120,RED);
 					usb_send_16(i2c_out,0);
 					delay_1ms(200);
-					time_display(rtc_counter_get());
+					print_time(rtc_counter_get());
 					break;
 				case MEASUREMENT:
+					if (button_released) abort_meas();
 					if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
-					pump_OFF;
-					valve_2_OFF;
+					PUMP_OFF;
+					VALVE_2_OFF;
 					if (main_index>1+size_pack*(count_send_bluetooth+1)){						
 							uint8_t c_summ=0;							
 							uint8_t cur_buff_ble[400]={'0','2',0x05,count_send_bluetooth&0xFF,(count_send_bluetooth>>8)&0xFF,size_pack};
@@ -550,8 +526,8 @@ int main(void)
 							}
 							send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
 							
-							valve_1_OFF;
-							valve_2_OFF;
+							VALVE_1_OFF;
+							VALVE_2_OFF;
 							mode = SEND_SAVE_BUFF_MSG;								
 							timer_1_start();
 					}					
@@ -590,14 +566,13 @@ int main(void)
     }
 }
 
-int16_t GetAver(int16_t nextValue)
-{
-	ArrayForAver[ArrayForAverIndex] = nextValue;
-	ArrayForAverIndex++;
-	if (ArrayForAverIndex > AVER_SIZE - 1) ArrayForAverIndex = 0;
-	int16_t sum = 0;
-	for (int i = 0; i < AVER_SIZE; i++) sum += ArrayForAver[i];
-	return sum / AVER_SIZE;
+void abort_meas(void) {
+		mode = START_SCREEN;
+		PUMP_OFF;
+		VALVE_1_OFF;
+		VALVE_2_OFF;
+		button_released = 0;
+		button_pressed_counter = 0;
 }
 
 void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color){
@@ -615,9 +590,7 @@ void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color){
 		if (color==BLACK) ILI9341_FillRectangle(X0-41*3, Y0, 82, 64, ILI9341_WHITE);
 		else 							ILI9341_FillRectangle(X0-60*3, Y0, 120, 106, ILI9341_WHITE);
 	}
-	
-	
-	
+			
 	for (int g=0;g<max;g++){
 			now=pow(10,g);
 			now1=now;			
@@ -686,7 +659,6 @@ void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color){
 	}
 }
 
-
 void i2c_config(void){
 		/* enable GPIOB clock */
     rcu_periph_clock_enable(RCU_GPIOB);
@@ -730,8 +702,7 @@ void TFT_print(void){
 		else if (adc_1<2232 & adc_1>2166) rang_bat=2;
 		else if (adc_1<2166 & adc_1>2100) rang_bat=1;
 		else if (adc_1<2100) 							rang_bat=0;
-		
-		
+				
 		if (rang_bat_old!=rang_bat){	
 				ILI9341_DrawImage(6, 285, 44, 24, (const uint16_t*)bat_clr);			
 				for (int i1=0;i1<rang_bat;i1++){
@@ -834,8 +805,6 @@ uint8_t ADS1115_read_IT(void){
 		return 0;
 }
 
-
-
 void i2c_convers(void){	
 		while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));
     /* send a start condition to I2C bus */
@@ -891,9 +860,7 @@ void i2c_convers(void){
     /* enable acknowledge */
     i2c_ack_config(I2C0, I2C_ACK_ENABLE);
 //		i2c_transmitter[1]=0x01;
-	
-	
-		
+			
 		/* wait until I2C bus is idle */
     while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));
     /* send a start condition to I2C bus */
@@ -921,7 +888,6 @@ void i2c_convers(void){
     i2c_stop_on_bus(I2C0);
     /* wait until stop condition generate */
     while(I2C_CTL0(I2C0) & 0x0200);	
-
 }
 
 void GPIO_config(void){
@@ -1131,7 +1097,7 @@ void rtc_configuration(void){
     rtc_lwoff_wait();
 }
 
-void time_display(uint32_t timevar){
+void print_time(uint32_t timevar){
 		uint8_t buff[100]={0};
     uint32_t thh = 0, tmm = 0, tss = 0;
 		
@@ -1287,9 +1253,9 @@ void reset_FLAG(void){
 		ILI9341_FillRectangle(5, 70, 30, 30, ILI9341_WHITE);
 }
 void device_OFF(void){
-		pump_OFF;
-		valve_1_OFF;
-		valve_2_OFF;
+		PUMP_OFF;
+		VALVE_1_OFF;
+		VALVE_2_OFF;
 		ILI9341_FillScreen(ILI9341_BLACK);
 		gpio_bit_reset(GPIOC, GPIO_PIN_9);
 }
@@ -1344,6 +1310,7 @@ uint8_t usb_send_save(int16_t *mass1, int16_t *mass2){
 	if (send_counter>=main_index) return 1;
 	else return 0;
 }
+
 short int convert_save_16(void){			
 		if (ADS1115_read_IT()==0) return 0;
 
@@ -1352,6 +1319,7 @@ short int convert_save_16(void){
 		main_index++;			
 		return 1;
 }
+
 short int convert_NO_save(void){			
 		if (ADS1115_read_IT()==0) return 0;
 		i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
@@ -1368,59 +1336,6 @@ void usb_send_16(short int T1, short int T2){
 		usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 5);
 }
 
-int16_t GetDerivative(int16_t *dataArr, int32_t Ind){
-   if (Ind < (DerivativeAverageWidth+DerivativeShift)){
-       return 0;
-   }
-   int32_t val1 = 0;
-   int32_t val2 = 0;
-   for (int i = 0; i < DerivativeAverageWidth; i++){
-       val1 += dataArr[Ind - DerivativeAverageWidth + i];
-       val2 += dataArr[Ind - DerivativeAverageWidth - DerivativeShift + i];
-   }
-   val1 /= DerivativeAverageWidth;
-   val2 /= DerivativeAverageWidth;
-   return (int16_t)(val1 - val2);
-}
-
-void GetArrayOfWaveIndexes(int16_t *valuesArray, int16_t *indexesArray, int16_t *indexes){    
-    for (int i=0; i<puls_counter; i++)
-    {
-        puls_buff_NEW_MIN[i] = GetMinIndexInRegion(valuesArray, indexesArray[i]);
-				puls_buff_AMP_MIN[i] = valuesArray[puls_buff_NEW_MIN[i]];
-				indexes[i] = GetMaxIndexInRegion(valuesArray, indexesArray[i]);
-				puls_buff_AMP[i]=valuesArray[indexes[i]];				
-    }    
-}
-
-int GetMaxIndexInRegion(int16_t *sourceArray, int index){ 
-    int range = 50;
-    int16_t max = -200;
-    int maxIndex = 0;
-    for (int i1 = 0; i1 < range; i1++){
-        //if (i - range / 2 < 0) continue;
-        //if (i - range / 2 > strlen(sourceArray)) continue;
-        if (sourceArray[index + i1 - range / 2] > max){
-            max = sourceArray[index + i1 - range / 2];
-            maxIndex = i1 - range / 2;
-        }
-    }		
-    return index + maxIndex;
-}
-
-int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index){		
-		int range_MIN=100;
-		int16_t min = 1000;
-		int minIndex = 0;
-		for (int i1 = 0; i1 < range_MIN; i1++){
-				if (sourceArray_MIN[index+i1] < min){
-						min=sourceArray_MIN[index+i1];
-						minIndex=i1;
-				}
-		}			
-    return index + minIndex;
-}
-
 uint8_t usb_send_slim_AMP(void){
 	uint8_t send_H=(save_dir[send_counter]>>8)&0xFF;
 	uint8_t send_L=save_dir[send_counter]&0xFF;
@@ -1430,111 +1345,8 @@ uint8_t usb_send_slim_AMP(void){
 	if (send_counter>=puls_counter) return 1;
 	else return 0;
 }
-void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues){
-    for (int i = 1; i < puls_counter; i++){
-        int x1 = arrayOfIndexes[i - 1];
-        int x2 = arrayOfIndexes[i];
-        double y1 = arrayOfValues[i - 1];
-        double y2 = arrayOfValues[i];
-        double coeff = (y2 - y1) / (x2 - x1);
-        for (int j = x1 - 1; j < x2; j++) {
-            int ind = i + j;            
-            EnvelopeArray[j] = y1 + coeff * (j - x1);
-        }				
-    }
-}
-
-void f_sorting_MAX(void){
-		int16_t MaximumAmplitude=-100;
-		uint8_t FLAG=1;	
-		uint16_t mini_XMAX=0;
-		int16_t z=0;
-		uint8_t buff1[10]={0};		
-		
-		int level = 8;
-    for (int i = 1; i < puls_counter - 1; i++){
-				if (abs(puls_buff_AMP[i] - puls_buff_AMP[i - 1]) > level)
-				{
-						puls_buff_AMP[i] = (puls_buff_AMP[i - 1] + puls_buff_AMP[i + 1]) / 2;
-				}
-    }
-		
-		
-		for (int i=0; i<puls_counter; i++){
-				puls_buff_AMP[i]=puls_buff_AMP[i]-puls_buff_AMP_MIN[i];
-		}
-		
-		for (int i=0; i<puls_counter; i++){
-				if (puls_buff_AMP[i]>MaximumAmplitude){
-						MaximumAmplitude=puls_buff_AMP[i];							
-						mini_XMAX=i;
-				}		
-		}			
-		
-		//sprintf(buff1,"%4d",puls_counter);
-		//ILI9341_WriteString(1, 50, buff1, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-		//sprintf(buff1,"%4d",mini_XMAX);
-		//ILI9341_WriteString(1, 70, buff1, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-		
-		while (FLAG==1){
-				FLAG=0;
-				for (int i=1; i<mini_XMAX; i++){
-						if (puls_buff_AMP[i-1]>puls_buff_AMP[i]){
-								z=puls_buff_AMP[i-1];
-								puls_buff_AMP[i-1]=puls_buff_AMP[i];
-								puls_buff_AMP[i]=z;
-								//swap(puls_buff_AMP[i-1],puls_buff_AMP[i]);
-								FLAG=1;
-						}
-				}
-		}
-		FLAG=1;
-		while (FLAG==1){
-				FLAG=0;
-				for (int i=mini_XMAX+2; i<puls_counter; i++){
-						if (puls_buff_AMP[i-1]<puls_buff_AMP[i]){
-								z=puls_buff_AMP[i-1];
-								puls_buff_AMP[i-1]=puls_buff_AMP[i];
-								puls_buff_AMP[i]=z;
-								//swap(puls_buff_AMP[i-1],puls_buff_AMP[i]);
-								FLAG=1;
-						}
-				}
-		}		
-}
 
 
-
-void f_PSys_Dia(void){
-	double MaximumAmplitude=-100;
-	
-	for (int i=0; i<puls_counter; i++){
-			if (puls_buff_AMP[i]>MaximumAmplitude){
-					MaximumAmplitude=puls_buff_AMP[i];
-					XMax=puls_buff_NEW[i];					
-			}		
-	}		
-	
-	int16_t ValueSys = 0.46 * MaximumAmplitude;
-	int16_t ValueDia = 0.82 * MaximumAmplitude;	
-	
-	for (int i = XMax; i >= 200; i--){
-			if (EnvelopeArray[i] < ValueSys){
-					PSys = save_clear[i]/rate;
-					indexPSys = i;
-					break;
-			}
-	}
-	for (int i = XMax; i < main_index; i++)
-	{
-    if (EnvelopeArray[i] < ValueDia)
-    {
-        PDia = save_clear[i]/rate;
-        indexPDia = i;
-        break;
-    }
-	}
-}
 uint16_t puls_convert(void){
 		double level = 0.06;
 		uint16_t intervals[50]={0};
@@ -1606,56 +1418,6 @@ void clear_monitor(void){
 		ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);	
 }
 
-int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
-		int32_t DCLevel = 0;
-		int32_t ACLevel = 0;					
-		for(int r=0;r<DC;r++){
-				DCLevel+=mass_in[main_index-1-r];
-		}
-		DCLevel/=DC;	
-		for (int j=0;j<AC;j++){
-       ACLevel+=mass_in[main_index-1-j];
-    }
-		ACLevel/=AC;
-		i2c_out=ACLevel;
-		current_pressure=i2c_out/rate;
-		if (current_pressure<0 & main_index<500) current_pressure=0;
-		mass_in[main_index-1]=ACLevel;	
-		
-		
-		float ACoef[NCoef+1] = { 
-        0.97913295295553560000, 
-        -1.95826590591107120000, 
-        0.97913295295553560000 
-    }; 
- 
-    float BCoef[NCoef+1] = { 
-        1.00000000000000000000, 
-        -1.95778812550116580000, 
-        0.95837795232608958000 
-    }; 
- 
-    static float y[NCoef+1]; //output samples 
-    static float x[NCoef+1]; //input samples 
-    int n; 
- 
-    //shift the old samples 
-    for(n=NCoef; n>0; n--) { 
-       x[n] = x[n-1]; 
-       y[n] = y[n-1]; 
-    } 
- 
-    //Calculate the new output 
-    x[0] = ACLevel; 
-    y[0] = ACoef[0] * x[0]; 
-    for(n=1; n<=NCoef; n++) 
-        y[0] += ACoef[n] * x[n] - BCoef[n] * y[n]; 
-		
-		
-		
-		return (int16_t)y[0];
-		//return ACLevel-DCLevel;
-}
 
 void print_error(uint8_t K){
 		ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);

@@ -108,6 +108,8 @@ int16_t ACArrayWindow = 6;
 
 uint8_t UART0_flag=0;
 
+int shutdown_counter = 0;
+
 int button_touched = 0;
 int button_pressed = 0;
 int button_released = 0;
@@ -237,6 +239,11 @@ void TIMER1_IRQHandler(void)
 				timer_interrupt_enable(TIMER1, TIMER_INT_UP);
 				timer_enable(TIMER1);			
 			
+				shutdown_counter++;
+				if (shutdown_counter > SHUTDOWN_INTERVAL) {
+						mode = KEY_OFF;					
+				}
+			
 				button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
 				if (button_touched) {
 					button_touched_counter++;
@@ -253,6 +260,7 @@ void TIMER1_IRQHandler(void)
 				
 				if (button_pressed) {
 					button_pressed_counter++;
+					shutdown_counter = 0;
 				}
 				else {
 					if (button_pressed_counter > 0) {
@@ -552,76 +560,6 @@ void RTC_IRQHandler(void)
     }
 }
 
-/*void EXTI5_9_IRQHandler(void)
-{
-	if (RESET != exti_interrupt_flag_get(EXTI_8)){
-		int statusBtn = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
-			if (statusBtn){
-					EN_BUTT_FLAG=1;
-					EN_BUTT_count=0;
-			}
-			if (statusBtn == 0 & mode == KEY_OFF){
-					device_OFF();
-			}			
-			if (statusBtn == 0){				
-					if (mode == PUMPING_MANAGEMENT & EN_BUTT_count<2) {
-							timer_1_start();
-							mode = START_SCREEN;
-					}						
-					else if (mode == START_SCREEN & EN_BUTT_count<2) {
-							timer_1_stop();							
-							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
-							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);						
-												
-							count_send_bluetooth=0;
-						
-							current_pressure=0;
-							i2c_calibration();
-							pump_ON;
-							valve_1_ON;
-							valve_2_ON;
-							//timer_2_stop();	
-							_lockInterval=50;
-							sector_start_scan=0;
-							main_index=0;		
-							save_dir_counter=0;		
-							Wave_detect_FLAG=0;	
-							_maxD=0;		
-							_detectLevel_comp_UP=15;
-							_detectLevel=_detectLevel_start;
-							silence_time_start=0;
-							puls_counter=0;			
-							detect_FLAG=0;
-							timer_2_start();
-							current_pressure=0;
-							finish_6_flag=0;
-							mode = PUMPING_MANAGEMENT; 							
-					}	
-					else if (mode == MEASUREMENT & EN_BUTT_count<2) {
-							timer_2_stop();
-							mode = START_SCREEN; 							
-					}
-					else if (mode == PRESSURE_TEST & EN_BUTT_count<2) {
-							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
-							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);	
-							//clear_monitor();	
-							timer_1_start();
-							mode = START_SCREEN;
-							//timer_1_start();
-					}
-					else if (EN_BUTT_count>10){
-							//ILI9341_FillScreen(ILI9341_WHITE);
-							mode = PRESSURE_TEST;
-							timer_1_start();
-							//EN_BUTT_FLAG=0;							
-					}
-					
-					EN_BUTT_count=0;
-					EN_BUTT_FLAG=0;
-			}	
-	}
-	exti_interrupt_flag_clear(EXTI_8);
-}*/
 
 void EXTI5_9_IRQHandler(void)
 {
