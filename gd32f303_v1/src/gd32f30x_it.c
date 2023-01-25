@@ -422,8 +422,7 @@ void my_i2c_send(uint8_t data){
 	my_delay(10);
 	gpio_bit_reset(GPIOB, GPIO_PIN_6);
 	my_delay(1000);	
-	gpio_bit_set(GPIOB, GPIO_PIN_6);
-		
+	gpio_bit_set(GPIOB, GPIO_PIN_6);		
 }
 
 uint8_t my_i2c_read(void){
@@ -463,6 +462,7 @@ void SysTick_Handler(void)
 {
     delay_decrement();
 }
+
 void my_delay(int time){
 	int count = 0;
 	for(int j=0;j<time;j++) count++;

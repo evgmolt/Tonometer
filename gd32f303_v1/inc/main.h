@@ -9,6 +9,11 @@
 #define YELLOW 	0x3
 #define BLACK 	0x4
 
+#define YELLOW_LEVEL_SYS 140
+#define RED_LEVEL_SYS 160
+#define YELLOW_LEVEL_DIA 90
+#define RED_LEVEL_DIA 100
+
 #define PUMP_ON 		gpio_bit_set	(GPIOC, GPIO_PIN_11)
 #define PUMP_OFF 		gpio_bit_reset(GPIOC, GPIO_PIN_11)
 #define VALVE_1_ON 	gpio_bit_set	(GPIOC, GPIO_PIN_12)
@@ -26,7 +31,7 @@
 #define SEND_SAVE_BUFF_MSG 7
 
 #define STOP_MEAS_LEVEL 60
-#define MIN_PRESSURE 120
+#define MIN_PRESSURE 120	
 #define SEC_AFTER_MAX 6
 #define DELAY_AFTER_PUMPING 400
 #define DELAY_AFTER_START 400
@@ -37,6 +42,16 @@
 #define GO_TO_TEST_INTERVAL 500
 #define SWITCH_OFF_INTERVAL 120
 #define SHUTDOWN_INTERVAL 10000 //100 seconds
+
+#define CONNECTED 1
+#define DISCONNECTED 0
+
+#define MAX_SYS 250
+#define MIN_SYS 60
+#define MAX_DIA 150
+#define MIN_DIA 30
+#define MIN_PULSE 25
+#define MAX_PULSE 250
 
 /* function declarations */
 
@@ -78,7 +93,6 @@ void i2c_init(void);
 void i2c_print(void);
 void button_interrupt_config(void);
 
-void reset_FLAG(void);
 void device_OFF(void);
 void i2c_calibration(void);
 
@@ -122,8 +136,8 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues);
 void ADS1115_config(uint8_t pointer, uint8_t byte1, uint8_t byte2);
 uint8_t ADS1115_read_IT(void);
 void print_error(uint8_t K);
-uint8_t boot_mode(void);
-void print_bat_charg(void);
+void boot_mode(void);
+void print_batt_charge(void);
 void bluetooth_check(void);
 uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num);
 uint8_t finder_msg(uint8_t *buff);
@@ -141,7 +155,7 @@ void write_backup_register(uint16_t day, uint16_t month, uint16_t year);
 void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year);
 void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8_t c_ss, uint8_t c_mm, uint8_t c_hh, int16_t sis, int16_t dia, int16_t pressure, int16_t bonus);
 
-void print_SIS(int16_t IN);
+void print_SYS(int16_t IN);
 void print_DIA(int16_t IN);
 
 void abort_meas(void);
@@ -255,7 +269,7 @@ extern uint8_t Lo_ADS1115_config;
 extern uint8_t mode;
 
 extern uint8_t sim800_FLAG;
-extern uint8_t rang_bat_old;
+extern uint8_t rang_batt_old;
 extern uint8_t send_buff[100];
 extern uint8_t buff097[10];
 extern uint16_t num_string;

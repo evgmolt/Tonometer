@@ -48,19 +48,20 @@ OF SUCH DAMAGE.
 #include "ili9341_touch.h"
 
 //#include "img_all.h"
-#include "bat_clr_44_24.h"
-#include "bat_dif_7_22.h"
+//#include "bat_clr_44_24.h"
+//#include "bat_dif_7_22.h"
 #include "heart_31_30.h"
 #include "bluetooth_15_24.h"
 #include "gsm_29_18.h"
 #include "heartX3_45_27.h"
 #include "SYS_46_36.h"
 #include "DIA_45_35.h"
-#include "text_H_GREEN.h"
-#include "text_H_RED.h"
-#include "text_H_YELLOW.h"
-#include "text_L_BLACK.h"
+//#include "text_H_GREEN.h"
+//#include "text_H_RED.h"
+//#include "text_H_YELLOW.h"
+//#include "text_L_BLACK.h"
 #include "DataProcessing.h"
+#include "Display.h"
 
 //#include ""
 
@@ -155,7 +156,7 @@ uint8_t bonus_byte=0;
 uint8_t mode = INIT_START;
 
 uint8_t sim800_FLAG=0;
-uint8_t rang_bat_old=99;
+uint8_t rang_batt_old=99;
 
 uint8_t i2c_transmitter[16];
 uint8_t i2c_receiver[16];
@@ -250,7 +251,6 @@ int main(void)
 	
 		GPIO_config();	
 		systick_config();
-
 		
 		boot_mode();		
 
@@ -353,17 +353,8 @@ int main(void)
 		//my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));	
 		if (sim800_FLAG) {}	  //GSM module ...		
 		delay_1ms(1000);
-		if (mode!=4) {			
-				ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);
-				ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);
-				ILI9341_FillRectangle(22, 258, 29, 18, ILI9341_WHITE);
-				ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
-				ILI9341_FillRectangle(5, 10, 46, 36, ILI9341_WHITE);
-				ILI9341_FillRectangle(5, 133, 45, 35, ILI9341_WHITE);				
-
-				ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
-				ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
-				ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);	
+		if (mode != USB_CHARGING) {			
+				clear_monitor();
 		}		
 			
 		i2c_calibration();	
@@ -400,7 +391,6 @@ int main(void)
 				case START_SCREEN:
 					TFT_print();
 					if (button_released) {
-//							timer_1_stop();							
 							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
 							ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);						
 						
@@ -451,7 +441,7 @@ int main(void)
 					break;
 				case USB_CHARGING:
 					if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
-					print_bat_charg();				
+					print_batt_charge();				
 					delay_1ms(2000);				
 					if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) device_OFF();						
 					break;
@@ -504,20 +494,25 @@ int main(void)
 							f_PSys_Dia();
 							puls_convert();	
 							bonus_byte=0;
-							if (main_index>1000 & PSys>10 & PSys<300 & PDia>10 & PDia<300 & puls_out>10 & puls_out<300) {
-									ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
-									ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);	
-									print_SIS(PSys);
-									print_DIA(PDia);									
-									print_num_H((int16_t)puls_out,235,250,BLACK);
-								
-									cur_tim = rtc_counter_get();
-									m_hh = cur_tim / 3600;
-									m_mm = (cur_tim % 3600) / 60;
-									m_ss = (cur_tim % 3600) % 60;
-									check_backup_register(&cur_day, &cur_month, &cur_year);
-									if 	(cur_year>=255)	cur_year-=2000;
-									//send_result_measurement(14, 15, 16, 17, 18, 19, 20, 21, 22, 23);																							
+							if (main_index>1000 & 
+									PSys > MIN_SYS & 
+									PSys < MAX_SYS & 
+									PDia > MIN_DIA & 
+									PDia < MAX_DIA & 
+									puls_out > MIN_PULSE & 
+									puls_out < MAX_PULSE) {
+										ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
+										ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);	
+										print_SYS(PSys);
+										print_DIA(PDia);									
+										print_num_H((int16_t)puls_out,235,250,BLACK);
+									
+										cur_tim = rtc_counter_get();
+										m_hh = cur_tim / 3600;
+										m_mm = (cur_tim % 3600) / 60;
+										m_ss = (cur_tim % 3600) % 60;
+										check_backup_register(&cur_day, &cur_month, &cur_year);
+										if 	(cur_year>=255)	cur_year-=2000;
 							}
 							else {
 									bonus_byte|=0x80;
@@ -575,90 +570,6 @@ void abort_meas(void) {
 		button_pressed_counter = 0;
 }
 
-void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color){
-	double now=0;
-	uint16_t now1=0;
-	uint8_t max;
-	if (num>=100)max=3;
-	else if (num>=10) {
-		max=2;
-		if (color==BLACK) ILI9341_FillRectangle(X0-41*3, Y0, 41, 64, ILI9341_WHITE);
-		else 							ILI9341_FillRectangle(X0-60*3, Y0, 60, 106, ILI9341_WHITE);
-	}
-	else {
-		max=1;
-		if (color==BLACK) ILI9341_FillRectangle(X0-41*3, Y0, 82, 64, ILI9341_WHITE);
-		else 							ILI9341_FillRectangle(X0-60*3, Y0, 120, 106, ILI9341_WHITE);
-	}
-			
-	for (int g=0;g<max;g++){
-			now=pow(10,g);
-			now1=now;			
-			switch ((num/now1)%10)	{	
-				case 0:					
-					if (color==GREEN)				ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_0);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_0);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_0);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_0);
-				break;
-				case 1:
-				 	if (color==GREEN)				ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_1);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_1);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_1);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_1);
-				break;
-				case 2:
-				 	if (color==GREEN)				ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_2);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_2);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_2);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_2);
-				break;
-				case 3:
-					if (color==GREEN)				ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_3);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_3);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_3);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_3);
-				break;
-				case 4:
-					if (color==GREEN)				ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_4);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_4);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_4);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_4);
-				break;
-				case 5:
-					if (color==GREEN)				ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_5);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_5);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_5);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_5);
-				break;
-				case 6:
-					if (color==GREEN) 			ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_6);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_6);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_6);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_6);
-				break;
-				case 7:
-					if (color==GREEN) 			ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_7);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_7);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_7);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_7);
-				break;
-				case 8:
-					if (color==GREEN) 			ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_8);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_8);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_8);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_8);
-				break;
-				case 9:
-					if (color==GREEN) 			ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_9);
-					else if (color==RED) 		ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_9);
-					else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_9);
-					else if (color==BLACK) 	ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_9);
-				break;
-			}
-	}
-}
-
 void i2c_config(void){
 		/* enable GPIOB clock */
     rcu_periph_clock_enable(RCU_GPIOB);
@@ -682,34 +593,6 @@ void i2c_config(void){
 
 void SIM_recieve_OK(void){
 		usbd_ep_send (&usbd_cdc, CDC_IN_EP, "OK", 3);
-}
-
-void TFT_print(void){
-		uint8_t buff[100]={0};
-		uint16_t adc_1=0;
-		uint8_t rang_bat=0;
-	
-		adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL);
-		delay_1ms(100);		
-		adc_1=adc_value[0]*3300/(0xFFF);
-		
-		if (adc_1<1800) return;
-
-		if (adc_1>2430) 									rang_bat=5;
-		else if (adc_1<2430 & adc_1>2364) rang_bat=5;
-		else if (adc_1<2364 & adc_1>2298) rang_bat=4;
-		else if (adc_1<2298 & adc_1>2232) rang_bat=3;
-		else if (adc_1<2232 & adc_1>2166) rang_bat=2;
-		else if (adc_1<2166 & adc_1>2100) rang_bat=1;
-		else if (adc_1<2100) 							rang_bat=0;
-				
-		if (rang_bat_old!=rang_bat){	
-				ILI9341_DrawImage(6, 285, 44, 24, (const uint16_t*)bat_clr);			
-				for (int i1=0;i1<rang_bat;i1++){
-						ILI9341_DrawImage(42-i1*8, 286, 7, 22, (const uint16_t*)bat_dif);
-				}
-				rang_bat_old=rang_bat;
-		}		
 }
 
 void ADS1115_config(uint8_t pointer, uint8_t byte1, uint8_t byte2){
@@ -1097,56 +980,6 @@ void rtc_configuration(void){
     rtc_lwoff_wait();
 }
 
-void print_time(uint32_t timevar){
-		uint8_t buff[100]={0};
-    uint32_t thh = 0, tmm = 0, tss = 0;
-		
-    /* compute  hours */
-    thh = timevar / 3600;
-    /* compute minutes */
-    tmm = (timevar % 3600) / 60;
-    /* compute seconds */
-    tss = (timevar % 3600) % 60;
-		
-		check_backup_register(&cur_day, &cur_month, &cur_year);
-		if (thh==0 & cur_day==0 & cur_month==0){
-
-				cur_day=1;
-				cur_month=1;
-				write_backup_register(cur_day, cur_month, cur_year);
-		}
-		
-		if (thh>23) {
-				cur_day++; 
-				thh=0;
-				time_set(thh,tmm,tss);
-				write_backup_register(cur_day, cur_month, cur_year);				
-		}
-		if (cur_day>=29) { //add calendar....
-				cur_month++; 
-				cur_day=1;	
-				write_backup_register(cur_day, cur_month, cur_year);
-		}
-		if (cur_month>12) {
-				cur_year++; 
-				cur_month=1;
-				write_backup_register(cur_day, cur_month, cur_year);
-		}
-		sprintf(buff,"%02d:",thh);
-		ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%02d:",tmm);
-		ILI9341_WriteString(160, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%02d",tss);
-		ILI9341_WriteString(190, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);	
-		
-		sprintf(buff,"%02d.",cur_day);
-		ILI9341_WriteString(130, 260, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%02d.",cur_month);
-		ILI9341_WriteString(160, 260, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-		sprintf(buff,"%04d",cur_year);
-		ILI9341_WriteString(190, 260, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-}
-
 void time_set(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss){
     rtc_configuration(); 
 
@@ -1240,10 +1073,6 @@ void button_interrupt_config(void){
     /* configure key user EXTI line */
     exti_init(EXTI_8, EXTI_INTERRUPT, EXTI_TRIG_BOTH );
     exti_interrupt_flag_clear(EXTI_8);
-}
-
-void reset_FLAG(void){
-		ILI9341_FillRectangle(5, 70, 30, 30, ILI9341_WHITE);
 }
 
 void device_OFF(void){
@@ -1343,7 +1172,6 @@ uint8_t usb_send_slim_AMP(void){
 	else return 0;
 }
 
-
 uint16_t puls_convert(void){
 		double level = 0.06;
 		uint16_t intervals[50]={0};
@@ -1361,8 +1189,6 @@ uint16_t puls_convert(void){
 				}
 		}		
 		first_puls=first_puls/puls_cur_counter;
-		//sprintf(buff1,"w-%3d",puls_cur_counter);
-		//ILI9341_WriteString(1, 70, buff1, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
 		
 		puls_cur_counter=0;
 		for (int m=1;m<puls_counter;m++){
@@ -1373,10 +1199,6 @@ uint16_t puls_convert(void){
 						puls_cur_counter++;	
 				}
 		}
-		
-		//sprintf(buff1,"c-%3d",puls_cur_counter);
-		//ILI9341_WriteString(1, 90, buff1, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
-		
 		
 		double Aver=puls_out/puls_cur_counter;
 		double TwentyFivePercent = Aver / 4;
@@ -1389,8 +1211,6 @@ uint16_t puls_convert(void){
 						Counter++;
 				}
     }
-		//sprintf(buff1,"c-%3d",Counter);
-		//ILI9341_WriteString(1, 110, buff1, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);
 		
 		double SKO = sqrt(SumSqr/Counter);
 		if ((SKO/Aver)>level) {
@@ -1401,39 +1221,8 @@ uint16_t puls_convert(void){
 		return puls_out;
 }
 
-void clear_monitor(void){
-		ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);
-		ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);
-		ILI9341_FillRectangle(22, 258, 29, 18, ILI9341_WHITE);
-		ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
-		ILI9341_FillRectangle(5, 10, 46, 36, ILI9341_WHITE);
-		ILI9341_FillRectangle(5, 133, 45, 35, ILI9341_WHITE);				
 
-		ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
-		ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
-		ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);	
-}
-
-void print_error(uint8_t K){
-		ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
-		ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
-		ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);	
-		uint8_t _buff[15]={0};
-		if (K==2){
-				sprintf(_buff,"majetta error");		
-				ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);			
-		}
-		if (K==3){
-				sprintf(_buff,"time fail");		
-				ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);			
-		}
-		if (K==4){
-				sprintf(_buff,"measurement error");		
-				ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);			
-		}		
-}
-
-uint8_t boot_mode(void){
+void boot_mode(void){
 		if (gpio_input_bit_get(GPIOB, GPIO_PIN_0)){     //
 				delay_1ms(10);
 				if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)){
@@ -1446,28 +1235,19 @@ uint8_t boot_mode(void){
 				}
 		}
 }
-void print_bat_charg(void){
-		if(indicate_charge_toggle) {
-						for (int i=1;i<6;i++){
-						ILI9341_FillRectangle(200-i*29, 154, 25, 62, ILI9341_GREEN);						
-				}					
-				//ILI9341_FillRectangle(200-(rang_bat)*29, 154, 25, 62, ILI9341_GREEN);
-				indicate_charge_toggle=0;
-		}
-		else {
-				ILI9341_FillRectangle(52, 152, 146, 66, ILI9341_WHITE);
-				indicate_charge_toggle=1;
-		}
-}
 
-void bluetooth_check(void){
+void bluetooth_check(void){ //works unreliably
 		if (finder(UART0_buff,"OK",0,0)) {
-			bluetooth_status=0;
-			ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);
+			if (bluetooth_status == CONNECTED) {
+				bluetooth_status = DISCONNECTED;
+				ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);
+			}
 		}
 		else {
-			ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);
-			bluetooth_status=1;	
+			if (bluetooth_status == DISCONNECTED) {
+				ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);
+				bluetooth_status = CONNECTED;	
+			}
 		}
 		my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));			
 }
@@ -1615,8 +1395,7 @@ void fmc_program_check(void){
 				SERIAL[6]=cur_SERIAL[4]=*(ptrd+6);
 				SERIAL[7]=cur_SERIAL[5]=*(ptrd+7);
 				SERIAL[8]=cur_SERIAL[6]=*(ptrd+8);				
-		}
-		
+		}		
 		else{
 				SERIAL[0]='0';
 				SERIAL[1]='2'; 
@@ -1636,14 +1415,12 @@ void fmc_program_check(void){
 }
 
 void write_backup_register(uint16_t day, uint16_t month, uint16_t year){
-    uint32_t temp = 0;	
 		BKP_DATA10_41(10) = day;
 		BKP_DATA10_41(11) = month;
 		BKP_DATA10_41(12) = year;
 }
 
 void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year){
-    uint32_t temp = 0;    
 		*_day = BKP_DATA_GET(BKP_DATA10_41(10));
 		*_month = BKP_DATA_GET(BKP_DATA10_41(11));
 		*_year = BKP_DATA_GET(BKP_DATA10_41(12));
@@ -1657,16 +1434,5 @@ void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uin
 		}			
 		cur_buff[13]=c_summ;
 		my_send_string_UART_0(cur_buff,14);
-}
-void print_SIS(int16_t IN){		
-		if (IN<140) print_num_H(IN,235,10,GREEN);
-		else if (IN<160) print_num_H(IN,235,10,YELLOW);
-		else print_num_H(IN,235,10,RED);
-
-}
-void print_DIA(int16_t IN){
-		if (IN<90) print_num_H(IN,235,120,GREEN);
-		else if (IN<99) print_num_H(IN,235,120,YELLOW);
-		else print_num_H(IN,235,120,RED);
 }
 
