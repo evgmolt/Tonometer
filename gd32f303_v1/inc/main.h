@@ -208,6 +208,7 @@ extern uint8_t finish_6_flag;
 extern double puls_out;
 extern uint8_t puls_cur_counter;
 
+extern uint32_t *ptrd;
 extern uint32_t address;
 extern uint32_t SERIAL[9];
 /* calculate the number of page to be programmed/erased */
@@ -232,6 +233,9 @@ extern uint8_t ADS1115_FLAG;
 
 extern int16_t PSys;
 extern int16_t PDia;
+extern uint16_t m_ss;
+extern uint16_t m_mm;
+extern uint16_t m_hh;
 
 extern int indexPSys;
 extern int indexPDia;
@@ -270,8 +274,14 @@ extern uint8_t mode;
 
 extern uint8_t sim800_FLAG;
 extern uint8_t rang_batt_old;
+extern uint8_t i2c_transmitter[16];
+extern uint8_t i2c_receiver[16];
+
 extern uint8_t send_buff[100];
 extern uint8_t buff097[10];
+extern uint16_t adc_value[8];
+
+
 extern uint16_t num_string;
 
 extern uint16_t count_send_bluetooth;

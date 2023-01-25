@@ -47,34 +47,18 @@ OF SUCH DAMAGE.
 #include "fonts.h"
 #include "ili9341_touch.h"
 
-//#include "img_all.h"
-//#include "bat_clr_44_24.h"
-//#include "bat_dif_7_22.h"
-//#include "heart_31_30.h"
-//#include "bluetooth_15_24.h"
-//#include "gsm_29_18.h"
-//#include "heartX3_45_27.h"
-//#include "SYS_46_36.h"
-//#include "DIA_45_35.h"
-//#include "text_H_GREEN.h"
-//#include "text_H_RED.h"
-//#include "text_H_YELLOW.h"
-//#include "text_L_BLACK.h"
 #include "DataProcessing.h"
 #include "Display.h"
+#include "Timers.h"
 
-//#include ""
-
-#define  BKP_DATA_REG_NUM              42
+#define BKP_DATA_REG_NUM              42
 #define FMC_PAGE_SIZE           ((uint16_t)0x30U)
 #define FMC_WRITE_START_ADDR    ((uint32_t)0x0807E000U)
 #define FMC_WRITE_END_ADDR      ((uint32_t)0x0807E030U)
 
 
-
 /* enter the second interruption,set the second interrupt flag to 1 */
 __IO uint32_t timedisplay;
-
 
 #define I2C0_OWN_ADDRESS7      0x72 
 #define I2C0_SLAVE_ADDRESS7    0x91 
@@ -182,60 +166,10 @@ short int EnvelopeArray[10000]={0};
 uint32_t send_counter=0;
 double rate=18.69;
 
-void timer_config_1(void)
-{
-    /* ----------------------------------------------------------------------------
-    TIMER1 Configuration: 
-    TIMER1CLK = SystemCoreClock/(12000*10000) = 1s).
-    ---------------------------------------------------------------------------- */
-    timer_parameter_struct timer_initpara;
-    rcu_periph_clock_enable(RCU_TIMER1);
-    timer_deinit(TIMER1);
-    /* initialize TIMER init parameter struct */
-    timer_struct_para_init(&timer_initpara);
-    /* TIMER1 configuration */
-    timer_initpara.prescaler         = 119;//99;
-    timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
-    timer_initpara.counterdirection  = TIMER_COUNTER_UP;
-    timer_initpara.period            = 9999;
-    timer_initpara.clockdivision     = TIMER_CKDIV_DIV1;
-    timer_init(TIMER1, &timer_initpara);
-
-    timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);
-    timer_interrupt_enable(TIMER1, TIMER_INT_UP);
-    timer_enable(TIMER1);
-}
-
 void nvic_config_1(void)
 {
     nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
     nvic_irq_enable(TIMER1_IRQn, 1, 1);
-}
-
-void timer_config_2(void)
-{
-    /* ----------------------------------------------------------------------------
-    TIMER2 Configuration: 
-    TIMER1CLK = SystemCoreClock/(1000*f) = ... s).
-    ---------------------------------------------------------------------------- */
-    timer_parameter_struct timer_initpara;
-
-    rcu_periph_clock_enable(RCU_TIMER2);
-
-    timer_deinit(TIMER2);
-    /* initialize TIMER init parameter struct */
-    timer_struct_para_init(&timer_initpara);
-    /* TIMER1 configuration */
-    timer_initpara.prescaler         = 999;
-    timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
-    timer_initpara.counterdirection  = TIMER_COUNTER_UP;
-    timer_initpara.period            = (120000/frequency)-1;//= 599; 479
-    timer_initpara.clockdivision     = TIMER_CKDIV_DIV1;
-    timer_init(TIMER2, &timer_initpara);
-
-    //timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);
-    //timer_interrupt_enable(TIMER2, TIMER_INT_UP);
-    //timer_enable(TIMER2);
 }
 
 void nvic_config_2(void)
@@ -307,18 +241,18 @@ int main(void)
 		EN_BUTT_FLAG=1;
 		
 		if (mode == INIT_START){		
-		print_heart(true);
-		print_bluetooth(true);
-		print_gsm(true);
-		print_heartX3(true);
-		print_sys_label();
-		print_dia_label();
-		print_num_H(888,235,10,YELLOW);
-		print_num_H(888,235,120,RED);
-		print_num_H(888,235,250,BLACK);		
+			print_heart(true);
+			print_bluetooth(true);
+			print_gsm(true);
+			print_heartX3(true);
+			print_sys_label();
+			print_dia_label();
+			print_num_H(888,235,10,YELLOW);
+			print_num_H(888,235,120,RED);
+			print_num_H(888,235,250,BLACK);		
 		}
 		else if (mode == PRESSURE_TEST){
-				ILI9341_FillRectangle(70, 150, 100, 50, ILI9341_WHITE);
+			ILI9341_FillRectangle(70, 150, 100, 50, ILI9341_WHITE);
 		}	
 		
 		// waiting for button release, or sitting mode?
@@ -332,25 +266,6 @@ int main(void)
 		VALVE_1_OFF;
 		VALVE_2_OFF;	
 		
-		/*
-		my_send_string_UART_0("AT+NAME=TONOMETER\0\n",strlen("AT+NAME=TONOMETER\0\n"));
-		delay_1ms(1000);
-		my_send_string_UART_0("AT+RX\0\n",strlen("AT+RX\0\n"));
-		delay_1ms(1000);
-		my_send_string_UART_0("AT+MODE=?\0\n",strlen("AT+MODE=?\0\n"));		
-		delay_1ms(1000);
-		//my_send_string_UART_0("AT+ADDR=1234567890AB\0\n",strlen("AT+ADDR=1234567890AB\0\n"));		
-		//delay_1ms(1000);
-		my_send_string_UART_0("AT+ROLE=?\0\n",strlen("AT+ROLE=?\0\n"));		
-		delay_1ms(1000);
-		uint8_t UP[10]={0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-				
-		for (int i=0;i<10;i++){
-				usart_data_transmit(USART0, (uint8_t)UP[i]);
-				while(RESET == usart_flag_get(USART0, USART_FLAG_TBE));	
-		}
-		*/	
-		//my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));	
 		if (sim800_FLAG) {}	  //GSM module ...		
 		delay_1ms(1000);
 		if (mode != USB_CHARGING) {			
@@ -1081,7 +996,6 @@ void device_OFF(void){
 }
 
 void i2c_calibration(void){
-		uint8_t buff1[10]={0};
 		i2c_out_K=0;
 		for (int g=0;g<20;g++){			
 				while (ADS1115_read_IT()==0){}
@@ -1096,25 +1010,6 @@ void usb_send_i2c_convers(void){
 		i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
 		current_pressure=i2c_out/rate;
 		usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 3);
-}
-
-void timer_2_start(void){
-		timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);
-    timer_interrupt_enable(TIMER2, TIMER_INT_UP);
-    timer_enable(TIMER2);
-}
-
-void timer_2_stop(void){
-	timer_disable(TIMER2);			
-}
-
-void timer_1_start(void){
-		timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);
-    timer_interrupt_enable(TIMER1, TIMER_INT_UP);
-    timer_enable(TIMER1);
-}
-void timer_1_stop(void){
-	timer_disable(TIMER1);			
 }
 
 uint8_t usb_send_save(int16_t *mass1, int16_t *mass2){
