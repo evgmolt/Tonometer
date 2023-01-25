@@ -50,12 +50,12 @@ OF SUCH DAMAGE.
 //#include "img_all.h"
 //#include "bat_clr_44_24.h"
 //#include "bat_dif_7_22.h"
-#include "heart_31_30.h"
-#include "bluetooth_15_24.h"
-#include "gsm_29_18.h"
-#include "heartX3_45_27.h"
-#include "SYS_46_36.h"
-#include "DIA_45_35.h"
+//#include "heart_31_30.h"
+//#include "bluetooth_15_24.h"
+//#include "gsm_29_18.h"
+//#include "heartX3_45_27.h"
+//#include "SYS_46_36.h"
+//#include "DIA_45_35.h"
 //#include "text_H_GREEN.h"
 //#include "text_H_RED.h"
 //#include "text_H_YELLOW.h"
@@ -307,12 +307,12 @@ int main(void)
 		EN_BUTT_FLAG=1;
 		
 		if (mode == INIT_START){		
-		ILI9341_DrawImage(72, 279, 31, 30, (const uint16_t*)heart);
-		ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);
-		ILI9341_DrawImage(22, 258, 29, 18, (const uint16_t*)gsm);
-		ILI9341_DrawImage(65, 245, 45, 27, (const uint16_t*)heartX3);
-		ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
-		ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);
+		print_heart(true);
+		print_bluetooth(true);
+		print_gsm(true);
+		print_heartX3(true);
+		print_sys_label();
+		print_dia_label();
 		print_num_H(888,235,10,YELLOW);
 		print_num_H(888,235,120,RED);
 		print_num_H(888,235,250,BLACK);		
@@ -501,8 +501,8 @@ int main(void)
 									PDia < MAX_DIA & 
 									puls_out > MIN_PULSE & 
 									puls_out < MAX_PULSE) {
-										ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
-										ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);	
+										print_sys_label();
+										print_dia_label();	
 										print_SYS(PSys);
 										print_DIA(PDia);									
 										print_num_H((int16_t)puls_out,235,250,BLACK);
@@ -534,7 +534,7 @@ int main(void)
 			if (UART0_flag==1){					
 					for (int w=0;w<200;w++){
 							if (finder_msg(UART0_buff)){																	
-										ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_RED);															
+									ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_RED);															
 							}
 							if (finder(UART0_buff, "OFF",0,&num_string)) {
 									ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_WHITE);
@@ -543,13 +543,10 @@ int main(void)
 					UART0_flag=0;
 			}
 			
-		//if (bluetooth_status) ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);			
-		//else ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);		
-			
 			if (Wave_ind_FLAG){				
-					ILI9341_DrawImage(72, 279, 31, 30, (const uint16_t*)heart);
+					print_heart(true);
 					delay_1ms(200);
-					ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);
+					print_heart(false);
 					Wave_ind_FLAG=0;
 			}
 						
@@ -1214,7 +1211,7 @@ uint16_t puls_convert(void){
 		
 		double SKO = sqrt(SumSqr/Counter);
 		if ((SKO/Aver)>level) {
-				ILI9341_DrawImage(65, 245, 45, 27, (const uint16_t*)heartX3);
+				print_heartX3(true);
 		}		
 		
 		puls_out=60/(puls_out/(puls_cur_counter*frequency));
@@ -1240,12 +1237,12 @@ void bluetooth_check(void){ //works unreliably
 		if (finder(UART0_buff,"OK",0,0)) {
 			if (bluetooth_status == CONNECTED) {
 				bluetooth_status = DISCONNECTED;
-				ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);
+				print_bluetooth(true);
 			}
 		}
 		else {
 			if (bluetooth_status == DISCONNECTED) {
-				ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);
+				print_bluetooth(false);
 				bluetooth_status = CONNECTED;	
 			}
 		}

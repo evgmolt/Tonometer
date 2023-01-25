@@ -8,8 +8,57 @@
 #include "text_H_RED.h"
 #include "text_H_YELLOW.h"
 #include "text_L_BLACK.h"
+#include "heart_31_30.h"
+#include "heartX3_45_27.h"
+#include "bluetooth_15_24.h"
+#include "gsm_29_18.h"
+#include "SYS_46_36.h"
+#include "DIA_45_35.h"
 
 extern uint16_t adc_value[8];
+
+void print_heart(bool show){
+	if (show) {
+			ILI9341_DrawImage(72, 279, 31, 30, (const uint16_t*)heart);
+		}
+		else {
+			ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);	
+		}
+}
+
+void print_heartX3(bool show){
+	if (show) {
+			ILI9341_DrawImage(65, 245, 45, 27, (const uint16_t*)heartX3);
+		}
+		else {
+			ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);			
+		}
+}
+
+void print_bluetooth(bool show){
+	if (show) {
+			ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);
+		}
+		else {
+			ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);			
+		}
+}
+
+void print_gsm(bool show){
+	if (show) {
+			ILI9341_DrawImage(22, 258, 29, 18, (const uint16_t*)gsm);		}
+		else {
+			ILI9341_FillRectangle(22, 258, 29, 18, ILI9341_WHITE);			
+		}
+}
+
+void print_sys_label(void) {
+		ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
+}
+
+void print_dia_label(void) {
+		ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);
+}
 
 void print_SYS(int16_t IN){		
 		uint8_t color = GREEN;
