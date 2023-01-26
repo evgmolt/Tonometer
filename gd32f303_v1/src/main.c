@@ -220,10 +220,7 @@ int main(void)
 		
 		if (mode == USB_CHARGING){
 				ILI9341_FillScreen(ILI9341_BLACK);
-				ILI9341_FillRectangle(50, 150, 150, 70, ILI9341_BLACK);
-				ILI9341_FillRectangle(52, 152, 146, 66, ILI9341_WHITE);
-				ILI9341_FillRectangle(40, 150+35-20, 10, 40, ILI9341_BLACK);
-				ILI9341_FillRectangle(40+2, 150+35-20+2, 10-2, 40-4, ILI9341_WHITE);
+				print_battery();
 		}
 		else ILI9341_FillScreen(ILI9341_WHITE);
 		
@@ -347,14 +344,13 @@ int main(void)
 					shutdown_counter = 0;
 					if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
 					print_batt_charge();				
-					delay_1ms(2000);				
+					delay_1ms(1500);				
 					if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) device_OFF();						
 					break;
 				case PRESSURE_TEST:
 					shutdown_counter = 0;
 					convert_NO_save();
-					print_num_H(current_pressure,235,10,YELLOW);
-					//print_num_H(current_pressure,235,120,RED);
+					print_num_H(current_pressure,235,120,GREEN);
 					usb_send_16(i2c_out,0);
 					delay_1ms(200);
 					print_time(rtc_counter_get());
@@ -368,7 +364,7 @@ int main(void)
 					VALVE_2_OFF;
 					if (main_index>1+size_pack*(count_send_bluetooth+1)){						
 							uint8_t c_summ=0;							
-							uint8_t cur_buff_ble[400]={'0', '2', 0x05, count_send_bluetooth&0xFF, (count_send_bluetooth>>8)&0xFF, size_pack};
+							uint8_t cur_buff_ble[400]={'0', '2', 0x05, count_send_bluetooth & 0xFF, (count_send_bluetooth>>8) & 0xFF, size_pack};
 							
 							for (int f=0;f<size_pack;f++){
 									int16_t cur_press=(((save_clear[count_send_bluetooth*size_pack+f]-i2c_out_K)*100)/rate);

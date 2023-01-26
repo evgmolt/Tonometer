@@ -15,6 +15,8 @@
 #include "SYS_46_36.h"
 #include "DIA_45_35.h"
 
+#define BATTERY_MAX 2430
+
 extern uint16_t adc_value[8];
 
 void print_heart(bool show){
@@ -74,10 +76,30 @@ void print_DIA(int16_t IN){
 		print_num_H(IN, 235, 120, color);
 }
 
+void print_battery(void){
+		ILI9341_FillRectangle(50, 150, 150, 70, ILI9341_BLACK);
+		ILI9341_FillRectangle(52, 152, 146, 66, ILI9341_WHITE);
+		ILI9341_FillRectangle(40, 150+35-20, 10, 40, ILI9341_BLACK);
+		ILI9341_FillRectangle(40+2, 150+35-20+2, 10-2, 40-4, ILI9341_WHITE);
+}
+
 void print_batt_charge(void){
+		uint8_t num_of_segments = 6;
+		uint16_t adc_1;
+
+		adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL);
+		delay_1ms(100);		
+		adc_1 = adc_value[0]*3300/(0xFFF);
+		if (adc_1 > BATTERY_MAX) {
+				for (int i=1; i < num_of_segments; i++){
+						ILI9341_FillRectangle(200-i*29, 154, 25, 62, ILI9341_GREEN);									
+				}
+				return;
+		}
+		
 		if(indicate_charge_toggle) {
 				indicate_charge_counter++;
-				if (indicate_charge_counter > 6) {
+				if (indicate_charge_counter > num_of_segments) {
 					indicate_charge_counter = 1;
 					ILI9341_FillRectangle(52, 152, 146, 66, ILI9341_WHITE);
 				}
@@ -186,7 +208,7 @@ void TFT_print(void){
 		
 		if (adc_1<1800) return;
 
-		if (adc_1>2430) 									rang_batt=5;
+		if (adc_1> BATTERY_MAX) 					rang_batt=5;
 		else if (adc_1<2430 & adc_1>2364) rang_batt=5;
 		else if (adc_1<2364 & adc_1>2298) rang_batt=4;
 		else if (adc_1<2298 & adc_1>2232) rang_batt=3;
