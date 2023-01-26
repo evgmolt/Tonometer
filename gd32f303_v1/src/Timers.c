@@ -1,6 +1,18 @@
 #include "main.h"
 #include "Timers.h"
 
+void nvic_config_1(void)
+{
+    nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
+    nvic_irq_enable(TIMER1_IRQn, 1, 1);
+}
+
+void nvic_config_2(void)
+{
+    nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
+    nvic_irq_enable(TIMER2_IRQn, 1, 1);
+}
+
 void timer_config_1(void)
 {
     /* ----------------------------------------------------------------------------

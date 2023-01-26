@@ -9,3 +9,5 @@ void f_sorting_MAX(void);
 void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues);
 void f_PSys_Dia(void);
 int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC);
+uint16_t puls_convert(void);
+

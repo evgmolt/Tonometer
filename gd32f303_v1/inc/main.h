@@ -3,6 +3,7 @@
 #define __MAIN_H
 
 #include "usbd_conf.h"
+#include "stdbool.h"
 
 #define GREEN 	0x1
 #define RED 		0x2
@@ -160,6 +161,8 @@ void print_DIA(int16_t IN);
 
 void abort_meas(void);
 
+extern bool arrhythmia;
+
 extern uint16_t detect_FLAG;
 extern uint16_t finish_time;
 
@@ -251,6 +254,7 @@ extern int8_t ArrayForAverIndex;
 extern int16_t i2c_out;
 extern int i2c_out_K;
 extern uint8_t indicate_charge_toggle;
+extern uint8_t indicate_charge_counter;
 
 extern uint16_t cur_day, cur_month, cur_year;
 extern uint32_t cur_thh,cur_tmm,cur_tss;

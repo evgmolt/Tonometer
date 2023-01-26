@@ -76,13 +76,18 @@ void print_DIA(int16_t IN){
 
 void print_batt_charge(void){
 		if(indicate_charge_toggle) {
-				for (int i=1;i<6;i++){
+				indicate_charge_counter++;
+				if (indicate_charge_counter > 6) {
+					indicate_charge_counter = 1;
+					ILI9341_FillRectangle(52, 152, 146, 66, ILI9341_WHITE);
+				}
+				for (int i=1; i<indicate_charge_counter; i++){
 						ILI9341_FillRectangle(200-i*29, 154, 25, 62, ILI9341_GREEN);						
 				}					
 				indicate_charge_toggle=0;
 		}
 		else {
-				ILI9341_FillRectangle(52, 152, 146, 66, ILI9341_WHITE);
+//				ILI9341_FillRectangle(52, 152, 146, 66, ILI9341_WHITE);
 				indicate_charge_toggle=1;
 		}
 }

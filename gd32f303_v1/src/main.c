@@ -129,6 +129,7 @@ int8_t ArrayForAverIndex = 0;
 int16_t i2c_out=0;
 int i2c_out_K=0;
 uint8_t indicate_charge_toggle=1;
+uint8_t indicate_charge_counter=1;
 
 uint16_t cur_day=13, cur_month=12, cur_year=2022;
 uint32_t cur_thh=0,cur_tmm=0,cur_tss=0;
@@ -166,17 +167,7 @@ short int EnvelopeArray[10000]={0};
 uint32_t send_counter=0;
 double rate=18.69;
 
-void nvic_config_1(void)
-{
-    nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
-    nvic_irq_enable(TIMER1_IRQn, 1, 1);
-}
-
-void nvic_config_2(void)
-{
-    nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
-    nvic_irq_enable(TIMER2_IRQn, 1, 1);
-}
+bool arrhythmia = false;
 
 int main(void)
 {
@@ -287,13 +278,9 @@ int main(void)
     /* clear the bit flag of tamper event */												//
     bkp_flag_clear(BKP_FLAG_TAMPER);																//
 			
-		//time_set(23,59,55);
-		//write_backup_register(cur_day, cur_month, cur_year);		
-		
 		timer_1_start();
 	
     while (1) {	
-			bluetooth_check();
 			switch (mode)
 			{
 				case INIT_START:
@@ -304,6 +291,7 @@ int main(void)
 					}
 					break;
 				case START_SCREEN:
+					bluetooth_check();
 					TFT_print();
 					if (button_released) {
 							ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);							
@@ -338,6 +326,7 @@ int main(void)
 					device_OFF();
 					break;
 				case PUMPING_MANAGEMENT:
+					bluetooth_check();
 					shutdown_counter = 0;
 					ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
 					if (button_released) abort_meas();
@@ -355,6 +344,7 @@ int main(void)
 					}						
 					break;
 				case USB_CHARGING:
+					shutdown_counter = 0;
 					if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
 					print_batt_charge();				
 					delay_1ms(2000);				
@@ -370,6 +360,7 @@ int main(void)
 					print_time(rtc_counter_get());
 					break;
 				case MEASUREMENT:
+					bluetooth_check();
 					shutdown_counter = 0;
 					if (button_released) abort_meas();
 					if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
@@ -416,18 +407,20 @@ int main(void)
 									PDia < MAX_DIA & 
 									puls_out > MIN_PULSE & 
 									puls_out < MAX_PULSE) {
-										print_sys_label();
-										print_dia_label();	
-										print_SYS(PSys);
-										print_DIA(PDia);									
-										print_num_H((int16_t)puls_out,235,250,BLACK);
-									
-										cur_tim = rtc_counter_get();
-										m_hh = cur_tim / 3600;
-										m_mm = (cur_tim % 3600) / 60;
-										m_ss = (cur_tim % 3600) % 60;
-										check_backup_register(&cur_day, &cur_month, &cur_year);
-										if 	(cur_year>=255)	cur_year-=2000;
+											print_sys_label();
+											print_dia_label();	
+											print_SYS(PSys);
+											print_DIA(PDia);									
+											print_num_H((int16_t)puls_out,235,250,BLACK);
+
+											if (arrhythmia) print_heartX3(true);
+										
+											cur_tim = rtc_counter_get();
+											m_hh = cur_tim / 3600;
+											m_mm = (cur_tim % 3600) / 60;
+											m_ss = (cur_tim % 3600) % 60;
+											check_backup_register(&cur_day, &cur_month, &cur_year);
+											if 	(cur_year>=255)	cur_year-=2000;
 							}
 							else {
 									bonus_byte|=0x80;
@@ -688,16 +681,16 @@ void i2c_convers(void){
 void GPIO_config(void){
 		rcu_periph_clock_enable(RCU_GPIOB);		
 		gpio_init(GPIOB, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_0);	  //POWER_ON_DETECT
-		gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_10);	//ADS_RDY  --EXTI
-		gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_8);	// STDBY
-		gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_9);	// CHRG
+		gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_10);					//ADS_RDY  --EXTI
+		gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_8);						// STDBY
+		gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_9);						// CHRG
 	
 		rcu_periph_clock_enable(RCU_GPIOC);
 		gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_0);	  //SIM_EXT
 		gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_1);	  		//SIM_PWKEY
-		gpio_init(GPIOC, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_8);					//KEY IN
+		gpio_init(GPIOC, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_8);						//KEY IN
 		gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_9);	  		//POWER_ON
-		gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_10);	  //USB_ON	
+		gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_10);	//USB_ON	
 		gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_11);	  		//COMP_ON/OFF
 		gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_12);	  		//VALVE1_OP/CL
 		gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13);	  		//VALVE2_OP/CL			
@@ -1064,56 +1057,6 @@ uint8_t usb_send_slim_AMP(void){
 	else return 0;
 }
 
-uint16_t puls_convert(void){
-		double level = 0.06;
-		uint16_t intervals[50]={0};
-		uint8_t buff1[10]={0};
-		double first_puls=0;
-		int16_t cur_puls=0;
-		puls_out=0;
-		puls_cur_counter=0;
-		if (puls_counter<10) return 0;
-		for (int m=3;m<puls_counter-3;m++){
-				cur_puls=puls_buff[m]-puls_buff[m-1];
-				if (cur_puls>LoLimit & cur_puls<HiLimit){
-						first_puls+=cur_puls;
-						puls_cur_counter++;
-				}
-		}		
-		first_puls=first_puls/puls_cur_counter;
-		
-		puls_cur_counter=0;
-		for (int m=1;m<puls_counter;m++){
-				cur_puls=puls_buff[m]-puls_buff[m-1];
-				if (cur_puls>LoLimit & cur_puls<HiLimit & cur_puls*1.5>first_puls & cur_puls/1.5<first_puls){
-						puls_out+=cur_puls;
-						intervals[puls_cur_counter]=cur_puls;
-						puls_cur_counter++;	
-				}
-		}
-		
-		double Aver=puls_out/puls_cur_counter;
-		double TwentyFivePercent = Aver / 4;
-		int Counter = 0;
-    double SumSqr = 0;
-		for (int i = 0; i < puls_cur_counter; i++){
-				double Diff = intervals[i] - Aver;
-				if (abs(Diff) < TwentyFivePercent){
-						SumSqr += Diff * Diff;
-						Counter++;
-				}
-    }
-		
-		double SKO = sqrt(SumSqr/Counter);
-		if ((SKO/Aver)>level) {
-				print_heartX3(true);
-		}		
-		
-		puls_out=60/(puls_out/(puls_cur_counter*frequency));
-		return puls_out;
-}
-
-
 void boot_mode(void){
 		if (gpio_input_bit_get(GPIOB, GPIO_PIN_0)){     //
 				delay_1ms(10);
@@ -1274,8 +1217,6 @@ void fmc_program(void){
 void fmc_program_check(void){	
 		uint8_t cur_SERIAL[7]={0};
 		uint8_t cur_buff[30]={'A','T','+','N','A','M','E','=','T','O','N','0','2'};
-		uint8_t cur_count=0;
-    uint32_t i;
 
     ptrd = (uint32_t *)FMC_WRITE_START_ADDR;
 		
