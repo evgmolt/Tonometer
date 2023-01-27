@@ -10,28 +10,28 @@
 /*** Redefine if necessary ***/
 
 // Warning! Use SPI bus with < 1.3 Mbit speed, better ~650 Kbit to be save.
-#define ILI9341_TOUCH_SPI_PORT 	SPI1
-#define ILI9341_TOUCH_RCU_SPI	 	RCU_SPI1
+#define ILI9341_TOUCH_SPI_PORT     SPI1
+#define ILI9341_TOUCH_RCU_SPI         RCU_SPI1
 
-#define ILI9341_TOUCH_CLK_Pin       	GPIO_PIN_13
-#define ILI9341_TOUCH_CLK_GPIO_Port 	GPIOB
-#define ILI9341_TOUCH_CLK_RCU 				RCU_GPIOB
+#define ILI9341_TOUCH_CLK_Pin           GPIO_PIN_13
+#define ILI9341_TOUCH_CLK_GPIO_Port     GPIOB
+#define ILI9341_TOUCH_CLK_RCU                 RCU_GPIOB
 
-#define ILI9341_TOUCH_MISO_Pin      	GPIO_PIN_14
-#define ILI9341_TOUCH_MISO_GPIO_Port 	GPIOB
-#define ILI9341_TOUCH_MISO_RCU 				RCU_GPIOB
+#define ILI9341_TOUCH_MISO_Pin          GPIO_PIN_14
+#define ILI9341_TOUCH_MISO_GPIO_Port     GPIOB
+#define ILI9341_TOUCH_MISO_RCU                 RCU_GPIOB
 
-#define ILI9341_TOUCH_MOSI_Pin       	GPIO_PIN_15
-#define ILI9341_TOUCH_MOSI_GPIO_Port 	GPIOB
-#define ILI9341_TOUCH_MOSI_RCU 				RCU_GPIOB
+#define ILI9341_TOUCH_MOSI_Pin           GPIO_PIN_15
+#define ILI9341_TOUCH_MOSI_GPIO_Port     GPIOB
+#define ILI9341_TOUCH_MOSI_RCU                 RCU_GPIOB
 
-#define ILI9341_TOUCH_IRQ_Pin       	GPIO_PIN_6 
-#define ILI9341_TOUCH_IRQ_GPIO_Port 	GPIOC
-#define ILI9341_TOUCH_IRQ_RCU 				RCU_GPIOC
+#define ILI9341_TOUCH_IRQ_Pin           GPIO_PIN_6 
+#define ILI9341_TOUCH_IRQ_GPIO_Port     GPIOC
+#define ILI9341_TOUCH_IRQ_RCU                 RCU_GPIOC
 
-#define ILI9341_TOUCH_CS_Pin        	GPIO_PIN_5 
-#define ILI9341_TOUCH_CS_GPIO_Port  	GPIOC
-#define ILI9341_TOUCH_CS_RCU 					RCU_GPIOC
+#define ILI9341_TOUCH_CS_Pin            GPIO_PIN_5 
+#define ILI9341_TOUCH_CS_GPIO_Port      GPIOC
+#define ILI9341_TOUCH_CS_RCU                     RCU_GPIOC
 
 // change depending on screen orientation
 #define ILI9341_TOUCH_SCALE_X 240

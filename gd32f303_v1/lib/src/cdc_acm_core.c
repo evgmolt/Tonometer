@@ -288,8 +288,8 @@ void cdc_acm_data_receive(usb_dev *udev)
 
     cdc->packet_receive = 0U;
     cdc->pre_packet_send = 0U;
-		
-    usbd_ep_recev(udev, CDC_OUT_EP, (uint8_t*)(cdc->data), USB_CDC_RX_LEN);	
+        
+    usbd_ep_recev(udev, CDC_OUT_EP, (uint8_t*)(cdc->data), USB_CDC_RX_LEN);    
 
 }
 
@@ -301,18 +301,18 @@ void cdc_acm_data_receive(usb_dev *udev)
 */
 void cdc_acm_data_send (usb_dev *udev)
 {
-	//uint8_t send[3]={25,L,H};
-	//usbd_ep_send (udev, CDC_IN_EP, send, 3);
-	
+    //uint8_t send[3]={25,L,H};
+    //usbd_ep_send (udev, CDC_IN_EP, send, 3);
+    
     usb_cdc_handler *cdc = (usb_cdc_handler *)udev->class_data[CDC_COM_INTERFACE];
     uint32_t data_len = cdc->receive_length;
 
     if ((0U != data_len) && (1U == cdc->packet_sent)) {
         cdc->packet_sent = 0U;
-					usbd_ep_send(udev, CDC_IN_EP, (uint8_t*)(cdc->data), (uint16_t)data_len);
+                    usbd_ep_send(udev, CDC_IN_EP, (uint8_t*)(cdc->data), (uint16_t)data_len);
         cdc->receive_length = 0U;
     }
-	
+    
 }
 
 

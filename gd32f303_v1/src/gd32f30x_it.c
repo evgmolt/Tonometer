@@ -233,230 +233,250 @@ void USBD_WKUP_IRQHandler (void)
 #endif /* USBD_LOWPWR_MODE_ENABLE */
 
 void TIMER1_IRQHandler(void)
-{	
+{    
     if(SET == timer_interrupt_flag_get(TIMER1, TIMER_INT_FLAG_UP)){        
-        timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);		
-				timer_interrupt_enable(TIMER1, TIMER_INT_UP);
-				timer_enable(TIMER1);			
-			
-				shutdown_counter++;
-				if (shutdown_counter > SHUTDOWN_INTERVAL) {
-						mode = KEY_OFF;					
-				}
-			
-				button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
-				if (button_touched) {
-					button_touched_counter++;
-					if (button_touched_counter > DEBONCE_INTERVAL) {
-						button_pressed = 1;
-					}
-				}
-				else {
-					button_touched = 0;
-					button_pressed = 0;
-					button_released = 0;
-					button_touched_counter = 0;
-				}
-				
-				if (button_pressed) {
-					button_pressed_counter++;
-					shutdown_counter = 0;
-				}
-				else {
-					if (button_pressed_counter > 0) {
-						button_released = 1;
-					}
-				}
+        timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);        
+                timer_interrupt_enable(TIMER1, TIMER_INT_UP);
+                timer_enable(TIMER1);            
 
-				if (mode == INIT_START) {
-						if (button_pressed_counter > GO_TO_TEST_INTERVAL) {
-							ILI9341_FillScreen(ILI9341_WHITE);
-							timer_2_stop();
-							i2c_calibration();
-							VALVE_1_ON;
-							VALVE_2_ON;
-							button_pressed_counter = 0;
-							mode = PRESSURE_TEST;
-						}
-				}
-				else {
-					if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
-						mode = KEY_OFF;
-					}
-				}
+                if (lock_counter > 0) lock_counter--;
+                    
+                shutdown_counter++;
+                if (shutdown_counter > SHUTDOWN_INTERVAL) {
+                    shutdown_counter = 0;
+//                        mode = KEY_OFF;                    
+                }
+            
+                button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
+                if (button_touched) {
+                    button_touched_counter++;
+                    if (button_touched_counter > DEBONCE_INTERVAL) {
+                        button_pressed = 1;
+                    }
+                }
+                else {
+                    button_touched = 0;
+                    button_pressed = 0;
+                    button_released = 0;
+                    button_touched_counter = 0;
+                }
+                
+                if (button_pressed) {
+                    button_pressed_counter++;
+                    shutdown_counter = 0;
+                }
+                else {
+                    if (button_pressed_counter > 0) {
+                        button_released = 1;
+                    }
+                }
+
+                if (mode == INIT_START) {
+                        if (button_pressed_counter > GO_TO_TEST_INTERVAL) {
+                            ILI9341_FillScreen(ILI9341_WHITE);
+                            timer_2_stop();
+                            i2c_calibration();
+                            VALVE_1_ON;
+                            VALVE_2_ON;
+                            button_pressed_counter = 0;
+                            mode = PRESSURE_TEST;
+                        }
+                }
+                else {
+                    if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
+                        mode = KEY_OFF;
+                    }
+                }
     }
 }
+
+void Lock(void)
+{
+    dummy_value = last_value;
+    lock_counter = LOCK_INTERVAL;
+}
+
 
 void TIMER2_IRQHandler(void)
 {
     if(SET == timer_interrupt_flag_get(TIMER2, TIMER_INT_FLAG_UP)){
         /* clear update interrupt bit */
-        timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);		
-				timer_interrupt_enable(TIMER2, TIMER_INT_UP);
-				timer_enable(TIMER2);			
+        timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);        
+                timer_interrupt_enable(TIMER2, TIMER_INT_UP);
+                timer_enable(TIMER2);            
 
-				if (mode == PUMPING_MANAGEMENT){																																								//////////////////////////////////
-						if (convert_save_16()){
+                if (mode == PUMPING_MANAGEMENT){                                                                                                                                                                //////////////////////////////////
+                        if (convert_save_16()){
 								if (main_index<300) convert_NO_save();
 								else if (main_index>300){
 										save_dir[main_index-1]=slim_mas(save_clear, 30, 4);											
 								}	
 								else 		save_dir[main_index-1]=0;				
-								
-								if (main_index >= DELAY_AFTER_START){										
-										cur_dir_save=GetDerivative(save_dir, main_index-1);
-										usb_send_16(cur_dir_save,(short)_maxD);
-										if (cur_dir_save>_maxD){
-												_maxD=cur_dir_save;
-												MAX_counter=main_index;
-										}
-										if (current_pressure > MIN_PRESSURE){												
-												if (main_index > MAX_counter + SEC_AFTER_MAX * frequency){	
-														main_index=0;		
-														save_dir_counter=0;		
-														Wave_detect_FLAG=0;													
-														_maxD=0;	
-														//MAX_counter=0;
-														mode = MEASUREMENT;
-												}
-										}										
-								}
-								
-								
-								if (main_index>400 & current_pressure<10){
-										main_index=0;		
-										save_dir_counter=0;		
-										Wave_detect_FLAG=0;	
-										_maxD=0;		
-										_detectLevel_comp_UP=15;
-										_detectLevel=_detectLevel_start;
-										silence_time_start=0;
-										timer_2_stop();
-										print_error(2);
-										timer_1_start();									
-										mode = START_SCREEN;
-								}
-								
-								if (main_index>9990){
-										main_index=0;		
-										save_dir_counter=0;		
-										Wave_detect_FLAG=0;	
-										_maxD=0;		
-										_detectLevel_comp_UP=15;
-										_detectLevel=_detectLevel_start;
-										silence_time_start=0;
-										timer_2_stop();
-										print_error(3);
-										timer_1_start();									
-										mode = START_SCREEN;
-								}
-								
-								
-						}
-				}
-				else if (mode == MEASUREMENT) { //convers_save(); //usb_send_i2c_convers();	                          ///////////////////////////////////////////////
-						if (convert_save_16()) {
-								if (main_index>300){
-										save_dir[main_index-1]=slim_mas(save_clear, DCArrayWindow, ACArrayWindow);											
-								}	
-								else 		save_dir[main_index-1]=0;				
-													
-								if (main_index >= DELAY_AFTER_PUMPING){										
-										cur_dir_save=GetDerivative(save_dir, main_index-1);
-										usb_send_16(cur_dir_save, _maxD); //save_clear[main_index-1]);  //_maxD);	 cur_dir_save
-									
-										//if (Wave_detect_FLAG==1 & main_index > (silence_time_start+_lockInterval*4)) finish_6_flag=1;
-											
-										if (cur_dir_save>_detectLevel & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
-										if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval)){
-												if (cur_dir_save>_maxD) {
-														_maxD=cur_dir_save;
-														MAX_counter=main_index-1;
-												}
-												else if (cur_dir_save<_detectLevel){
-														Wave_detect_time_OLD=Wave_detect_time;
-														Wave_detect_time=MAX_counter-1;																														
-														puls_buff[puls_counter++]=MAX_counter-1;
-														Wave_ind_FLAG=1;												
-														_lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
-														if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
-														silence_time_start=MAX_counter-1;
-														_detectLevel=_maxD * _detectLevelCoeff;
-														if (_detectLevel<4) _detectLevel=4;
-														_maxD=0;
-														Wave_detect_FLAG=0;
-												}
-										}						
-								}						
-						}
-				}
-				else if (mode == SEND_SAVE_BUFF_MSG) {
-						if (usb_send_save(save_dir,EnvelopeArray)){			
-								mode = INIT_START;
-								timer_2_stop();
-								main_index=0;
-								send_counter=0;
-						}
-				}				
+                            
+                                if (main_index >= DELAY_AFTER_START){                                        
+                                    cur_dir_save=GetDerivative(save_dir, main_index-1);
+                                    usb_send_16(cur_dir_save,(short)_maxD);
+                                    if (cur_dir_save>_maxD){
+                                            _maxD=cur_dir_save;
+                                            MAX_counter=main_index;
+                                    }
+                                    if (current_pressure > MIN_PRESSURE){                                                
+                                            if (main_index > MAX_counter + SEC_AFTER_MAX * frequency){    
+                                                    main_index=0;        
+                                                    save_dir_counter=0;        
+                                                    Wave_detect_FLAG=0;                                                    
+                                                    _maxD=0;    
+                                                    //MAX_counter=0;
+                                                    Lock();
+                                                    PUMP_OFF;
+                                                    mode = MEASUREMENT;
+                                            }
+                                    }                                        
+                                }
+                                
+                                
+                                if (main_index > DELAY_FOR_ERROR & current_pressure<10){ 
+                                    main_index=0;        
+                                    save_dir_counter=0;        
+                                    Wave_detect_FLAG=0;    
+                                    _maxD=0;        
+                                    _detectLevel_comp_UP=15;
+                                    _detectLevel=_detectLevel_start;
+                                    silence_time_start=0;
+                                    timer_2_stop();
+                                    print_error(2);
+                                    timer_1_start();                                    
+                                    mode = START_SCREEN;
+                                }
+                                
+                                if (main_index>9990){
+                                    main_index=0;        
+                                    save_dir_counter=0;        
+                                    Wave_detect_FLAG=0;    
+                                    _maxD=0;        
+                                    _detectLevel_comp_UP=15;
+                                    _detectLevel=_detectLevel_start;
+                                    silence_time_start=0;
+                                    timer_2_stop();
+                                    print_error(3);
+                                    timer_1_start();                                    
+                                    mode = START_SCREEN;
+                                }
+                                
+                                
+                        }
+                }
+                else if (mode == MEASUREMENT) { //convers_save(); //usb_send_i2c_convers();                              ///////////////////////////////////////////////
+                        if (convert_save_16()) {
+                                if (main_index>50){
+                                    if (lock_counter > 0)
+                                    {
+                                        save_dir[main_index-1] = last_value;
+                                    }
+                                    else
+                                    {
+                                        save_dir[main_index-1]=slim_mas(save_clear, 30, 4);  
+                                        last_value = save_dir[main_index-1];
+                                    }
+                                }    
+                                else         save_dir[main_index-1]=0;                
+                                                    
+                                if (main_index >= DELAY_AFTER_PUMPING){                                        
+                                        cur_dir_save=GetDerivative(save_dir, main_index-1);
+                                        usb_send_16(cur_dir_save, _maxD); //save_clear[main_index-1]);  //_maxD);     cur_dir_save
+                                    
+                                        //if (Wave_detect_FLAG==1 & main_index > (silence_time_start+_lockInterval*4)) finish_6_flag=1;
+                                            
+                                        if (cur_dir_save>_detectLevel & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
+                                        if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval)){
+                                                if (cur_dir_save>_maxD) {
+                                                        _maxD=cur_dir_save;
+                                                        MAX_counter=main_index-1;
+                                                }
+                                                else if (cur_dir_save<_detectLevel){
+                                                        Wave_detect_time_OLD=Wave_detect_time;
+                                                        Wave_detect_time=MAX_counter-1;                                                                                                                        
+                                                        puls_buff[puls_counter++]=MAX_counter-1;
+                                                        Wave_ind_FLAG=1;                                                
+                                                        _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
+                                                        if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
+                                                        silence_time_start=MAX_counter-1;
+                                                        _detectLevel=_maxD * _detectLevelCoeff;
+                                                        if (_detectLevel<4) _detectLevel=4;
+                                                        _maxD=0;
+                                                        Wave_detect_FLAG=0;
+                                                }
+                                        }                        
+                                }                        
+                        }
+                }
+                else if (mode == SEND_SAVE_BUFF_MSG) {
+                        if (usb_send_save(save_dir,EnvelopeArray)){            
+                                mode = INIT_START;
+                                timer_2_stop();
+                                main_index=0;
+                                send_counter=0;
+                        }
+                }                
     }
 }
 
 void my_i2c_send(uint8_t data){
-	uint8_t bit;
-//	gpio_init(GPIOB, GPIO_MODE_OUT_OD, GPIO_OSPEED_50MHZ, GPIO_PIN_7);
-	for (int i=0;i<8;i++) {
-		gpio_bit_reset(GPIOB, GPIO_PIN_6);
-		gpio_bit_reset(GPIOB, GPIO_PIN_7);
-		my_delay(5);
-		bit=(data>>(7-i))&1;
-		if (bit==1) gpio_bit_set(GPIOB, GPIO_PIN_7);
-		else gpio_bit_reset(GPIOB, GPIO_PIN_7);		
-		gpio_bit_set(GPIOB, GPIO_PIN_6);
-		my_delay(10);
-	}	
-	gpio_bit_reset(GPIOB, GPIO_PIN_7);
-	gpio_bit_reset(GPIOB, GPIO_PIN_6);
-//	gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_7);
-	my_delay(10);
-	gpio_bit_set(GPIOB, GPIO_PIN_6);
-	my_delay(10);
-	gpio_bit_reset(GPIOB, GPIO_PIN_6);
-	my_delay(1000);	
-	gpio_bit_set(GPIOB, GPIO_PIN_6);		
+    uint8_t bit;
+//    gpio_init(GPIOB, GPIO_MODE_OUT_OD, GPIO_OSPEED_50MHZ, GPIO_PIN_7);
+    for (int i=0;i<8;i++) {
+        gpio_bit_reset(GPIOB, GPIO_PIN_6);
+        gpio_bit_reset(GPIOB, GPIO_PIN_7);
+        my_delay(5);
+        bit=(data>>(7-i))&1;
+        if (bit==1) gpio_bit_set(GPIOB, GPIO_PIN_7);
+        else gpio_bit_reset(GPIOB, GPIO_PIN_7);        
+        gpio_bit_set(GPIOB, GPIO_PIN_6);
+        my_delay(10);
+    }    
+    gpio_bit_reset(GPIOB, GPIO_PIN_7);
+    gpio_bit_reset(GPIOB, GPIO_PIN_6);
+//    gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_7);
+    my_delay(10);
+    gpio_bit_set(GPIOB, GPIO_PIN_6);
+    my_delay(10);
+    gpio_bit_reset(GPIOB, GPIO_PIN_6);
+    my_delay(1000);    
+    gpio_bit_set(GPIOB, GPIO_PIN_6);        
 }
 
 uint8_t my_i2c_read(void){
-	uint8_t out=0;
-	gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_7);
-	for (int i=0;i<8;i++) {
-		out=out<<1;
-		gpio_bit_reset(GPIOB, GPIO_PIN_6);
-		my_delay(10);
-		gpio_bit_set(GPIOB, GPIO_PIN_6);		
-		if (gpio_input_bit_get(GPIOB, GPIO_PIN_7)) out++;		
-		my_delay(5);
-	}
-	gpio_bit_reset(GPIOB, GPIO_PIN_7);
-	gpio_bit_reset(GPIOB, GPIO_PIN_6);
-	gpio_bit_set(GPIOB, GPIO_PIN_6);
-	gpio_bit_reset(GPIOB, GPIO_PIN_6);	
-	return 0;
+    uint8_t out=0;
+    gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_7);
+    for (int i=0;i<8;i++) {
+        out=out<<1;
+        gpio_bit_reset(GPIOB, GPIO_PIN_6);
+        my_delay(10);
+        gpio_bit_set(GPIOB, GPIO_PIN_6);        
+        if (gpio_input_bit_get(GPIOB, GPIO_PIN_7)) out++;        
+        my_delay(5);
+    }
+    gpio_bit_reset(GPIOB, GPIO_PIN_7);
+    gpio_bit_reset(GPIOB, GPIO_PIN_6);
+    gpio_bit_set(GPIOB, GPIO_PIN_6);
+    gpio_bit_reset(GPIOB, GPIO_PIN_6);    
+    return 0;
 }
 
 uint16_t ADS115_read_conversion(void){
-	uint16_t out =0;
-	master_START();
-	my_i2c_send(0x90);
-//	ACK();
-	my_i2c_send(0x00);	
-	my_delay(30);
-	master_START();
-//	ACK();
-	my_i2c_send(0x90);
-	my_i2c_read();
-	my_i2c_read();
-	master_STOP();
-	return out;
+    uint16_t out =0;
+    master_START();
+    my_i2c_send(0x90);
+//    ACK();
+    my_i2c_send(0x00);    
+    my_delay(30);
+    master_START();
+//    ACK();
+    my_i2c_send(0x90);
+    my_i2c_read();
+    my_i2c_read();
+    master_STOP();
+    return out;
 }
 void SysTick_Handler(void)
 {
@@ -464,82 +484,82 @@ void SysTick_Handler(void)
 }
 
 void my_delay(int time){
-	int count = 0;
-	for(int j=0;j<time;j++) count++;
+    int count = 0;
+    for(int j=0;j<time;j++) count++;
 }
 
 void master_START(void){
-	gpio_bit_set(GPIOB, GPIO_PIN_6);
-	gpio_bit_set(GPIOB, GPIO_PIN_7);
-	my_delay(10);
-	gpio_bit_reset(GPIOB, GPIO_PIN_7);
-	my_delay(10);
-	gpio_bit_reset(GPIOB, GPIO_PIN_6);
-	my_delay(10);	
+    gpio_bit_set(GPIOB, GPIO_PIN_6);
+    gpio_bit_set(GPIOB, GPIO_PIN_7);
+    my_delay(10);
+    gpio_bit_reset(GPIOB, GPIO_PIN_7);
+    my_delay(10);
+    gpio_bit_reset(GPIOB, GPIO_PIN_6);
+    my_delay(10);    
 }
 
 void master_STOP(void){
-	gpio_bit_reset(GPIOB, GPIO_PIN_7);
-	my_delay(10);
-	gpio_bit_set(GPIOB, GPIO_PIN_6);
-	my_delay(10);
-	gpio_bit_set(GPIOB, GPIO_PIN_7);
-	my_delay(10);	
+    gpio_bit_reset(GPIOB, GPIO_PIN_7);
+    my_delay(10);
+    gpio_bit_set(GPIOB, GPIO_PIN_6);
+    my_delay(10);
+    gpio_bit_set(GPIOB, GPIO_PIN_7);
+    my_delay(10);    
 }
 void ACK(void)
 {
     gpio_bit_reset(GPIOB, GPIO_PIN_7);
-		my_delay(1);
+        my_delay(1);
     gpio_bit_set(GPIOB, GPIO_PIN_6);
     my_delay(10);
     gpio_bit_reset(GPIOB, GPIO_PIN_6);
-		my_delay(10);
-		gpio_bit_set(GPIOB, GPIO_PIN_7);
+        my_delay(10);
+        gpio_bit_set(GPIOB, GPIO_PIN_7);
     my_delay(10);
 }
 void ADS115_config(void){
-	master_START();
-	my_i2c_send(0x91);
-//	my_i2c_send(0x01);
-//	my_i2c_send(0x8F);
-//	my_i2c_send(0xA3);
+    master_START();
+    my_i2c_send(0x91);
+//    my_i2c_send(0x01);
+//    my_i2c_send(0x8F);
+//    my_i2c_send(0xA3);
 }
 
-void USART0_IRQHandler(void)			//CH-08
+void USART0_IRQHandler(void)            //CH-08
 {
-		uint8_t cur_buff[5]={0};
-    if(RESET != usart_interrupt_flag_get(USART0, USART_INT_FLAG_RBNE)){			
-			UART0_buff[UART0_count]=usart_data_receive(USART0);
-			cur_buff[0]=usart_data_receive(USART0);
-			usbd_ep_send (&usbd_cdc, CDC_IN_EP, cur_buff, 1);
-			UART0_count++;		
-			UART0_flag=1;
-			if (UART0_count>=200) UART0_count=0;	
-			usart_interrupt_flag_clear(USART0, USART_INT_FLAG_RBNE);						
+        uint8_t cur_buff[5]={0};
+    if(RESET != usart_interrupt_flag_get(USART0, USART_INT_FLAG_RBNE)){            
+            UART0_buff[UART0_count]=usart_data_receive(USART0);
+            cur_buff[0]=usart_data_receive(USART0);
+            usbd_ep_send (&usbd_cdc, CDC_IN_EP, cur_buff, 1);
+            UART0_count++;        
+            UART0_flag=1;
+            if (UART0_count>=200) UART0_count=0;    
+            usart_interrupt_flag_clear(USART0, USART_INT_FLAG_RBNE);                        
     }
 }
 
-void USART1_IRQHandler(void)		//SIM800C
+void USART1_IRQHandler(void)        //SIM800C
 {
-		uint8_t cur_buff[5]={0};
-    if(RESET != usart_interrupt_flag_get(USART1, USART_INT_FLAG_RBNE)){			
-			UART1_buff[UART1_count]=usart_data_receive(USART1);
-			cur_buff[0]=usart_data_receive(USART1);
-			usbd_ep_send (&usbd_cdc, CDC_IN_EP, cur_buff, 1);
-			UART1_count++;			
-			if (UART1_count>=200) UART1_count=0;		
-			usart_interrupt_flag_clear(USART1, USART_INT_FLAG_RBNE);						
+        uint8_t cur_buff[5]={0};
+    if(RESET != usart_interrupt_flag_get(USART1, USART_INT_FLAG_RBNE)){            
+            UART1_buff[UART1_count]=usart_data_receive(USART1);
+            cur_buff[0]=usart_data_receive(USART1);
+            usbd_ep_send (&usbd_cdc, CDC_IN_EP, cur_buff, 1);
+            UART1_count++;            
+            if (UART1_count>=200) UART1_count=0;        
+            usart_interrupt_flag_clear(USART1, USART_INT_FLAG_RBNE);                        
     }
 }
 uint8_t check_FLAG_CONT_CH(void){
-		for(uint8_t g=1;g<200;g++){
-				if (UART0_buff[g]=='K' & UART0_buff[g-1]=='O') {
-						UART0_buff[g]=0xFF;
-						UART0_buff[g-1]=0xFF;
-						return 1;
-				}
-		}
-		return 0;
+        for(uint8_t g=1;g<200;g++){
+                if (UART0_buff[g]=='K' & UART0_buff[g-1]=='O') {
+                        UART0_buff[g]=0xFF;
+                        UART0_buff[g-1]=0xFF;
+                        return 1;
+                }
+        }
+        return 0;
 }
 
 void RTC_IRQHandler(void)
@@ -564,13 +584,13 @@ void RTC_IRQHandler(void)
 
 void EXTI5_9_IRQHandler(void)
 {
-	if (RESET != exti_interrupt_flag_get(EXTI_8)){
-		int statusBtn = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
-			if (statusBtn){
-//					EN_BUTT_FLAG=1;
-//					EN_BUTT_count=0;
-			}
-	}
-	exti_interrupt_flag_clear(EXTI_8);
+    if (RESET != exti_interrupt_flag_get(EXTI_8)){
+        int statusBtn = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
+            if (statusBtn){
+//                    EN_BUTT_FLAG=1;
+//                    EN_BUTT_count=0;
+            }
+    }
+    exti_interrupt_flag_clear(EXTI_8);
 }
 

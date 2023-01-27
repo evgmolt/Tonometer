@@ -5,21 +5,21 @@
 #include "usbd_conf.h"
 #include "stdbool.h"
 
-#define GREEN 	0x1
-#define RED 		0x2
-#define YELLOW 	0x3
-#define BLACK 	0x4
+#define GREEN     0x1
+#define RED         0x2
+#define YELLOW     0x3
+#define BLACK     0x4
 
 #define YELLOW_LEVEL_SYS 140
 #define RED_LEVEL_SYS 160
 #define YELLOW_LEVEL_DIA 90
 #define RED_LEVEL_DIA 100
 
-#define PUMP_ON 		gpio_bit_set	(GPIOC, GPIO_PIN_11)
-#define PUMP_OFF 		gpio_bit_reset(GPIOC, GPIO_PIN_11)
-#define VALVE_1_ON 	gpio_bit_set	(GPIOC, GPIO_PIN_12)
+#define PUMP_ON         gpio_bit_set    (GPIOC, GPIO_PIN_11)
+#define PUMP_OFF         gpio_bit_reset(GPIOC, GPIO_PIN_11)
+#define VALVE_1_ON     gpio_bit_set    (GPIOC, GPIO_PIN_12)
 #define VALVE_1_OFF gpio_bit_reset(GPIOC, GPIO_PIN_12)
-#define VALVE_2_ON 	gpio_bit_set	(GPIOC, GPIO_PIN_13)
+#define VALVE_2_ON     gpio_bit_set    (GPIOC, GPIO_PIN_13)
 #define VALVE_2_OFF gpio_bit_reset(GPIOC, GPIO_PIN_13)
 
 #define INIT_START 0
@@ -32,10 +32,11 @@
 #define SEND_SAVE_BUFF_MSG 7
 
 #define STOP_MEAS_LEVEL 60
-#define MIN_PRESSURE 120	
+#define MIN_PRESSURE 120    
 #define SEC_AFTER_MAX 6
-#define DELAY_AFTER_PUMPING 400
+#define DELAY_AFTER_PUMPING 100
 #define DELAY_AFTER_START 400
+#define DELAY_FOR_ERROR 500
 #define MAX_ALLOWED_PRESSURE 176
 #define AVER_SIZE 10
 
@@ -54,19 +55,21 @@
 #define MIN_PULSE 25
 #define MAX_PULSE 250
 
+#define LOCK_INTERVAL 120
+
 /* function declarations */
 
 void i2c_config(void);
-void my_delay(int time);	
+void my_delay(int time);    
 
 void ADC_rcu_config(void);
 void ADC_gpio_config(void);
 void adc_config(void);
 void dma_config(void);
 void GPIO_config(void);
-	
+    
 void spi_rcu_config(void);
-void spi_gpio_config(void);	
+void spi_gpio_config(void);    
 
 void spi_config(void);
 
@@ -76,7 +79,7 @@ void print_time(uint32_t timevar);
 
 
 void usb_send_i2c_convers(void);
-void i2c_convers(void);	
+void i2c_convers(void);    
 void TFT_print(void);
 
 void usart_config_0(void);
@@ -122,7 +125,7 @@ uint8_t usb_send_slim_AMP(void);
 
 int GetMaxIndexInRegion(int16_t *sourceArray, int index);
 int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index);
-	
+    
 void f_sorting_MAX(void);
 void f_PSys_Dia(void);
 
@@ -298,6 +301,11 @@ extern uint32_t save_dir_counter;
 extern short int EnvelopeArray[10000];
 
 extern uint32_t send_counter;
+
+extern int16_t last_value;
+extern int16_t dummy_value;
+extern int lock_counter;
+
 extern double rate;
 
 extern int shutdown_counter;

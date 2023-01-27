@@ -56,8 +56,8 @@ void rcu_config(void)
         rcu_usb_clock_config(RCU_CKUSB_CKPLL_DIV2);
     } else if (120000000U == system_clock) {
         rcu_usb_clock_config(RCU_CKUSB_CKPLL_DIV2_5);
-//				gpio_bit_set(GPIOC, GPIO_PIN_0);
-//				gpio_bit_set(GPIOC, GPIO_PIN_1);
+//                gpio_bit_set(GPIOC, GPIO_PIN_0);
+//                gpio_bit_set(GPIOC, GPIO_PIN_1);
     } else {
         /* reserved */
     }

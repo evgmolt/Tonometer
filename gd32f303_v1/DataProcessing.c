@@ -6,59 +6,59 @@
 #define SysCoeff 0.46
 
 uint16_t puls_convert(void){
-		double level = 0.06;
-		uint16_t intervals[50]={0};
-		double first_puls=0;
-		int16_t cur_puls=0;
-		puls_out=0;
-		puls_cur_counter=0;
-		if (puls_counter<10) return 0;
-		for (int m=3;m<puls_counter-3;m++){
-				cur_puls=puls_buff[m]-puls_buff[m-1];
-				if (cur_puls>LoLimit & cur_puls<HiLimit){
-						first_puls+=cur_puls;
-						puls_cur_counter++;
-				}
-		}		
-		first_puls=first_puls/puls_cur_counter;
-		
-		puls_cur_counter=0;
-		for (int m=1;m<puls_counter;m++){
-				cur_puls=puls_buff[m]-puls_buff[m-1];
-				if (cur_puls>LoLimit & cur_puls<HiLimit & cur_puls*1.5>first_puls & cur_puls/1.5<first_puls){
-						puls_out+=cur_puls;
-						intervals[puls_cur_counter]=cur_puls;
-						puls_cur_counter++;	
-				}
-		}
-		
-		double Aver=puls_out/puls_cur_counter;
-		double TwentyFivePercent = Aver / 4;
-		int Counter = 0;
+        double level = 0.06;
+        uint16_t intervals[50]={0};
+        double first_puls=0;
+        int16_t cur_puls=0;
+        puls_out=0;
+        puls_cur_counter=0;
+        if (puls_counter<10) return 0;
+        for (int m=3;m<puls_counter-3;m++){
+                cur_puls=puls_buff[m]-puls_buff[m-1];
+                if (cur_puls>LoLimit & cur_puls<HiLimit){
+                        first_puls+=cur_puls;
+                        puls_cur_counter++;
+                }
+        }        
+        first_puls=first_puls/puls_cur_counter;
+        
+        puls_cur_counter=0;
+        for (int m=1;m<puls_counter;m++){
+                cur_puls=puls_buff[m]-puls_buff[m-1];
+                if (cur_puls>LoLimit & cur_puls<HiLimit & cur_puls*1.5>first_puls & cur_puls/1.5<first_puls){
+                        puls_out+=cur_puls;
+                        intervals[puls_cur_counter]=cur_puls;
+                        puls_cur_counter++;    
+                }
+        }
+        
+        double Aver=puls_out/puls_cur_counter;
+        double TwentyFivePercent = Aver / 4;
+        int Counter = 0;
     double SumSqr = 0;
-		for (int i = 0; i < puls_cur_counter; i++){
-				double Diff = intervals[i] - Aver;
-				if (abs(Diff) < TwentyFivePercent){
-						SumSqr += Diff * Diff;
-						Counter++;
-				}
+        for (int i = 0; i < puls_cur_counter; i++){
+                double Diff = intervals[i] - Aver;
+                if (abs(Diff) < TwentyFivePercent){
+                        SumSqr += Diff * Diff;
+                        Counter++;
+                }
     }
-		
-		double SKO = sqrt(SumSqr/Counter);
-		arrhythmia = (SKO/Aver)>level;
-		
-		puls_out=60/(puls_out/(puls_cur_counter*frequency));
-		return puls_out;
+        
+        double SKO = sqrt(SumSqr/Counter);
+        arrhythmia = (SKO/Aver)>level;
+        
+        puls_out=60/(puls_out/(puls_cur_counter*frequency));
+        return puls_out;
 }
 
 
 int16_t GetAver(int16_t nextValue) {
-	ArrayForAver[ArrayForAverIndex] = nextValue;
-	ArrayForAverIndex++;
-	if (ArrayForAverIndex > AVER_SIZE - 1) ArrayForAverIndex = 0;
-	int16_t sum = 0;
-	for (int i = 0; i < AVER_SIZE; i++) sum += ArrayForAver[i];
-	return sum / AVER_SIZE;
+    ArrayForAver[ArrayForAverIndex] = nextValue;
+    ArrayForAverIndex++;
+    if (ArrayForAverIndex > AVER_SIZE - 1) ArrayForAverIndex = 0;
+    int16_t sum = 0;
+    for (int i = 0; i < AVER_SIZE; i++) sum += ArrayForAver[i];
+    return sum / AVER_SIZE;
 }
 
 int16_t GetDerivative(int16_t *dataArr, int32_t Ind){
@@ -80,9 +80,9 @@ void GetArrayOfWaveIndexes(int16_t *valuesArray, int16_t *indexesArray, int16_t 
     for (int i=0; i<puls_counter; i++)
     {
         puls_buff_NEW_MIN[i] = GetMinIndexInRegion(valuesArray, indexesArray[i]);
-				puls_buff_AMP_MIN[i] = valuesArray[puls_buff_NEW_MIN[i]];
-				indexes[i] = GetMaxIndexInRegion(valuesArray, indexesArray[i]);
-				puls_buff_AMP[i]=valuesArray[indexes[i]];				
+                puls_buff_AMP_MIN[i] = valuesArray[puls_buff_NEW_MIN[i]];
+                indexes[i] = GetMaxIndexInRegion(valuesArray, indexesArray[i]);
+                puls_buff_AMP[i]=valuesArray[indexes[i]];                
     }    
 }
 
@@ -97,74 +97,74 @@ int GetMaxIndexInRegion(int16_t *sourceArray, int index){
             max = sourceArray[index + i1 - range / 2];
             maxIndex = i1 - range / 2;
         }
-    }		
+    }        
     return index + maxIndex;
 }
 
-int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index){		
-		int range_MIN=100;
-		int16_t min = 1000;
-		int minIndex = 0;
-		for (int i1 = 0; i1 < range_MIN; i1++){
-				if (sourceArray_MIN[index+i1] < min){
-						min=sourceArray_MIN[index+i1];
-						minIndex=i1;
-				}
-		}			
+int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index){        
+        int range_MIN=100;
+        int16_t min = 1000;
+        int minIndex = 0;
+        for (int i1 = 0; i1 < range_MIN; i1++){
+                if (sourceArray_MIN[index+i1] < min){
+                        min=sourceArray_MIN[index+i1];
+                        minIndex=i1;
+                }
+        }            
     return index + minIndex;
 }
 
 void f_sorting_MAX(void){
-		int16_t MaximumAmplitude=-100;
-		uint8_t FLAG=1;	
-		uint16_t mini_XMAX=0;
-		int16_t z=0;
-		uint8_t buff1[10]={0};		
-		
-		int level = 8;
+        int16_t MaximumAmplitude=-100;
+        uint8_t FLAG=1;    
+        uint16_t mini_XMAX=0;
+        int16_t z=0;
+        uint8_t buff1[10]={0};        
+        
+        int level = 8;
     for (int i = 1; i < puls_counter - 1; i++){
-				if (abs(puls_buff_AMP[i] - puls_buff_AMP[i - 1]) > level)
-				{
-						puls_buff_AMP[i] = (puls_buff_AMP[i - 1] + puls_buff_AMP[i + 1]) / 2;
-				}
-    }		
-		
-		for (int i=0; i<puls_counter; i++){
-				puls_buff_AMP[i]=puls_buff_AMP[i]-puls_buff_AMP_MIN[i];
-		}
-		
-		for (int i=0; i<puls_counter; i++){
-				if (puls_buff_AMP[i]>MaximumAmplitude){
-						MaximumAmplitude=puls_buff_AMP[i];							
-						mini_XMAX=i;
-				}		
-		}			
-		
-		while (FLAG==1){
-				FLAG=0;
-				for (int i=1; i<mini_XMAX; i++){
-						if (puls_buff_AMP[i-1]>puls_buff_AMP[i]){
-								z=puls_buff_AMP[i-1];
-								puls_buff_AMP[i-1]=puls_buff_AMP[i];
-								puls_buff_AMP[i]=z;
-								//swap(puls_buff_AMP[i-1],puls_buff_AMP[i]);
-								FLAG=1;
-						}
-				}
-		}
-		FLAG=1;
-		while (FLAG==1){
-				FLAG=0;
-				for (int i=mini_XMAX+2; i<puls_counter; i++){
-						if (puls_buff_AMP[i-1]<puls_buff_AMP[i]){
-								z=puls_buff_AMP[i-1];
-								puls_buff_AMP[i-1]=puls_buff_AMP[i];
-								puls_buff_AMP[i]=z;
-								//swap(puls_buff_AMP[i-1],puls_buff_AMP[i]);
-								FLAG=1;
-						}
-				}
-		}		
+                if (abs(puls_buff_AMP[i] - puls_buff_AMP[i - 1]) > level)
+                {
+                        puls_buff_AMP[i] = (puls_buff_AMP[i - 1] + puls_buff_AMP[i + 1]) / 2;
+                }
+    }        
+        
+        for (int i=0; i<puls_counter; i++){
+                puls_buff_AMP[i]=puls_buff_AMP[i]-puls_buff_AMP_MIN[i];
+        }
+        
+        for (int i=0; i<puls_counter; i++){
+                if (puls_buff_AMP[i]>MaximumAmplitude){
+                        MaximumAmplitude=puls_buff_AMP[i];                            
+                        mini_XMAX=i;
+                }        
+        }            
+        
+        while (FLAG==1){
+                FLAG=0;
+                for (int i=1; i<mini_XMAX; i++){
+                        if (puls_buff_AMP[i-1]>puls_buff_AMP[i]){
+                                z=puls_buff_AMP[i-1];
+                                puls_buff_AMP[i-1]=puls_buff_AMP[i];
+                                puls_buff_AMP[i]=z;
+                                //swap(puls_buff_AMP[i-1],puls_buff_AMP[i]);
+                                FLAG=1;
+                        }
+                }
+        }
+        FLAG=1;
+        while (FLAG==1){
+                FLAG=0;
+                for (int i=mini_XMAX+2; i<puls_counter; i++){
+                        if (puls_buff_AMP[i-1]<puls_buff_AMP[i]){
+                                z=puls_buff_AMP[i-1];
+                                puls_buff_AMP[i-1]=puls_buff_AMP[i];
+                                puls_buff_AMP[i]=z;
+                                //swap(puls_buff_AMP[i-1],puls_buff_AMP[i]);
+                                FLAG=1;
+                        }
+                }
+        }        
 }
 
 void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues){
@@ -176,60 +176,59 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues){
         double coeff = (y2 - y1) / (x2 - x1);
         for (int j = x1 - 1; j < x2; j++) {
             EnvelopeArray[j] = y1 + coeff * (j - x1);
-        }				
+        }                
     }
 }
 
 
 void f_PSys_Dia(void){
-	double MaximumAmplitude=-100;
-	
-	for (int i=0; i<puls_counter; i++){
-			if (puls_buff_AMP[i]>MaximumAmplitude){
-					MaximumAmplitude=puls_buff_AMP[i];
-					XMax=puls_buff_NEW[i];					
-			}		
-	}		
-	
-	int16_t ValueSys = SysCoeff * MaximumAmplitude;
-	int16_t ValueDia = DiaCoeff * MaximumAmplitude;	
-	
-	for (int i = XMax; i >= 200; i--){
-			if (EnvelopeArray[i] < ValueSys){
-					PSys = save_clear[i]/rate;
-					indexPSys = i;
-					break;
-			}
-	}
-	for (int i = XMax; i < main_index; i++)
-	{
+    double MaximumAmplitude=-100;
+    
+    for (int i=0; i<puls_counter; i++){
+            if (puls_buff_AMP[i]>MaximumAmplitude){
+                    MaximumAmplitude=puls_buff_AMP[i];
+                    XMax=puls_buff_NEW[i];                    
+            }        
+    }        
+    
+    int16_t ValueSys = SysCoeff * MaximumAmplitude;
+    int16_t ValueDia = DiaCoeff * MaximumAmplitude;    
+    
+    for (int i = XMax; i >= 200; i--){
+            if (EnvelopeArray[i] < ValueSys){
+                    PSys = save_clear[i]/rate;
+                    indexPSys = i;
+                    break;
+            }
+    }
+    for (int i = XMax; i < main_index; i++)
+    {
     if (EnvelopeArray[i] < ValueDia)
     {
         PDia = save_clear[i]/rate;
         indexPDia = i;
         break;
     }
-	}
+    }
 }
 
 int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
-		int32_t DCLevel = 0;
-		int32_t ACLevel = 0;					
-		for(int r=0;r<DC;r++){
-				DCLevel+=mass_in[main_index-1-r];
-		}
-		DCLevel/=DC;	
-		for (int j=0;j<AC;j++){
+        int32_t DCLevel = 0;
+        int32_t ACLevel = 0;                    
+        for(int r=0;r<DC;r++){
+                DCLevel+=mass_in[main_index-1-r];
+        }
+        DCLevel/=DC;    
+        for (int j=0;j<AC;j++){
        ACLevel+=mass_in[main_index-1-j];
     }
-		ACLevel/=AC;
-		i2c_out = (int16_t)ACLevel;
-		current_pressure=(int16_t)(i2c_out/rate);
-		if (current_pressure<0 & main_index<500) current_pressure=0;
-		mass_in[main_index-1] = (uint16_t)ACLevel;	
-		
-		
-		float ACoef[NCoef+1] = { 
+    ACLevel/=AC;
+    i2c_out = (int16_t)ACLevel;
+    current_pressure=(int16_t)(i2c_out/rate);
+    if (current_pressure<0 & main_index<500) current_pressure=0;
+    mass_in[main_index-1] = (uint16_t)ACLevel;    
+        
+    float ACoef[NCoef+1] = { 
         0.97913295295553560000, 
         -1.95826590591107120000, 
         0.97913295295553560000 
@@ -256,10 +255,8 @@ int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
     y[0] = ACoef[0] * x[0]; 
     for(n=1; n<=NCoef; n++) 
         y[0] += ACoef[n] * x[n] - BCoef[n] * y[n]; 
-		
-		
-		
-		return (int16_t)y[0];
-		//return ACLevel-DCLevel;
+        
+    return (int16_t)y[0];
+        //return ACLevel-DCLevel;
 }
 

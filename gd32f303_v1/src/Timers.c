@@ -64,20 +64,20 @@ void timer_config_2(void)
 }
 
 void timer_2_start(void){
-		timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);
+        timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);
     timer_interrupt_enable(TIMER2, TIMER_INT_UP);
     timer_enable(TIMER2);
 }
 
 void timer_2_stop(void){
-	timer_disable(TIMER2);			
+    timer_disable(TIMER2);            
 }
 
 void timer_1_start(void){
-		timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);
+        timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);
     timer_interrupt_enable(TIMER1, TIMER_INT_UP);
     timer_enable(TIMER1);
 }
 void timer_1_stop(void){
-	timer_disable(TIMER1);			
+    timer_disable(TIMER1);            
 }
