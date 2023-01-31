@@ -289,8 +289,7 @@ void cdc_acm_data_receive(usb_dev *udev)
     cdc->packet_receive = 0U;
     cdc->pre_packet_send = 0U;
         
-    usbd_ep_recev(udev, CDC_OUT_EP, (uint8_t*)(cdc->data), USB_CDC_RX_LEN);    
-
+    usbd_ep_recev(udev, CDC_OUT_EP, (uint8_t*)(cdc->data), USB_CDC_RX_LEN);   
 }
 
 /*!

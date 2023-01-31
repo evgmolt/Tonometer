@@ -55,7 +55,7 @@
 #define MIN_PULSE 25
 #define MAX_PULSE 250
 
-#define LOCK_INTERVAL 120
+#define LOCK_INTERVAL 20
 
 /* function declarations */
 

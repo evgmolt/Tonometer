@@ -228,6 +228,7 @@ int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
     if (current_pressure<0 & main_index<500) current_pressure=0;
     mass_in[main_index-1] = (uint16_t)ACLevel;    
         
+/*    
     float ACoef[NCoef+1] = { 
         0.97913295295553560000, 
         -1.95826590591107120000, 
@@ -256,7 +257,8 @@ int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
     for(n=1; n<=NCoef; n++) 
         y[0] += ACoef[n] * x[n] - BCoef[n] * y[n]; 
         
-    return (int16_t)y[0];
-        //return ACLevel-DCLevel;
+//    return (int16_t)y[0];*/
+    
+    return ACLevel-DCLevel;
 }
 

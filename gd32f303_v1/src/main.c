@@ -168,18 +168,17 @@ int main(void)
         
         boot_mode();        
 
-    rcu_config();                                                                    // USB
-    gpio_config();                                                                // USB    
-    usbd_init(&usbd_cdc, &cdc_desc, &cdc_class);    // USB 
-    nvic_config();                                                                // USB     
-    usbd_connect(&usbd_cdc);                                            // USB 
+        rcu_config();                                   // USB
+        gpio_config();                                  // USB    
+        usbd_init(&usbd_cdc, &cdc_desc, &cdc_class);    // USB 
+        nvic_config();                                  // USB     
+        usbd_connect(&usbd_cdc);                        // USB 
     
-        nvic_config_1();        // timer 1
+        nvic_config_1();         // timer 1
         timer_config_1();        // timer 1
     
-        nvic_config_2();        // timer 2
-        timer_config_2();        // timer 2
-        
+        nvic_config_2();         // timer 2
+        timer_config_2();        // timer 2        
         
         i2c_config();                                                                                                                //I2C ADS1115
         ADS1115_config(0b00000010, 0x00, 0x00);                                                            //Lo
@@ -266,187 +265,196 @@ int main(void)
             
         timer_1_start();
     
-    while (1) {    
-            switch (mode)
-            {
-                case INIT_START:
-                    if (!button_pressed) {
-                        mode = START_SCREEN;
+    while (1) 
+    {    
+        switch (mode)
+        {
+            case INIT_START:
+                if (!button_pressed) {
+                  mode = START_SCREEN;
+                  button_released = 0;
+                  button_pressed_counter = 0;
+                }
+                break;
+            case START_SCREEN:
+                bluetooth_check();
+                TFT_print();
+                if (button_released) {
+                        ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);                            
+                        ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);                        
+                    
+                        count_send_bluetooth=0;
+                    
+                        current_pressure=0;
+                        i2c_calibration();
+                        PUMP_ON;
+                        VALVE_1_ON;
+                        VALVE_2_ON;
+                        _lockInterval=50;
+                        sector_start_scan=0;
+                        main_index = 0;        
+                        save_dir_counter=0;        
+                        Wave_detect_FLAG=0;    
+                        _maxD=0;        
+                        _detectLevel_comp_UP=15;
+                        _detectLevel=_detectLevel_start;
+                        silence_time_start=0;
+                        puls_counter=0;            
+                        detect_FLAG=0;
+                        timer_2_start();
+                        finish_6_flag=0;
+                        mode = PUMPING_MANAGEMENT;
                         button_released = 0;
-                      button_pressed_counter = 0;
-                    }
-                    break;
-                case START_SCREEN:
-                    bluetooth_check();
-                    TFT_print();
-                    if (button_released) {
-                            ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);                            
-                            ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);                        
-                        
-                            count_send_bluetooth=0;
-                        
-                            current_pressure=0;
-                            i2c_calibration();
-                            PUMP_ON;
-                            VALVE_1_ON;
-                            VALVE_2_ON;
-                            _lockInterval=50;
-                            sector_start_scan=0;
-                            main_index = 0;        
-                            save_dir_counter=0;        
-                            Wave_detect_FLAG=0;    
-                            _maxD=0;        
-                            _detectLevel_comp_UP=15;
-                            _detectLevel=_detectLevel_start;
-                            silence_time_start=0;
-                            puls_counter=0;            
-                            detect_FLAG=0;
-                            timer_2_start();
-                            finish_6_flag=0;
-                            mode = PUMPING_MANAGEMENT;
-                            button_released = 0;
-                            button_pressed_counter = 0;
-                    }
-                    break;
-                case KEY_OFF:
-                    device_OFF();
-                    break;
-                case PUMPING_MANAGEMENT:
-                    bluetooth_check();
-                    shutdown_counter = 0;
-                    ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
-                    if (button_released) abort_meas();
-                    if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
-                
-                    if (current_pressure >= MAX_ALLOWED_PRESSURE) {
-                            _detectLevel = _detectLevel_start;                        
-                            main_index=0;        
-                            save_dir_counter=0;        
-                            Wave_detect_FLAG=0;    
-                            silence_time_start=0;
-                            _maxD=0;                            
-                            puls_counter=0;                        
-                            mode = MEASUREMENT;        
-                    }                        
-                    break;
-                case USB_CHARGING:
-                    shutdown_counter = 0;
-                    if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
-                    print_batt_charge();                
-                    delay_1ms(1500);                
-                    if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) device_OFF();                        
-                    break;
-                case PRESSURE_TEST:
-                    shutdown_counter = 0;
-                    convert_NO_save();
-                    print_num_H(current_pressure,235,120,GREEN);
-                    usb_send_16(i2c_out,0);
-                    delay_1ms(200);
-                    print_time(rtc_counter_get());
-                    break;
-                case MEASUREMENT:
-                    shutdown_counter = 0;
-                    if (button_released) abort_meas();
-                    if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
-                    PUMP_OFF;
-                    VALVE_2_OFF;
-                    if (main_index>1+size_pack*(count_send_bluetooth+1)){                        
-                            uint8_t c_summ=0;                            
-                            uint8_t cur_buff_ble[400]={'0', '2', 0x05, count_send_bluetooth & 0xFF, (count_send_bluetooth>>8) & 0xFF, size_pack};
-                            
-                            for (int f=0;f<size_pack;f++){
-                                    int16_t cur_press=(((save_clear[count_send_bluetooth*size_pack+f]-i2c_out_K)*100)/rate);
-                                    cur_buff_ble[6+f*2]=cur_press&0xFF;
-                                    cur_buff_ble[6+f*2+1]=(cur_press>>8)&0xFF;
-                            }                            
-                            for (int f=0;f<size_pack*2+6;f++){
-                                    c_summ+=cur_buff_ble[f];
-                            }
-                            cur_buff_ble[size_pack*2+6]=c_summ;
-                            my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
-                            count_send_bluetooth++;
-                    }
-                    if (current_pressure <= STOP_MEAS_LEVEL){
-                            //timer_2_stop();                                                   ///////////////////////////////////////////////
-
-                          for (int i = 0; i < AVER_SIZE; i++) {
-                                ArrayForAver[i] = 0;
-                            }
-                        
-                            ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
-                            ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
-                            ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
-                        
-                            str_clear(EnvelopeArray,10000);
-                            GetArrayOfWaveIndexes(save_dir, puls_buff, puls_buff_NEW);
-                            f_sorting_MAX();
-                            CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
-                            f_PSys_Dia();
-                            puls_convert();    
-                            bonus_byte=0;
-                            if (main_index>1000 & 
-                                    PSys > MIN_SYS & 
-                                    PSys < MAX_SYS & 
-                                    PDia > MIN_DIA & 
-                                    PDia < MAX_DIA & 
-                                    puls_out > MIN_PULSE & 
-                                    puls_out < MAX_PULSE) {
-                                            print_sys_label();
-                                            print_dia_label();    
-                                            print_SYS(PSys);
-                                            print_DIA(PDia);                                    
-                                            print_num_H((int16_t)puls_out,235,250,BLACK);
-
-                                            if (arrhythmia) print_heartX3(true);
-                                        
-                                            cur_tim = rtc_counter_get();
-                                            m_hh = cur_tim / 3600;
-                                            m_mm = (cur_tim % 3600) / 60;
-                                            m_ss = (cur_tim % 3600) % 60;
-                                            check_backup_register(&cur_day, &cur_month, &cur_year);
-                                            if     (cur_year>=255)    cur_year-=2000;
-                            }
-                            else {
-                                    bonus_byte|=0x80;
-                                    print_error(4);                            
-                            }
-                            send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
-                            
-                            VALVE_1_OFF;
-                            VALVE_2_OFF;
-                            mode = SEND_SAVE_BUFF_MSG;                                
-                            timer_1_start();
-                    }                    
-                    break;
-                case SEND_SAVE_BUFF_MSG:
-                    shutdown_counter = 0;
-                    break;
-            }
+                        button_pressed_counter = 0;
+                }
+                break;
+            case KEY_OFF:
+                device_OFF();
+                break;
+            case PUMPING_MANAGEMENT:
+                bluetooth_check();
+                shutdown_counter = 0;
+                ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
+                if (button_released) abort_meas();
+                if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
             
-            if (UART0_flag==1){                    
-                    for (int w=0;w<200;w++){
-                            if (finder_msg(UART0_buff)){                                                                    
-                                    ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_RED);                                                            
-                            }
-                            if (finder(UART0_buff, "OFF",0,&num_string)) {
-                                    ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_WHITE);
-                            }
-                    }
-                    UART0_flag=0;
-            }
-            
-            if (Wave_ind_FLAG){                
-                    print_heart(true);
-                    delay_1ms(200);
-                    print_heart(false);
-                    Wave_ind_FLAG=0;
-            }
+                if (current_pressure >= MAX_ALLOWED_PRESSURE) {
+                        _detectLevel = _detectLevel_start;                        
+                        main_index=0;        
+                        save_dir_counter=0;        
+                        Wave_detect_FLAG=0;    
+                        silence_time_start=0;
+                        _maxD=0;                            
+                        puls_counter=0;                        
+                        mode = MEASUREMENT;        
+                }                        
+                break;
+            case USB_CHARGING:
+                shutdown_counter = 0;
+                if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
+                print_batt_charge();                
+                delay_1ms(1500);                
+                if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) device_OFF();                        
+                break;
+            case PRESSURE_TEST:
+                shutdown_counter = 0;
+                convert_NO_save();
+                print_num_H(current_pressure,235,120,GREEN);
+                usb_send_16(i2c_out,0);
+                delay_1ms(200);
+                print_time(rtc_counter_get());
+                break;
+            case MEASUREMENT:
+                shutdown_counter = 0;
+                if (button_released) abort_meas();
+                if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
+                PUMP_OFF;
+                VALVE_2_OFF;
+                if (main_index>1+size_pack*(count_send_bluetooth+1)){                        
+                        uint8_t c_summ=0;                            
+                        uint8_t cur_buff_ble[400]={'0', '2', 0x05, count_send_bluetooth & 0xFF, (count_send_bluetooth>>8) & 0xFF, size_pack};
                         
-            if (0U == cdc_acm_check_ready(&usbd_cdc)) {
-                    cdc_acm_data_receive(&usbd_cdc);
-            } else {
-                    cdc_acm_data_send(&usbd_cdc);
-            }            
+                        for (int f=0;f<size_pack;f++){
+                                int16_t cur_press=(((save_clear[count_send_bluetooth*size_pack+f]-i2c_out_K)*100)/rate);
+                                cur_buff_ble[6+f*2]=cur_press&0xFF;
+                                cur_buff_ble[6+f*2+1]=(cur_press>>8)&0xFF;
+                        }                            
+                        for (int f=0;f<size_pack*2+6;f++){
+                                c_summ+=cur_buff_ble[f];
+                        }
+                        cur_buff_ble[size_pack*2+6]=c_summ;
+                        my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
+                        count_send_bluetooth++;
+                }
+                if (current_pressure <= STOP_MEAS_LEVEL){
+                        //timer_2_stop();                                                   ///////////////////////////////////////////////
+
+                      for (int i = 0; i < AVER_SIZE; i++) {
+                            ArrayForAver[i] = 0;
+                        }
+                    
+                        ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
+                        ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
+                        ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
+                    
+                        str_clear(EnvelopeArray,10000);
+                        GetArrayOfWaveIndexes(save_dir, puls_buff, puls_buff_NEW);
+                        f_sorting_MAX();
+                        CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
+                        f_PSys_Dia();
+                        puls_convert();    
+                        bonus_byte=0;
+                        if (main_index>1000 & 
+                            PSys > MIN_SYS & 
+                            PSys < MAX_SYS & 
+                            PDia > MIN_DIA & 
+                            PDia < MAX_DIA & 
+                            puls_out > MIN_PULSE & 
+                            puls_out < MAX_PULSE) 
+                        {
+                            print_sys_label();
+                            print_dia_label();    
+                            print_SYS(PSys);
+                            print_DIA(PDia);                                    
+                            print_num_H((int16_t)puls_out,235,250,BLACK);
+
+                            if (arrhythmia) print_heartX3(true);
+                        
+                            cur_tim = rtc_counter_get();
+                            m_hh = cur_tim / 3600;
+                            m_mm = (cur_tim % 3600) / 60;
+                            m_ss = (cur_tim % 3600) % 60;
+                            check_backup_register(&cur_day, &cur_month, &cur_year);
+                            if     (cur_year>=255)    cur_year-=2000;
+                        }
+                        else 
+                        {
+                            bonus_byte|=0x80;
+                            print_error(4);                            
+                        }
+                        send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
+                        
+                        VALVE_1_OFF;
+                        VALVE_2_OFF;
+                        mode = SEND_SAVE_BUFF_MSG;                                
+                        timer_1_start();
+                }                    
+                break;
+            case SEND_SAVE_BUFF_MSG:
+                shutdown_counter = 0;
+                break;
+        }
+        
+        if (UART0_flag==1){                    
+            for (int w=0;w<200;w++)
+            {
+                if (finder_msg(UART0_buff)){                                                                    
+                        ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_RED);                                                            
+                }
+                if (finder(UART0_buff, "OFF",0,&num_string)) {
+                        ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_WHITE);
+                }
+            }
+            UART0_flag=0;
+        }
+        
+        if (Wave_ind_FLAG)
+        {                
+            print_heart(true);
+            delay_1ms(200);
+            print_heart(false);
+            Wave_ind_FLAG=0;
+        }
+                    
+        if (0U == cdc_acm_check_ready(&usbd_cdc)) 
+        {
+            cdc_acm_data_receive(&usbd_cdc);
+//            uint8_t val = &usbd_cdc.user_data[0];
+        } 
+        else 
+        {
+            cdc_acm_data_send(&usbd_cdc);
+        }            
     }
 }
 
@@ -1005,8 +1013,6 @@ uint8_t usb_send_save(int16_t *mass1, int16_t *mass2){
     if (send_counter>=main_index) return 1;
     else return 0;
 }
-
-
 
 short int convert_save_16(void){            
         if (ADS1115_read_IT()==0) return 0;
