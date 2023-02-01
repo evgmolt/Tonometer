@@ -103,10 +103,11 @@ void print_batt_charge(void){
         ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
     
         if (adc_1 > BATT_RANG_MAX) {
-                for (int i=1; i < num_of_segments; i++){
-                        ILI9341_FillRectangle(200-i*29, 154, 25, 62, ILI9341_GREEN);                                    
-                }
-                return;
+            for (int i=1; i < num_of_segments; i++)
+            {
+               ILI9341_FillRectangle(200-i*29, 154, 25, 62, ILI9341_GREEN);                                    
+            }
+            return;
         }
         
         if(indicate_charge_toggle) {
@@ -232,12 +233,13 @@ void TFT_print(void){
         else if (adc_1 < BATT_RANG_2 & adc_1 > BATT_RANG_1) rang_batt=1;
         else if (adc_1 < BATT_RANG_1)    rang_batt=0;
                 
-        if (rang_batt_old!=rang_batt){    
-                ILI9341_DrawImage(6, 285, 44, 24, (const uint16_t*)bat_clr);            
-                for (int i1=0;i1<rang_batt;i1++){
-                        ILI9341_DrawImage(42-i1*8, 286, 7, 22, (const uint16_t*)bat_dif);
-                }
-                rang_batt_old=rang_batt;
+        if (rang_batt_old!=rang_batt)
+        {    
+            ILI9341_DrawImage(6, 285, 44, 24, (const uint16_t*)bat_clr);            
+            for (int i1=0;i1<rang_batt;i1++){
+                    ILI9341_DrawImage(42-i1*8, 286, 7, 22, (const uint16_t*)bat_dif);
+            }
+            rang_batt_old=rang_batt;
         }        
 }
 

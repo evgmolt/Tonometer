@@ -33,8 +33,8 @@
 
 #define STOP_MEAS_LEVEL 60
 #define MIN_PRESSURE 120    
-#define SEC_AFTER_MAX 6
-#define DELAY_AFTER_PUMPING 100
+#define SEC_AFTER_MAX 8
+#define DELAY_AFTER_PUMPING 50
 #define DELAY_AFTER_START 400
 #define DELAY_FOR_ERROR 500
 #define MAX_ALLOWED_PRESSURE 176
@@ -56,6 +56,8 @@
 #define MAX_PULSE 250
 
 #define LOCK_INTERVAL 20
+
+#define USB_COMMAND_SET_RATE 11
 
 /* function declarations */
 
@@ -127,7 +129,7 @@ int GetMaxIndexInRegion(int16_t *sourceArray, int index);
 int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index);
     
 void f_sorting_MAX(void);
-void f_PSys_Dia(void);
+void Get_Sys_Dia(void);
 
 uint16_t puls_convert(void);
 void clear_monitor(void);
@@ -146,14 +148,14 @@ void bluetooth_check(void);
 uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num);
 uint8_t finder_msg(uint8_t *buff);
 
-/* erase fmc pages from FMC_WRITE_START_ADDR to FMC_WRITE_END_ADDR */
-void fmc_erase_pages(void);
+/* erase fmc page from FMC_WRITE_START_ADDR */
+void fmc_erase_page(uint32_t page_address);
 /* program fmc word by word from FMC_WRITE_START_ADDR to FMC_WRITE_END_ADDR */
-void fmc_program(void);
+void fmc_program_serial(void);
 /* check fmc erase result */
-void fmc_erase_pages_check(void);
+void fmc_erase_page_check(void);
 /* check fmc program result */
-void fmc_program_check(void);
+void fmc_serial_check(void);
 
 void write_backup_register(uint16_t day, uint16_t month, uint16_t year);
 void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year);
@@ -163,6 +165,8 @@ void print_SYS(int16_t IN);
 void print_DIA(int16_t IN);
 
 void abort_meas(void);
+
+double read_rate_from_fmc();
 
 extern bool arrhythmia;
 
@@ -219,8 +223,6 @@ extern uint32_t address;
 extern uint32_t SERIAL[9];
 /* calculate the number of page to be programmed/erased */
 extern uint32_t PageNum;
-/* calculate the number of page to be programmed/erased */
-extern uint32_t WordNum;
 
 extern int16_t puls_buff_NEW[50];
 extern int16_t puls_buff_NEW_MIN[50];
@@ -307,6 +309,8 @@ extern int16_t dummy_value;
 extern int lock_counter;
 
 extern double rate;
+extern double rate_whole;
+extern double rate_fract;
 
 extern int shutdown_counter;
 
@@ -315,6 +319,8 @@ extern int button_pressed;
 extern int button_released;
 extern int button_touched_counter;
 extern int button_pressed_counter;
+
+extern uint8_t usb_command;
 
 
 #endif /* __MAIN_H */

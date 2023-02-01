@@ -51,10 +51,15 @@ OF SUCH DAMAGE.
 #include "Display.h"
 #include "Timers.h"
 
-#define BKP_DATA_REG_NUM              42
-#define FMC_PAGE_SIZE           ((uint16_t)0x30U)
-#define FMC_WRITE_START_ADDR    ((uint32_t)0x0807E000U)
-#define FMC_WRITE_END_ADDR      ((uint32_t)0x0807E030U)
+#define BKP_DATA_REG_NUM        42
+
+#define FMC_SERIAL_PAGE_SIZE    ((uint16_t)0x30U)
+#define FMC_SERIAL_START_ADDR   ((uint32_t)0x0807E000U)
+#define FMC_SERIAL_END_ADDR     FMC_SERIAL_START_ADDR + FMC_SERIAL_PAGE_SIZE
+
+#define FMC_RATE_PAGE_SIZE      8
+#define FMC_RATE_START_ADDR     ((uint32_t)0x0807F800U)
+#define FMC_RATE_END_ADDR       FMC_RATE_START_ADDR + FMC_RATE_PAGE_SIZE
 
 
 /* enter the second interruption,set the second interrupt flag to 1 */
@@ -85,9 +90,7 @@ uint32_t *ptrd;
 uint32_t address = 0x00000000U;
 uint32_t SERIAL[9]   = {'0','2','0','2','2','2','0','0','1'};
 /* calculate the number of page to be programmed/erased */
-uint32_t PageNum = (FMC_WRITE_END_ADDR - FMC_WRITE_START_ADDR) / FMC_PAGE_SIZE;
-/* calculate the number of page to be programmed/erased */
-uint32_t WordNum = ((FMC_WRITE_END_ADDR - FMC_WRITE_START_ADDR) >> 2);
+uint32_t PageNum = (FMC_SERIAL_END_ADDR - FMC_SERIAL_START_ADDR) / FMC_SERIAL_PAGE_SIZE;
 
 extern uint8_t UART0_flag;
 
@@ -154,7 +157,11 @@ int16_t last_value;
 int16_t dummy_value;
 int lock_counter = 0;
 
+uint8_t usb_command;
+
 double rate=18.69;
+double rate_whole;
+double rate_fract;
 
 bool arrhythmia = false;
 
@@ -250,7 +257,7 @@ int main(void)
             
         i2c_calibration();    
         
-        fmc_program_check();
+        fmc_serial_check();
         delay_1ms(200);
         str_clear(UART0_buff,200);        
         
@@ -262,50 +269,54 @@ int main(void)
     pmu_backup_write_enable();                                                                            // 
     /* clear the bit flag of tamper event */                                                //
     bkp_flag_clear(BKP_FLAG_TAMPER);                                                                //
-            
-        timer_1_start();
+
+    rate = read_rate_from_fmc();
+        
+    timer_1_start();
     
     while (1) 
     {    
         switch (mode)
         {
             case INIT_START:
-                if (!button_pressed) {
-                  mode = START_SCREEN;
-                  button_released = 0;
-                  button_pressed_counter = 0;
+                if (!button_pressed) 
+                {
+                    mode = START_SCREEN;
+                    button_released = 0;
+                    button_pressed_counter = 0;
                 }
                 break;
             case START_SCREEN:
                 bluetooth_check();
                 TFT_print();
-                if (button_released) {
-                        ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);                            
-                        ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);                        
-                    
-                        count_send_bluetooth=0;
-                    
-                        current_pressure=0;
-                        i2c_calibration();
-                        PUMP_ON;
-                        VALVE_1_ON;
-                        VALVE_2_ON;
-                        _lockInterval=50;
-                        sector_start_scan=0;
-                        main_index = 0;        
-                        save_dir_counter=0;        
-                        Wave_detect_FLAG=0;    
-                        _maxD=0;        
-                        _detectLevel_comp_UP=15;
-                        _detectLevel=_detectLevel_start;
-                        silence_time_start=0;
-                        puls_counter=0;            
-                        detect_FLAG=0;
-                        timer_2_start();
-                        finish_6_flag=0;
-                        mode = PUMPING_MANAGEMENT;
-                        button_released = 0;
-                        button_pressed_counter = 0;
+                if (button_released) 
+                {
+                    ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);                            
+                    ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);                        
+                
+                    count_send_bluetooth=0;
+                
+                    current_pressure=0;
+                    i2c_calibration();
+                    PUMP_ON;
+                    VALVE_1_ON;
+                    VALVE_2_ON;
+                    _lockInterval=50;
+                    sector_start_scan=0;
+                    main_index = 0;        
+                    save_dir_counter=0;        
+                    Wave_detect_FLAG=0;    
+                    _maxD=0;        
+                    _detectLevel_comp_UP=15;
+                    _detectLevel=_detectLevel_start;
+                    silence_time_start=0;
+                    puls_counter=0;            
+                    detect_FLAG=0;
+                    timer_2_start();
+                    finish_6_flag=0;
+                    mode = PUMPING_MANAGEMENT;
+                    button_released = 0;
+                    button_pressed_counter = 0;
                 }
                 break;
             case KEY_OFF:
@@ -343,6 +354,10 @@ int main(void)
                 usb_send_16(i2c_out,0);
                 delay_1ms(200);
                 print_time(rtc_counter_get());
+                if (usb_command == USB_COMMAND_SET_RATE)
+                {   
+                    rate = rate_whole + rate_fract / 100;
+                }
                 break;
             case MEASUREMENT:
                 shutdown_counter = 0;
@@ -381,7 +396,7 @@ int main(void)
                         GetArrayOfWaveIndexes(save_dir, puls_buff, puls_buff_NEW);
                         f_sorting_MAX();
                         CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
-                        f_PSys_Dia();
+                        Get_Sys_Dia();
                         puls_convert();    
                         bonus_byte=0;
                         if (main_index>1000 & 
@@ -449,7 +464,6 @@ int main(void)
         if (0U == cdc_acm_check_ready(&usbd_cdc)) 
         {
             cdc_acm_data_receive(&usbd_cdc);
-//            uint8_t val = &usbd_cdc.user_data[0];
         } 
         else 
         {
@@ -458,13 +472,14 @@ int main(void)
     }
 }
 
-void abort_meas(void) {
-        mode = START_SCREEN;
-        PUMP_OFF;
-        VALVE_1_OFF;
-        VALVE_2_OFF;
-        button_released = 0;
-        button_pressed_counter = 0;
+void abort_meas(void) 
+{
+    mode = START_SCREEN;
+    PUMP_OFF;
+    VALVE_1_OFF;
+    VALVE_2_OFF;
+    button_released = 0;
+    button_pressed_counter = 0;
 }
 
 void i2c_config(void){
@@ -998,8 +1013,9 @@ void usb_send_i2c_convers(void){
 }
 
 uint8_t usb_send_save(int16_t *mass1, int16_t *mass2){
+    //Add markers of SYS, MAX and DIA points into array
     for (int h=0;h<puls_counter;h++){
-            if (send_counter==indexPSys | send_counter==indexPDia | send_counter==XMax)save_dir[send_counter]=1000;                    
+            if (send_counter==indexPSys | send_counter==indexPDia | send_counter==XMax)save_dir[send_counter]=100;                    
     }        
     
     uint8_t send_H1=(mass1[send_counter]>>8)&0xFF;
@@ -1101,142 +1117,177 @@ uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num){
 }
 
 uint8_t finder_msg(uint8_t *buff){    
-        uint8_t cur_SERIAL[7]={0};
-        uint8_t cur_buff[30]={'A','T','+','N','A','M','E','=','T','O','N','O','M'};
         uint8_t _flag=0;
         uint8_t _string[20]={'0','2'};
 
         //ILI9341_WriteString(1, 30, _string, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-        for (int j=0;j<200;j++){
-                if (buff[j]==_string[0] & buff[j+1]==_string[1]){
-                        _flag=1;                                                
+        for (int j=0;j<200;j++)
+        {
+            if (buff[j]==_string[0] & buff[j+1]==_string[1])
+            {
+                _flag=1;                                                
+            }
+            if (_flag) 
+            {
+                if (buff[j+2]==0x04)
+                {
+                    uint8_t check_sum=0;
+                    for (int a=0;a<10;a++)
+                    {
+                        check_sum+=buff[j+a];
+                    }                                
+                    if (buff[j+10]==check_sum)
+                    {
+                        SERIAL[2] = buff[j+3];
+                        SERIAL[3] = buff[j+4];
+                        SERIAL[4] = buff[j+5];
+                        SERIAL[5] = buff[j+6];
+                        SERIAL[6] = buff[j+7];
+                        SERIAL[7] = buff[j+8];
+                        SERIAL[8] = buff[j+9];
+                        
+                        fmc_program_serial();                        
+                    
+                        buff[j]=0xFF;
+                    
+                        delay_1ms(200);                                    
+                        device_OFF();
+                    
+                        return 1;
+                    }
                 }
-                if (_flag) {
-                        if (buff[j+2]==0x04){
-                                uint8_t check_sum=0;
-                                for (int a=0;a<10;a++){
-                                        check_sum+=buff[j+a];
-                                }                                
-                                if (buff[j+10]==check_sum){
-                                        SERIAL[2]=cur_SERIAL[0]=buff[j+3];
-                                        SERIAL[3]=cur_SERIAL[1]=buff[j+4];
-                                        SERIAL[4]=cur_SERIAL[2]=buff[j+5];
-                                        SERIAL[5]=cur_SERIAL[3]=buff[j+6];
-                                        SERIAL[6]=cur_SERIAL[4]=buff[j+7];
-                                        SERIAL[7]=cur_SERIAL[5]=buff[j+8];
-                                        SERIAL[8]=cur_SERIAL[6]=buff[j+9];
-                                        
-                                        fmc_erase_pages();  
-                                        fmc_program();                        
-                                    
-                                        buff[j]=0xFF;
-                                    
-                                        delay_1ms(200);                                    
-                                        device_OFF();
-                                    
-                                        return 1;
-                                }
-                        }
-                        else if (buff[j+2]==0x03){
-                                uint8_t check_sum=0;
-                                for (int a=0;a<10;a++){
-                                        check_sum+=buff[j+a];
-                                }                                
-                                if (buff[j+10]==check_sum){
-                                        cur_day=cur_month=cur_month=cur_year=cur_tss=cur_tmm=cur_thh=0;
-                                        cur_day=(uint16_t)buff[j+3];
-                                        cur_month=(uint16_t)buff[j+4];
-                                        cur_year=(uint16_t)(2000+buff[j+5]);
-                                        cur_tss=(uint32_t)buff[j+6];
-                                        cur_tmm=(uint32_t)buff[j+7];
-                                        cur_thh=(uint32_t)buff[j+8];    
-                                    
-                                        time_set((uint32_t)cur_thh,(uint32_t)cur_tmm,(uint32_t)cur_tss);
-                                        write_backup_register((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
-                                    
-                                        buff[j]=0xFF;
-                                        return 2;
-                                }
-                        }
+                else if (buff[j+2]==0x03)
+                {
+                    uint8_t check_sum=0;
+                    for (int a=0;a<10;a++)
+                    {
+                        check_sum+=buff[j+a];
+                    }                                
+                    if (buff[j+10]==check_sum){
+                        cur_day=cur_month=cur_month=cur_year=cur_tss=cur_tmm=cur_thh=0;
+                        cur_day=(uint16_t)buff[j+3];
+                        cur_month=(uint16_t)buff[j+4];
+                        cur_year=(uint16_t)(2000+buff[j+5]);
+                        cur_tss=(uint32_t)buff[j+6];
+                        cur_tmm=(uint32_t)buff[j+7];
+                        cur_thh=(uint32_t)buff[j+8];    
+                    
+                        time_set((uint32_t)cur_thh,(uint32_t)cur_tmm,(uint32_t)cur_tss);
+                        write_backup_register((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
+                    
+                        buff[j]=0xFF;
+                        return 2;                    }
                 }
+            }
         }
         return 0;
 }
 
-void fmc_erase_pages(void){
-    uint32_t EraseCounter;
+void fmc_flags_clear(void)
+{
+    fmc_flag_clear(FMC_FLAG_BANK0_END);
+    fmc_flag_clear(FMC_FLAG_BANK0_WPERR);
+    fmc_flag_clear(FMC_FLAG_BANK0_PGERR);
+}
 
+void fmc_erase_page(uint32_t page_address){
     /* unlock the flash program/erase controller */
     fmc_unlock();
 
     /* clear all pending flags */
-    fmc_flag_clear(FMC_FLAG_BANK0_END);
-    fmc_flag_clear(FMC_FLAG_BANK0_WPERR);
-    fmc_flag_clear(FMC_FLAG_BANK0_PGERR);
-
-    /* erase the flash pages */
-    for(EraseCounter = 0; EraseCounter < PageNum; EraseCounter++){
-        fmc_page_erase(FMC_WRITE_START_ADDR + (FMC_PAGE_SIZE * EraseCounter));
-        fmc_flag_clear(FMC_FLAG_BANK0_END);
-        fmc_flag_clear(FMC_FLAG_BANK0_WPERR);
-        fmc_flag_clear(FMC_FLAG_BANK0_PGERR);
-    }
-
+    fmc_flags_clear();
+    /* erase the flash page */
+    fmc_page_erase(page_address);
     /* lock the main FMC after the erase operation */
     fmc_lock();
 }
 
-void fmc_program(void){
-        uint8_t cur_count=0;
+void fmc_program_serial(void)
+{
+    fmc_erase_page(FMC_SERIAL_START_ADDR);  
+
+    uint8_t cur_count=0;
     /* unlock the flash program/erase controller */
     fmc_unlock();
 
-    address = FMC_WRITE_START_ADDR;
+    address = FMC_SERIAL_START_ADDR;
 
     /* program flash */
-    while(address < FMC_WRITE_END_ADDR){
+    while(address < FMC_SERIAL_END_ADDR){
         fmc_word_program(address, SERIAL[cur_count++]);
         address += 4;
-        fmc_flag_clear(FMC_FLAG_BANK0_END);
-        fmc_flag_clear(FMC_FLAG_BANK0_WPERR);
-        fmc_flag_clear(FMC_FLAG_BANK0_PGERR);
+        fmc_flags_clear();
     }
 
     /* lock the main FMC after the program operation */
     fmc_lock();
 }
 
-void fmc_program_check(void){    
-        uint8_t cur_SERIAL[7]={0};
-        uint8_t cur_buff[30]={'A','T','+','N','A','M','E','=','T','O','N','0','2'};
+void fmc_program_rate(uint32_t whole_part, uint32_t fract_part)
+{
+    fmc_erase_page(FMC_RATE_START_ADDR);
+    
+    /* unlock the flash program/erase controller */
+    fmc_unlock();
 
-    ptrd = (uint32_t *)FMC_WRITE_START_ADDR;
+    address = FMC_RATE_START_ADDR;
+
+    /* program flash */
+    fmc_word_program(address, whole_part);
+    address += 4;
+    fmc_flags_clear();
+    fmc_word_program(address, fract_part);
+    fmc_flags_clear();
+
+    /* lock the main FMC after the program operation */
+    fmc_lock();
+}
+
+double read_rate_from_fmc()
+{
+    uint32_t *ptr;
+    ptr = (uint32_t *)FMC_RATE_START_ADDR;
+    uint32_t whole = *(ptr);
+    uint16_t fract = *(ptr + 1);
+    rate_whole = whole;
+    rate_fract = fract;
+    return (double)(rate_whole + rate_fract / 100);
+}
+
+void fmc_serial_check(void)
+{
+    uint8_t cur_SERIAL[7]={0};
+    uint8_t cur_buff[30]={'A','T','+','N','A','M','E','=','T','O','N','0','2'};
+
+    ptrd = (uint32_t *)FMC_SERIAL_START_ADDR;
         
-        if((*ptrd) == '0' & (*(ptrd+1)) == '2'){
-                SERIAL[2]=cur_SERIAL[0]=*(ptrd+2);    
-                SERIAL[3]=cur_SERIAL[1]=*(ptrd+3);
-                SERIAL[4]=cur_SERIAL[2]=*(ptrd+4);
-                SERIAL[5]=cur_SERIAL[3]=*(ptrd+5);
-                SERIAL[6]=cur_SERIAL[4]=*(ptrd+6);
-                SERIAL[7]=cur_SERIAL[5]=*(ptrd+7);
-                SERIAL[8]=cur_SERIAL[6]=*(ptrd+8);                
-        }        
-        else{
-                SERIAL[0]='0';
-                SERIAL[1]='2'; 
-                SERIAL[2]='0';    cur_SERIAL[0]='0';
-                SERIAL[3]='0';    cur_SERIAL[1]='0';
-                SERIAL[4]='0';    cur_SERIAL[2]='0';
-                SERIAL[5]='0';    cur_SERIAL[3]='0';
-                SERIAL[6]='0';    cur_SERIAL[4]='0';
-                SERIAL[7]='0';    cur_SERIAL[5]='0';
-                SERIAL[8]='0';    cur_SERIAL[6]='0';
-                fmc_erase_pages();
-                fmc_program();                
-        }        
-        strncat(cur_buff,cur_SERIAL,7);
-        strncat(cur_buff,"\0\n",2);
-        my_send_string_UART_0(cur_buff,strlen(cur_buff));
+    if((*ptrd) == '0' & (*(ptrd+1)) == '2')
+    {
+        SERIAL[2]=cur_SERIAL[0]=*(ptrd+2);    
+        SERIAL[3]=cur_SERIAL[1]=*(ptrd+3);
+        SERIAL[4]=cur_SERIAL[2]=*(ptrd+4);
+        SERIAL[5]=cur_SERIAL[3]=*(ptrd+5);
+        SERIAL[6]=cur_SERIAL[4]=*(ptrd+6);
+        SERIAL[7]=cur_SERIAL[5]=*(ptrd+7);
+        SERIAL[8]=cur_SERIAL[6]=*(ptrd+8);                
+    }        
+    else
+    {
+        SERIAL[0]='0';
+        SERIAL[1]='2'; 
+        SERIAL[2]='0';    cur_SERIAL[0]='0';
+        SERIAL[3]='0';    cur_SERIAL[1]='0';
+        SERIAL[4]='0';    cur_SERIAL[2]='0';
+        SERIAL[5]='0';    cur_SERIAL[3]='0';
+        SERIAL[6]='0';    cur_SERIAL[4]='0';
+        SERIAL[7]='0';    cur_SERIAL[5]='0';
+        SERIAL[8]='0';    cur_SERIAL[6]='0';
+        fmc_erase_page(FMC_SERIAL_START_ADDR);
+        fmc_program_serial();                
+    }        
+    strncat(cur_buff,cur_SERIAL,7);
+    strncat(cur_buff,"\0\n",2);
+    my_send_string_UART_0(cur_buff,strlen(cur_buff));
 }
 
 void write_backup_register(uint16_t day, uint16_t month, uint16_t year){
@@ -1252,7 +1303,7 @@ void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year){
 }
 
 void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8_t c_ss, uint8_t c_mm, uint8_t c_hh, int16_t sis, int16_t dia, int16_t pressure, int16_t bonus){        
-        uint8_t cur_buff[13]={'0','2',0x01, c_day, c_month, c_year, c_ss, c_mm, c_hh, sis, dia, pressure, bonus};        
+        uint8_t cur_buff[13]={'0','2', 0x01, c_day, c_month, c_year, c_ss, c_mm, c_hh, sis, dia, pressure, bonus};        
         uint8_t c_summ=0;        
         for (int q=0;q<13;q++){
                 c_summ+=cur_buff[q];

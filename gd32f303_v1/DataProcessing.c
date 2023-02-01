@@ -181,7 +181,8 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues){
 }
 
 
-void f_PSys_Dia(void){
+void Get_Sys_Dia(void)
+{
     double MaximumAmplitude=-100;
     
     for (int i=0; i<puls_counter; i++){
@@ -193,22 +194,35 @@ void f_PSys_Dia(void){
     
     int16_t ValueSys = SysCoeff * MaximumAmplitude;
     int16_t ValueDia = DiaCoeff * MaximumAmplitude;    
+
+    PSys = 0;
+    PDia = 0;
     
-    for (int i = XMax; i >= 200; i--){
-            if (EnvelopeArray[i] < ValueSys){
-                    PSys = save_clear[i]/rate;
-                    indexPSys = i;
-                    break;
-            }
+    for (int i = XMax; i >= 0; i--)
+    {
+        if (EnvelopeArray[i] < ValueSys){
+                PSys = save_clear[i]/rate;
+                indexPSys = i;
+                break;
+        }
     }
+    if (PSys == 0)
+    {
+        PSys = save_clear[0]/rate;        
+    }
+
     for (int i = XMax; i < main_index; i++)
     {
-    if (EnvelopeArray[i] < ValueDia)
-    {
-        PDia = save_clear[i]/rate;
-        indexPDia = i;
-        break;
+        if (EnvelopeArray[i] < ValueDia)
+        {
+            PDia = save_clear[i]/rate;
+            indexPDia = i;
+            break;
+        }
     }
+    if (PDia == 0)
+    {
+        PDia = save_clear[main_index - 1] / rate;
     }
 }
 

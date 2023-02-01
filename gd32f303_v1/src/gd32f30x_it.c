@@ -242,9 +242,10 @@ void TIMER1_IRQHandler(void)
                 if (lock_counter > 0) lock_counter--;
                     
                 shutdown_counter++;
-                if (shutdown_counter > SHUTDOWN_INTERVAL) {
+                if (shutdown_counter > SHUTDOWN_INTERVAL) 
+                {
                     shutdown_counter = 0;
-//                        mode = KEY_OFF;                    
+                    mode = KEY_OFF;                    
                 }
             
                 button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
@@ -369,7 +370,7 @@ void TIMER2_IRQHandler(void)
                 else if (mode == MEASUREMENT) { //convers_save(); //usb_send_i2c_convers();                              ///////////////////////////////////////////////
                         if (convert_save_16()) 
                         {
-                            if (main_index>0)
+                            if (main_index>100)
                             {
                                 if (lock_counter > 0)
                                 {
@@ -383,32 +384,33 @@ void TIMER2_IRQHandler(void)
                             }    
                             else         save_dir[main_index-1]=0;                
                                                 
-                            if (main_index >= DELAY_AFTER_PUMPING){                                        
-                                    cur_dir_save=GetDerivative(save_dir, main_index-1);
-                                    usb_send_16(cur_dir_save, _maxD); 
-                                    if (cur_dir_save>_detectLevel & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
-                                    if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval))
+                            if (main_index >= DELAY_AFTER_PUMPING)
+                            {                                        
+                                cur_dir_save=GetDerivative(save_dir, main_index-1);
+                                usb_send_16(cur_dir_save, _maxD); 
+                                if (cur_dir_save>_detectLevel & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
+                                if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval))
+                                {
+                                    if (cur_dir_save>_maxD) 
                                     {
-                                        if (cur_dir_save>_maxD) 
-                                        {
-                                            _maxD=cur_dir_save;
-                                            MAX_counter=main_index-1;
-                                        }
-                                        else if (cur_dir_save<_detectLevel)
-                                        {
-                                            Wave_detect_time_OLD=Wave_detect_time;
-                                            Wave_detect_time=MAX_counter-1;                                                                                                                        
-                                            puls_buff[puls_counter++]=MAX_counter-1;
-                                            Wave_ind_FLAG=1;                                                
-                                            _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
-                                            if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
-                                            silence_time_start=MAX_counter-1;
-                                            _detectLevel=_maxD * _detectLevelCoeff;
-                                            if (_detectLevel<4) _detectLevel=4;
-                                            _maxD=0;
-                                            Wave_detect_FLAG=0;
-                                        }
-                                    }                        
+                                        _maxD=cur_dir_save;
+                                        MAX_counter=main_index-1;
+                                    }
+                                    else if (cur_dir_save<_detectLevel)
+                                    {
+                                        Wave_detect_time_OLD=Wave_detect_time;
+                                        Wave_detect_time=MAX_counter-1;                                                                                                                        
+                                        puls_buff[puls_counter++]=MAX_counter-1;
+                                        Wave_ind_FLAG=1;                                                
+                                        _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
+                                        if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
+                                        silence_time_start=MAX_counter-1;
+                                        _detectLevel=_maxD * _detectLevelCoeff;
+                                        if (_detectLevel<4) _detectLevel=4;
+                                        _maxD=0;
+                                        Wave_detect_FLAG=0;
+                                    }
+                                }                        
                             }                        
                         }
                 }

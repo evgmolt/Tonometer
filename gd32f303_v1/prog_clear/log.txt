@@ -1,2 +1,0 @@
-Start connect
-port.GetValueNames

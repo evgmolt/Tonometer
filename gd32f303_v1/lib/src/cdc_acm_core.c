@@ -288,8 +288,18 @@ void cdc_acm_data_receive(usb_dev *udev)
 
     cdc->packet_receive = 0U;
     cdc->pre_packet_send = 0U;
-        
+
     usbd_ep_recev(udev, CDC_OUT_EP, (uint8_t*)(cdc->data), USB_CDC_RX_LEN);   
+    usb_command = cdc->data[0];
+    if (usb_command == USB_COMMAND_SET_RATE && mode == PRESSURE_TEST)
+    {
+        rate_whole = cdc -> data[1];
+        rate_fract = cdc -> data[2];
+        rate = rate_whole + rate_fract / 100;
+        fmc_program_rate((uint32_t) rate_whole, (uint32_t) rate_fract);
+        mode = KEY_OFF;
+        device_OFF();
+    }
 }
 
 /*!
@@ -310,10 +320,8 @@ void cdc_acm_data_send (usb_dev *udev)
         cdc->packet_sent = 0U;
                     usbd_ep_send(udev, CDC_IN_EP, (uint8_t*)(cdc->data), (uint16_t)data_len);
         cdc->receive_length = 0U;
-    }
-    
+    }    
 }
-
 
 
 /*!

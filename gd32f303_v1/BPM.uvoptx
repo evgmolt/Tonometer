@@ -152,20 +152,27 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>330</LineNumber>
+          <LineNumber>300</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134229576</Address>
+          <Address>134237028</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>.\src\gd32f30x_it.c</Filename>
+          <Filename>.\lib\src\cdc_acm_core.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\BPM\src/gd32f30x_it.c\330</Expression>
+          <Expression>\\BPM\lib/src/cdc_acm_core.c\300</Expression>
         </Bp>
       </Breakpoint>
+      <WatchWindow1>
+        <Ww>
+          <count>0</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>cdc</ItemText>
+        </Ww>
+      </WatchWindow1>
       <Tracepoint>
         <THDelay>0</THDelay>
       </Tracepoint>
@@ -281,7 +288,7 @@
       <GroupNumber>1</GroupNumber>
       <FileNumber>6</FileNumber>
       <FileType>1</FileType>
-      <tvExp>1</tvExp>
+      <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
       <PathWithFileName>.\src\Display.c</PathWithFileName>
