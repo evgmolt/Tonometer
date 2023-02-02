@@ -153,8 +153,6 @@ uint32_t save_dir_counter=0;
 short int EnvelopeArray[10000]={0};
 uint32_t send_counter=0;
 
-int16_t last_value;
-int16_t dummy_value;
 int lock_counter = 0;
 
 uint8_t usb_command;
@@ -423,7 +421,8 @@ int main(void)
                         
                         VALVE_1_OFF;
                         VALVE_2_OFF;
-                        mode = SEND_SAVE_BUFF_MSG;                                
+//                        mode = SEND_SAVE_BUFF_MSG;   
+                        mode = INIT_START;
                 }                    
                 break;
             case SEND_SAVE_BUFF_MSG:

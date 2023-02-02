@@ -77,9 +77,6 @@ float slim_K=1;
 
 int16_t detect_level_start = 4;
 double detect_level = 4;
-int16_t detect_level_comp_UP = 15;
-int16_t detect_level_comp_DOWN = 8;
-int16_t _minDetectLevel = 5;
 int16_t _lockInterval = 50;
 double detect_levelCoeff = 0.7;
 double stop_meas_coeff = 0.65;
@@ -105,12 +102,13 @@ uint16_t finish_time=500;
 uint32_t MAX_counter=0;
 uint16_t Time_measurement=50; 
 
-int16_t DCArrayWindow = 60;
-int16_t ACArrayWindow = 6;
+int16_t DCArrayWindow = 30;
+int16_t ACArrayWindow = 4;
 
 uint8_t UART0_flag=0;
 
 int shutdown_counter = 0;
+int process_counter = 0;
 
 int button_touched = 0;
 int button_pressed = 0;
@@ -236,66 +234,68 @@ void USBD_WKUP_IRQHandler (void)
 
 void TIMER1_IRQHandler(void)
 {    
-    if(SET == timer_interrupt_flag_get(TIMER1, TIMER_INT_FLAG_UP)){        
+    if(SET == timer_interrupt_flag_get(TIMER1, TIMER_INT_FLAG_UP))
+    {        
         timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);        
-                timer_interrupt_enable(TIMER1, TIMER_INT_UP);
-                timer_enable(TIMER1);            
+        timer_interrupt_enable(TIMER1, TIMER_INT_UP);
+        timer_enable(TIMER1);            
 
-                if (lock_counter > 0) lock_counter--;
-                    
-                shutdown_counter++;
-                if (shutdown_counter > SHUTDOWN_INTERVAL) 
-                {
-                    shutdown_counter = 0;
-                    mode = KEY_OFF;                    
-                }
+        if (lock_counter > 0) lock_counter--;
+
+        process_counter++;
             
-                button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
-                if (button_touched) {
-                    button_touched_counter++;
-                    if (button_touched_counter > DEBONCE_INTERVAL) {
-                        button_pressed = 1;
-                    }
-                }
-                else {
-                    button_touched = 0;
-                    button_pressed = 0;
-                    button_released = 0;
-                    button_touched_counter = 0;
-                }
-                
-                if (button_pressed) {
-                    button_pressed_counter++;
-                    shutdown_counter = 0;
-                }
-                else {
-                    if (button_pressed_counter > 0) {
-                        button_released = 1;
-                    }
-                }
+        shutdown_counter++;
+        if (shutdown_counter > SHUTDOWN_INTERVAL) 
+        {
+            shutdown_counter = 0;
+            mode = KEY_OFF;                    
+        }
+    
+        button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
+        if (button_touched) {
+            button_touched_counter++;
+            if (button_touched_counter > DEBONCE_INTERVAL) {
+                button_pressed = 1;
+            }
+        }
+        else {
+            button_touched = 0;
+            button_pressed = 0;
+            button_released = 0;
+            button_touched_counter = 0;
+        }
+        
+        if (button_pressed) {
+            button_pressed_counter++;
+            shutdown_counter = 0;
+        }
+        else {
+            if (button_pressed_counter > 0) {
+                button_released = 1;
+            }
+        }
 
-                if (mode == INIT_START) {
-                        if (button_pressed_counter > GO_TO_TEST_INTERVAL) {
-                            ILI9341_FillScreen(ILI9341_WHITE);
-                            timer_2_stop();
-                            i2c_calibration();
-                            VALVE_1_ON;
-                            VALVE_2_ON;
-                            button_pressed_counter = 0;
-                            mode = PRESSURE_TEST;
-                        }
+        if (mode == INIT_START) {
+                if (button_pressed_counter > GO_TO_TEST_INTERVAL) {
+                    ILI9341_FillScreen(ILI9341_WHITE);
+                    timer_2_stop();
+                    i2c_calibration();
+                    VALVE_1_ON;
+                    VALVE_2_ON;
+                    button_pressed_counter = 0;
+                    mode = PRESSURE_TEST;
                 }
-                else {
-                    if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
-                        mode = KEY_OFF;
-                    }
-                }
+        }
+        else {
+            if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
+                mode = KEY_OFF;
+            }
+        }
     }
 }
 
 void Lock(void)
 {
-    dummy_value = last_value;
     lock_counter = LOCK_INTERVAL;
 }
 
@@ -305,135 +305,151 @@ void TIMER2_IRQHandler(void)
     if(SET == timer_interrupt_flag_get(TIMER2, TIMER_INT_FLAG_UP)){
         /* clear update interrupt bit */
         timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);        
-                timer_interrupt_enable(TIMER2, TIMER_INT_UP);
-                timer_enable(TIMER2);            
+        timer_interrupt_enable(TIMER2, TIMER_INT_UP);
+        timer_enable(TIMER2);            
 
-                if (mode == PUMPING_MANAGEMENT)
-                {                                                                                                                                                                //////////////////////////////////
-                    if (convert_save_16()){
-                        if (main_index<300) convert_NO_save();
-                        else if (main_index>300){
-                                save_dir[main_index-1]=slim_mas(save_clear, 30, 4);											
-                        }	
-                        else 		save_dir[main_index-1]=0;				
-                    
-                        if (main_index >= DELAY_AFTER_START){                                        
-                            current_value=GetDerivative(save_dir, main_index-1);
-                            usb_send_16(current_value,(short)current_max);
-                            if (current_value>current_max){
-                                    current_max=current_value;
-                                    MAX_counter=main_index;
-                            }
-                            if (current_pressure > MIN_PRESSURE){                                                
-                                if (main_index > MAX_counter + SEC_AFTER_MAX * frequency)
-                                {    
-                                    main_index=0;        
-                                    save_dir_counter=0;        
-                                    Wave_detect_FLAG=0;                                                    
-                                    current_max = 0;    
-                                    global_max = 0;
-                                    //MAX_counter=0;
-                                    Lock();
-                                    PUMP_OFF;
-                                    stop_meas = false;
-                                    mode = MEASUREMENT;
-                                }
-                            }                                        
-                        }
-                        
-                        if (main_index > DELAY_FOR_ERROR & current_pressure<10){ 
-                            reset_detector();
-                            timer_2_stop();
-                            print_error(2);
-                            mode = START_SCREEN;
-                        }
-                        
-                        if (main_index>9990){
-                            reset_detector();
-                            timer_2_stop();
-                            print_error(3);
-                            mode = START_SCREEN;
-                        }
-                    }
-                }
-                else 
-                if (mode == MEASUREMENT) 
+        if (mode == PUMPING_MANAGEMENT)
+        {                                                                                                                                                                //////////////////////////////////
+            if (convert_save_16())
+            {
+                if (main_index<300) 
                 {
-                    if (convert_save_16()) 
-                    {
-                        if (main_index>100)
-                        {
-                            if (lock_counter > 0)
-                            {
-                                save_dir[main_index-1] = 0; //dummy_value;
-                            }
-                            else
-                            {
-                                save_dir[main_index-1]=slim_mas(save_clear, 30, 4);  
-                                last_value = save_dir[main_index-1];
-                            }
-                        }    
-                        else         save_dir[main_index-1]=0;                
-                                            
-                        if (main_index >= DELAY_AFTER_PUMPING)
-                        {                                        
-                            current_value = GetDerivative(save_dir, main_index-1);
-                            usb_send_16(current_value, current_max); 
-                            if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
-                            if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval))
-                            {
-                                if (current_value > current_max) 
-                                {
-                                    current_max = current_value;
-                                    MAX_counter=main_index-1;
-                                }
-                                else if (current_value < detect_level)
-                                {
-                                    if (current_max > global_max)
-                                    {   
-                                        global_max = current_max;
-                                    }
-                                    if (current_max < global_max * stop_meas_coeff)
-                                    {
-                                        stop_meas = true;
-                                    }
-                                    Wave_detect_time_OLD=Wave_detect_time;
-                                    Wave_detect_time=MAX_counter-1;                                                                                                                        
-                                    puls_buff[puls_counter++]=MAX_counter-1;
-                                    Wave_ind_FLAG=1;                                                
-                                    _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
-                                    if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
-                                    silence_time_start=MAX_counter-1;
-                                    detect_level=current_max * detect_levelCoeff;
-                                    if (detect_level<4) detect_level=4;
-                                    current_max=0;
-                                    Wave_detect_FLAG=0;
-                                }
-                            }                        
-                        }                        
-                    }
+                    convert_NO_save();
                 }
-                else if (mode == SEND_SAVE_BUFF_MSG) {
-                        if (usb_send_save(save_dir,EnvelopeArray)){            
-                                mode = INIT_START;
-                                timer_2_stop();
-                                main_index=0;
-                                send_counter=0;
+                else if (main_index>300)
+                {
+                    save_dir[main_index-1] = slim_mas(save_clear, DCArrayWindow, ACArrayWindow);											
+                }	
+            
+                if (main_index >= DELAY_AFTER_START){                                        
+                    current_value=GetDerivative(save_dir, main_index-1);
+                    usb_send_16(current_value,(short)current_max);
+                    if (current_value>current_max)
+                    {
+                        current_max=current_value;
+                        MAX_counter=main_index;
+                    }
+                    if (current_pressure > MIN_PRESSURE)
+                    {                                                
+                        if (main_index > MAX_counter + SEC_AFTER_MAX * frequency)
+                        {    
+                            main_index=0;        
+                            save_dir_counter=0;        
+                            Wave_detect_FLAG=0;                                                    
+                            current_max = 0;    
+                            global_max = 0;
+                            //MAX_counter=0;
+                            Lock();
+                            PUMP_OFF;
+                            stop_meas = false;
+                            mode = MEASUREMENT;
                         }
-                }                
+                    }                                        
+                }
+                
+                if (main_index > DELAY_FOR_ERROR & current_pressure < PRESSURE_FOR_ERROR){ 
+                    reset_detector();
+                    timer_2_stop();
+                    print_error(2);
+                    PUMP_OFF;
+                    VALVE_1_OFF;
+                    VALVE_2_OFF;
+                    mode = START_SCREEN;
+                }
+                
+                if (main_index>9990){
+                    reset_detector();
+                    timer_2_stop();
+                    print_error(3);
+                    PUMP_OFF;
+                    VALVE_1_OFF;
+                    VALVE_2_OFF;
+                    mode = START_SCREEN;
+                }
+            }
+        }
+        else 
+        if (mode == MEASUREMENT) 
+        {
+            if (convert_save_16()) 
+            {
+                if (main_index>100)
+                {
+                    if (lock_counter > 0)
+                    {
+                        save_dir[main_index-1] = 0; 
+                    }
+                    else
+                    {
+                        save_dir[main_index-1]=slim_mas(save_clear, DCArrayWindow, ACArrayWindow);  
+                    }
+                }    
+                else         
+                {
+                    save_dir[main_index-1]=0;
+                }
+                                    
+                if (main_index >= DELAY_AFTER_PUMPING)
+                {                                        
+                    current_value = GetDerivative(save_dir, main_index-1);
+                    usb_send_16(current_value, current_max); 
+                    if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
+                    if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval))
+                    {
+                        if (current_value > current_max) 
+                        {
+                            current_max = current_value;
+                            MAX_counter=main_index-1;
+                        }
+                        else if (current_value < detect_level)
+                        {
+                            if (current_max > global_max)
+                            {   
+                                global_max = current_max;
+                            }
+                            if (process_counter > SEVEN_SECONDS && current_max < global_max * stop_meas_coeff)
+                            {
+                                stop_meas = true;
+                            }
+                            Wave_detect_time_OLD=Wave_detect_time;
+                            Wave_detect_time=MAX_counter-1;                                                                                                                        
+                            puls_buff[puls_counter++]=MAX_counter-1;
+                            Wave_ind_FLAG=1;                                                
+                            _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
+                            if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
+                            silence_time_start = MAX_counter-1;
+                            detect_level = current_max * detect_levelCoeff;
+                            if (detect_level < detect_level_start) detect_level = detect_level_start;
+                            current_max=0;
+                            Wave_detect_FLAG=0;
+                        }
+                    }                        
+                }                        
+            }
+        }
+        else if (mode == SEND_SAVE_BUFF_MSG) 
+        {
+            if (usb_send_save(save_dir,EnvelopeArray)){            
+                    mode = INIT_START;
+                    timer_2_stop();
+                    main_index=0;
+                    send_counter=0;
+            }
+        }                
     }
 }
 
 void reset_detector(void)
 {
+    process_counter = 0;
     main_index=0;        
     save_dir_counter=0;        
     Wave_detect_FLAG=0;    
     current_max=0;        
     global_max=0;        
-    detect_level_comp_UP=15;
     detect_level=detect_level_start;
     silence_time_start=0;
+    current_pressure = 0;
 }
 
 void my_i2c_send(uint8_t data){

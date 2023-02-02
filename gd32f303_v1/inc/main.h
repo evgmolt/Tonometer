@@ -15,11 +15,11 @@
 #define YELLOW_LEVEL_DIA 90
 #define RED_LEVEL_DIA 100
 
-#define PUMP_ON         gpio_bit_set    (GPIOC, GPIO_PIN_11)
-#define PUMP_OFF         gpio_bit_reset(GPIOC, GPIO_PIN_11)
-#define VALVE_1_ON     gpio_bit_set    (GPIOC, GPIO_PIN_12)
+#define PUMP_ON     gpio_bit_set(GPIOC, GPIO_PIN_11)
+#define PUMP_OFF    gpio_bit_reset(GPIOC, GPIO_PIN_11)
+#define VALVE_1_ON  gpio_bit_set(GPIOC, GPIO_PIN_12)
 #define VALVE_1_OFF gpio_bit_reset(GPIOC, GPIO_PIN_12)
-#define VALVE_2_ON     gpio_bit_set    (GPIOC, GPIO_PIN_13)
+#define VALVE_2_ON  gpio_bit_set(GPIOC, GPIO_PIN_13)
 #define VALVE_2_OFF gpio_bit_reset(GPIOC, GPIO_PIN_13)
 
 #define INIT_START 0
@@ -37,6 +37,7 @@
 #define DELAY_AFTER_PUMPING 50
 #define DELAY_AFTER_START 400
 #define DELAY_FOR_ERROR 500
+#define PRESSURE_FOR_ERROR 12
 #define MAX_ALLOWED_PRESSURE 176
 #define AVER_SIZE 10
 
@@ -44,6 +45,7 @@
 #define GO_TO_TEST_INTERVAL 500
 #define SWITCH_OFF_INTERVAL 120
 #define SHUTDOWN_INTERVAL 10000 //100 seconds
+#define SEVEN_SECONDS 700
 
 #define CONNECTED 1
 #define DISCONNECTED 0
@@ -58,6 +60,10 @@
 #define LOCK_INTERVAL 20
 
 #define USB_COMMAND_SET_RATE 11
+
+#define ERROR_CUFF 2
+#define ERROR_TIME 3
+#define ERROR_MEAS 4
 
 /* function declarations */
 
@@ -196,9 +202,6 @@ extern float slim_K;
 
 extern int16_t detect_level_start;
 extern double detect_level;
-extern int16_t detect_level_comp_UP;
-extern int16_t detect_level_comp_DOWN;
-extern int16_t _minDetectLevel;
 extern int16_t _lockInterval;
 extern double detect_levelCoeff;
 extern double stop_meas_coeff;
@@ -307,8 +310,6 @@ extern short int EnvelopeArray[10000];
 
 extern uint32_t send_counter;
 
-extern int16_t last_value;
-extern int16_t dummy_value;
 extern int lock_counter;
 
 extern double rate;
@@ -316,6 +317,7 @@ extern double rate_whole;
 extern double rate_fract;
 
 extern int shutdown_counter;
+extern int process_counter;
 
 extern int button_touched;
 extern int button_pressed;

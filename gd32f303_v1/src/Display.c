@@ -100,7 +100,7 @@ void print_batt_charge(void){
 
         uint8_t buff[5]={0};
         sprintf(buff,"%04d:",adc_1);
-        ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
+//        ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
     
         if (adc_1 > BATT_RANG_MAX) {
             for (int i=1; i < num_of_segments; i++)
@@ -133,15 +133,15 @@ void print_error(uint8_t K){
         ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
         ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
         uint8_t _buff[15]={0};
-        if (K==2){
+        if (K==ERROR_CUFF){
                 sprintf(_buff,"majetta error");        
                 ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);            
         }
-        if (K==3){
+        if (K==ERROR_TIME){
                 sprintf(_buff,"time fail");        
                 ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);            
         }
-        if (K==4){
+        if (K==ERROR_MEAS){
                 sprintf(_buff,"measurement error");        
                 ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);            
         }        
@@ -221,7 +221,7 @@ void TFT_print(void){
 
         uint8_t buff[5]={0};
         sprintf(buff,"%04d:",adc_1);
-        ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
+//        ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
     
         if (adc_1<1800) return;
 
