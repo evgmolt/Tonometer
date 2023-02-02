@@ -75,15 +75,16 @@ int slim_sr_OLD=0;
 uint8_t slim_count=0;
 float slim_K=1;
 
-int16_t _detectLevel_start = 4;
-double _detectLevel = 4;
-int16_t _detectLevel_comp_UP = 15;
-int16_t _detectLevel_comp_DOWN = 8;
+int16_t detect_level_start = 4;
+double detect_level = 4;
+int16_t detect_level_comp_UP = 15;
+int16_t detect_level_comp_DOWN = 8;
 int16_t _minDetectLevel = 5;
 int16_t _lockInterval = 50;
-double _detectLevelCoeff=0.7;
-int16_t cur_dir_save=0;
-double _maxD=0;
+double detect_levelCoeff=0.7;
+int16_t current_value=0;
+double current_max=0;
+double global_max=0;
 uint8_t Wave_detect_FLAG=0;
 int16_t Wave_detect_time=0;
 int16_t Wave_detect_time_OLD=0;
@@ -315,52 +316,40 @@ void TIMER2_IRQHandler(void)
 								else 		save_dir[main_index-1]=0;				
                             
                                 if (main_index >= DELAY_AFTER_START){                                        
-                                    cur_dir_save=GetDerivative(save_dir, main_index-1);
-                                    usb_send_16(cur_dir_save,(short)_maxD);
-                                    if (cur_dir_save>_maxD){
-                                            _maxD=cur_dir_save;
+                                    current_value=GetDerivative(save_dir, main_index-1);
+                                    usb_send_16(current_value,(short)current_max);
+                                    if (current_value>current_max){
+                                            current_max=current_value;
                                             MAX_counter=main_index;
                                     }
                                     if (current_pressure > MIN_PRESSURE){                                                
-                                            if (main_index > MAX_counter + SEC_AFTER_MAX * frequency){    
-                                                    main_index=0;        
-                                                    save_dir_counter=0;        
-                                                    Wave_detect_FLAG=0;                                                    
-                                                    _maxD=0;    
-                                                    //MAX_counter=0;
-                                                    Lock();
-                                                    PUMP_OFF;
-                                                    mode = MEASUREMENT;
-                                            }
+                                        if (main_index > MAX_counter + SEC_AFTER_MAX * frequency)
+                                        {    
+                                            main_index=0;        
+                                            save_dir_counter=0;        
+                                            Wave_detect_FLAG=0;                                                    
+                                            current_max = 0;    
+                                            global_max = 0;
+                                            //MAX_counter=0;
+                                            Lock();
+                                            PUMP_OFF;
+                                            mode = MEASUREMENT;
+                                        }
                                     }                                        
                                 }
                                 
                                 
                                 if (main_index > DELAY_FOR_ERROR & current_pressure<10){ 
-                                    main_index=0;        
-                                    save_dir_counter=0;        
-                                    Wave_detect_FLAG=0;    
-                                    _maxD=0;        
-                                    _detectLevel_comp_UP=15;
-                                    _detectLevel=_detectLevel_start;
-                                    silence_time_start=0;
+                                    reset_detector();
                                     timer_2_stop();
                                     print_error(2);
-                                    timer_1_start();                                    
                                     mode = START_SCREEN;
                                 }
                                 
                                 if (main_index>9990){
-                                    main_index=0;        
-                                    save_dir_counter=0;        
-                                    Wave_detect_FLAG=0;    
-                                    _maxD=0;        
-                                    _detectLevel_comp_UP=15;
-                                    _detectLevel=_detectLevel_start;
-                                    silence_time_start=0;
+                                    reset_detector();
                                     timer_2_stop();
                                     print_error(3);
-                                    timer_1_start();                                    
                                     mode = START_SCREEN;
                                 }
                                 
@@ -386,17 +375,17 @@ void TIMER2_IRQHandler(void)
                                                 
                             if (main_index >= DELAY_AFTER_PUMPING)
                             {                                        
-                                cur_dir_save=GetDerivative(save_dir, main_index-1);
-                                usb_send_16(cur_dir_save, _maxD); 
-                                if (cur_dir_save>_detectLevel & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
+                                current_value = GetDerivative(save_dir, main_index-1);
+                                usb_send_16(current_value, current_max); 
+                                if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
                                 if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval))
                                 {
-                                    if (cur_dir_save>_maxD) 
+                                    if (current_value > current_max) 
                                     {
-                                        _maxD=cur_dir_save;
+                                        current_max = current_value;
                                         MAX_counter=main_index-1;
                                     }
-                                    else if (cur_dir_save<_detectLevel)
+                                    else if (current_value < detect_level)
                                     {
                                         Wave_detect_time_OLD=Wave_detect_time;
                                         Wave_detect_time=MAX_counter-1;                                                                                                                        
@@ -405,9 +394,9 @@ void TIMER2_IRQHandler(void)
                                         _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
                                         if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
                                         silence_time_start=MAX_counter-1;
-                                        _detectLevel=_maxD * _detectLevelCoeff;
-                                        if (_detectLevel<4) _detectLevel=4;
-                                        _maxD=0;
+                                        detect_level=current_max * detect_levelCoeff;
+                                        if (detect_level<4) detect_level=4;
+                                        current_max=0;
                                         Wave_detect_FLAG=0;
                                     }
                                 }                        
@@ -423,6 +412,18 @@ void TIMER2_IRQHandler(void)
                         }
                 }                
     }
+}
+
+void reset_detector(void)
+{
+    main_index=0;        
+    save_dir_counter=0;        
+    Wave_detect_FLAG=0;    
+    current_max=0;        
+    global_max=0;        
+    detect_level_comp_UP=15;
+    detect_level=detect_level_start;
+    silence_time_start=0;
 }
 
 void my_i2c_send(uint8_t data){

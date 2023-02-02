@@ -73,12 +73,12 @@ extern uint8_t EN_BUTT_count;
 extern uint8_t Wave_ind_FLAG;
 extern uint8_t Wave_detect_FLAG;
 extern int16_t T_Wave;
-extern double _detectLevel;
+extern double detect_level;
 extern int16_t silence_time_start;
 extern int16_t puls_buff[50];
 extern uint8_t puls_counter;
-extern double _maxD;
-extern int16_t _detectLevel_start;
+extern double current_max;
+extern int16_t detect_level_start;
 extern uint8_t UART0_buff[200];
 extern uint8_t UART0_count;
 extern uint8_t finish_6_flag;
@@ -306,9 +306,9 @@ int main(void)
                     main_index = 0;        
                     save_dir_counter=0;        
                     Wave_detect_FLAG=0;    
-                    _maxD=0;        
-                    _detectLevel_comp_UP=15;
-                    _detectLevel=_detectLevel_start;
+                    current_max=0;        
+                    detect_level_comp_UP=15;
+                    detect_level=detect_level_start;
                     silence_time_start=0;
                     puls_counter=0;            
                     detect_FLAG=0;
@@ -330,12 +330,12 @@ int main(void)
                 if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
             
                 if (current_pressure >= MAX_ALLOWED_PRESSURE) {
-                        _detectLevel = _detectLevel_start;                        
+                        detect_level = detect_level_start;                        
                         main_index=0;        
                         save_dir_counter=0;        
                         Wave_detect_FLAG=0;    
                         silence_time_start=0;
-                        _maxD=0;                            
+                        current_max=0;                            
                         puls_counter=0;                        
                         mode = MEASUREMENT;        
                 }                        
@@ -432,7 +432,6 @@ int main(void)
                         VALVE_1_OFF;
                         VALVE_2_OFF;
                         mode = SEND_SAVE_BUFF_MSG;                                
-                        timer_1_start();
                 }                    
                 break;
             case SEND_SAVE_BUFF_MSG:
