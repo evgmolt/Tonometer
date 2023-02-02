@@ -169,6 +169,7 @@ void abort_meas(void);
 double read_rate_from_fmc();
 
 extern bool arrhythmia;
+extern bool stop_meas;
 
 extern uint16_t detect_FLAG;
 extern uint16_t finish_time;
@@ -200,6 +201,7 @@ extern int16_t detect_level_comp_DOWN;
 extern int16_t _minDetectLevel;
 extern int16_t _lockInterval;
 extern double detect_levelCoeff;
+extern double stop_meas_coeff;
 extern int16_t current_value;
 extern double current_max;
 extern double global_max;

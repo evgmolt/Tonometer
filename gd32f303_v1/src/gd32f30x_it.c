@@ -81,7 +81,8 @@ int16_t detect_level_comp_UP = 15;
 int16_t detect_level_comp_DOWN = 8;
 int16_t _minDetectLevel = 5;
 int16_t _lockInterval = 50;
-double detect_levelCoeff=0.7;
+double detect_levelCoeff = 0.7;
+double stop_meas_coeff = 0.65;
 int16_t current_value=0;
 double current_max=0;
 double global_max=0;
@@ -307,101 +308,110 @@ void TIMER2_IRQHandler(void)
                 timer_interrupt_enable(TIMER2, TIMER_INT_UP);
                 timer_enable(TIMER2);            
 
-                if (mode == PUMPING_MANAGEMENT){                                                                                                                                                                //////////////////////////////////
-                        if (convert_save_16()){
-								if (main_index<300) convert_NO_save();
-								else if (main_index>300){
-										save_dir[main_index-1]=slim_mas(save_clear, 30, 4);											
-								}	
-								else 		save_dir[main_index-1]=0;				
-                            
-                                if (main_index >= DELAY_AFTER_START){                                        
-                                    current_value=GetDerivative(save_dir, main_index-1);
-                                    usb_send_16(current_value,(short)current_max);
-                                    if (current_value>current_max){
-                                            current_max=current_value;
-                                            MAX_counter=main_index;
-                                    }
-                                    if (current_pressure > MIN_PRESSURE){                                                
-                                        if (main_index > MAX_counter + SEC_AFTER_MAX * frequency)
-                                        {    
-                                            main_index=0;        
-                                            save_dir_counter=0;        
-                                            Wave_detect_FLAG=0;                                                    
-                                            current_max = 0;    
-                                            global_max = 0;
-                                            //MAX_counter=0;
-                                            Lock();
-                                            PUMP_OFF;
-                                            mode = MEASUREMENT;
-                                        }
-                                    }                                        
+                if (mode == PUMPING_MANAGEMENT)
+                {                                                                                                                                                                //////////////////////////////////
+                    if (convert_save_16()){
+                        if (main_index<300) convert_NO_save();
+                        else if (main_index>300){
+                                save_dir[main_index-1]=slim_mas(save_clear, 30, 4);											
+                        }	
+                        else 		save_dir[main_index-1]=0;				
+                    
+                        if (main_index >= DELAY_AFTER_START){                                        
+                            current_value=GetDerivative(save_dir, main_index-1);
+                            usb_send_16(current_value,(short)current_max);
+                            if (current_value>current_max){
+                                    current_max=current_value;
+                                    MAX_counter=main_index;
+                            }
+                            if (current_pressure > MIN_PRESSURE){                                                
+                                if (main_index > MAX_counter + SEC_AFTER_MAX * frequency)
+                                {    
+                                    main_index=0;        
+                                    save_dir_counter=0;        
+                                    Wave_detect_FLAG=0;                                                    
+                                    current_max = 0;    
+                                    global_max = 0;
+                                    //MAX_counter=0;
+                                    Lock();
+                                    PUMP_OFF;
+                                    stop_meas = false;
+                                    mode = MEASUREMENT;
                                 }
-                                
-                                
-                                if (main_index > DELAY_FOR_ERROR & current_pressure<10){ 
-                                    reset_detector();
-                                    timer_2_stop();
-                                    print_error(2);
-                                    mode = START_SCREEN;
-                                }
-                                
-                                if (main_index>9990){
-                                    reset_detector();
-                                    timer_2_stop();
-                                    print_error(3);
-                                    mode = START_SCREEN;
-                                }
-                                
-                                
+                            }                                        
                         }
+                        
+                        if (main_index > DELAY_FOR_ERROR & current_pressure<10){ 
+                            reset_detector();
+                            timer_2_stop();
+                            print_error(2);
+                            mode = START_SCREEN;
+                        }
+                        
+                        if (main_index>9990){
+                            reset_detector();
+                            timer_2_stop();
+                            print_error(3);
+                            mode = START_SCREEN;
+                        }
+                    }
                 }
-                else if (mode == MEASUREMENT) { //convers_save(); //usb_send_i2c_convers();                              ///////////////////////////////////////////////
-                        if (convert_save_16()) 
+                else 
+                if (mode == MEASUREMENT) 
+                {
+                    if (convert_save_16()) 
+                    {
+                        if (main_index>100)
                         {
-                            if (main_index>100)
+                            if (lock_counter > 0)
                             {
-                                if (lock_counter > 0)
+                                save_dir[main_index-1] = 0; //dummy_value;
+                            }
+                            else
+                            {
+                                save_dir[main_index-1]=slim_mas(save_clear, 30, 4);  
+                                last_value = save_dir[main_index-1];
+                            }
+                        }    
+                        else         save_dir[main_index-1]=0;                
+                                            
+                        if (main_index >= DELAY_AFTER_PUMPING)
+                        {                                        
+                            current_value = GetDerivative(save_dir, main_index-1);
+                            usb_send_16(current_value, current_max); 
+                            if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
+                            if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval))
+                            {
+                                if (current_value > current_max) 
                                 {
-                                    save_dir[main_index-1] = 0; //dummy_value;
+                                    current_max = current_value;
+                                    MAX_counter=main_index-1;
                                 }
-                                else
+                                else if (current_value < detect_level)
                                 {
-                                    save_dir[main_index-1]=slim_mas(save_clear, 30, 4);  
-                                    last_value = save_dir[main_index-1];
+                                    if (current_max > global_max)
+                                    {   
+                                        global_max = current_max;
+                                    }
+                                    if (current_max < global_max * stop_meas_coeff)
+                                    {
+                                        stop_meas = true;
+                                    }
+                                    Wave_detect_time_OLD=Wave_detect_time;
+                                    Wave_detect_time=MAX_counter-1;                                                                                                                        
+                                    puls_buff[puls_counter++]=MAX_counter-1;
+                                    Wave_ind_FLAG=1;                                                
+                                    _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
+                                    if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
+                                    silence_time_start=MAX_counter-1;
+                                    detect_level=current_max * detect_levelCoeff;
+                                    if (detect_level<4) detect_level=4;
+                                    current_max=0;
+                                    Wave_detect_FLAG=0;
                                 }
-                            }    
-                            else         save_dir[main_index-1]=0;                
-                                                
-                            if (main_index >= DELAY_AFTER_PUMPING)
-                            {                                        
-                                current_value = GetDerivative(save_dir, main_index-1);
-                                usb_send_16(current_value, current_max); 
-                                if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
-                                if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval))
-                                {
-                                    if (current_value > current_max) 
-                                    {
-                                        current_max = current_value;
-                                        MAX_counter=main_index-1;
-                                    }
-                                    else if (current_value < detect_level)
-                                    {
-                                        Wave_detect_time_OLD=Wave_detect_time;
-                                        Wave_detect_time=MAX_counter-1;                                                                                                                        
-                                        puls_buff[puls_counter++]=MAX_counter-1;
-                                        Wave_ind_FLAG=1;                                                
-                                        _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
-                                        if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
-                                        silence_time_start=MAX_counter-1;
-                                        detect_level=current_max * detect_levelCoeff;
-                                        if (detect_level<4) detect_level=4;
-                                        current_max=0;
-                                        Wave_detect_FLAG=0;
-                                    }
-                                }                        
                             }                        
-                        }
+                        }                        
+                    }
                 }
                 else if (mode == SEND_SAVE_BUFF_MSG) {
                         if (usb_send_save(save_dir,EnvelopeArray)){            

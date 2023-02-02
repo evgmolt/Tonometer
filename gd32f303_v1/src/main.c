@@ -164,6 +164,7 @@ double rate_whole;
 double rate_fract;
 
 bool arrhythmia = false;
+bool stop_meas = false;
 
 int main(void)
 {
@@ -303,17 +304,12 @@ int main(void)
                     VALVE_2_ON;
                     _lockInterval=50;
                     sector_start_scan=0;
-                    main_index = 0;        
-                    save_dir_counter=0;        
-                    Wave_detect_FLAG=0;    
-                    current_max=0;        
-                    detect_level_comp_UP=15;
-                    detect_level=detect_level_start;
-                    silence_time_start=0;
+                    reset_detector();
                     puls_counter=0;            
                     detect_FLAG=0;
                     timer_2_start();
                     finish_6_flag=0;
+                    stop_meas = false;
                     mode = PUMPING_MANAGEMENT;
                     button_released = 0;
                     button_pressed_counter = 0;
@@ -330,14 +326,10 @@ int main(void)
                 if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
             
                 if (current_pressure >= MAX_ALLOWED_PRESSURE) {
-                        detect_level = detect_level_start;                        
-                        main_index=0;        
-                        save_dir_counter=0;        
-                        Wave_detect_FLAG=0;    
-                        silence_time_start=0;
-                        current_max=0;                            
-                        puls_counter=0;                        
-                        mode = MEASUREMENT;        
+                    reset_detector();
+                    puls_counter=0;      
+                    stop_meas = false;
+                    mode = MEASUREMENT;        
                 }                        
                 break;
             case USB_CHARGING:
@@ -381,7 +373,7 @@ int main(void)
                         my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
                         count_send_bluetooth++;
                 }
-                if (current_pressure <= STOP_MEAS_LEVEL){
+                if (current_pressure <= STOP_MEAS_LEVEL || stop_meas){
                         //timer_2_stop();                                                   ///////////////////////////////////////////////
 
                       for (int i = 0; i < AVER_SIZE; i++) {
