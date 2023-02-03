@@ -248,7 +248,7 @@ void TIMER1_IRQHandler(void)
         if (shutdown_counter > SHUTDOWN_INTERVAL) 
         {
             shutdown_counter = 0;
-            mode = KEY_OFF;                    
+//            mode = KEY_OFF;                    
         }
     
         button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
@@ -449,7 +449,6 @@ void reset_detector(void)
     global_max=0;        
     detect_level=detect_level_start;
     silence_time_start=0;
-    current_pressure = 0;
 }
 
 void my_i2c_send(uint8_t data){

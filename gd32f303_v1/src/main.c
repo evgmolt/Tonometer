@@ -323,7 +323,7 @@ int main(void)
                 if (button_released) abort_meas();
                 if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
             
-                if (current_pressure >= MAX_ALLOWED_PRESSURE) {
+                if (current_pressure >= MAX_ALLOWED_PRESSURE && process_counter > MIN_PUMPING_INTERVAL) {
                     reset_detector();
                     puls_counter=0;      
                     stop_meas = false;
@@ -421,8 +421,8 @@ int main(void)
                         
                         VALVE_1_OFF;
                         VALVE_2_OFF;
-//                        mode = SEND_SAVE_BUFF_MSG;   
-                        mode = INIT_START;
+                        mode = SEND_SAVE_BUFF_MSG;   
+//                        mode = INIT_START;
                 }                    
                 break;
             case SEND_SAVE_BUFF_MSG:
@@ -1005,7 +1005,10 @@ void usb_send_i2c_convers(void){
 uint8_t usb_send_save(int16_t *mass1, int16_t *mass2){
     //Add markers of SYS, MAX and DIA points into array
     for (int h=0;h<puls_counter;h++){
-            if (send_counter==indexPSys | send_counter==indexPDia | send_counter==XMax)save_dir[send_counter]=100;                    
+            if (send_counter==XMax) save_dir[send_counter]=100;                    
+    }        
+    for (int h=0;h<puls_counter;h++){
+            if (send_counter==indexPSys | send_counter==indexPDia)save_dir[send_counter]=-100;                    
     }        
     
     uint8_t send_H1=(mass1[send_counter]>>8)&0xFF;

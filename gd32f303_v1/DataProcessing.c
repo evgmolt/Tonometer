@@ -168,14 +168,21 @@ void f_sorting_MAX(void){
 }
 
 void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues){
-    for (int i = 1; i < puls_counter; i++){
+    for (int i = 1; i < puls_counter; i++)
+    {
         int x1 = arrayOfIndexes[i - 1];
         int x2 = arrayOfIndexes[i];
         double y1 = arrayOfValues[i - 1];
         double y2 = arrayOfValues[i];
         double coeff = (y2 - y1) / (x2 - x1);
-        for (int j = x1 - 1; j < x2; j++) {
-            EnvelopeArray[j] = y1 + coeff * (j - x1);
+        for (int j = x1 - 1; j < x2; j++) 
+        {
+            int ind = i + j;
+            if (ind >= 10000)
+            {
+                break;
+            }
+            EnvelopeArray[i + j] = y1 + coeff * (j - x1);
         }                
     }
 }
@@ -184,8 +191,8 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues){
 void Get_Sys_Dia(void)
 {
     double MaximumAmplitude=-100;
-    
-    for (int i=0; i<puls_counter; i++){
+    int skip = 3;
+    for (int i = skip; i < puls_counter - skip; i++){
             if (puls_buff_AMP[i]>MaximumAmplitude){
                     MaximumAmplitude=puls_buff_AMP[i];
                     XMax=puls_buff_NEW[i];                    
