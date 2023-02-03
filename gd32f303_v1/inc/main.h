@@ -139,7 +139,7 @@ uint16_t puls_convert(void);
 void clear_monitor(void);
 void usb_send_16(short int T1, short int T2);
 short int convert_NO_save(void);
-int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC);
+int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC);
 
 void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues);
 
@@ -302,8 +302,7 @@ extern uint8_t size_pack;
 
 extern short int save_clear[10000];
 extern uint32_t main_index;
-extern short int save_dir[10000];
-extern uint32_t save_dir_counter;
+extern short int PressurePulsationArray[10000];
 extern short int EnvelopeArray[10000];
 
 extern uint32_t send_counter;

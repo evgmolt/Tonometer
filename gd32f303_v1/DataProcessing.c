@@ -233,7 +233,7 @@ void Get_Sys_Dia(void)
     }
 }
 
-int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC){
+int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC){
         int32_t DCLevel = 0;
         int32_t ACLevel = 0;                    
         for(int r=0;r<DC;r++){

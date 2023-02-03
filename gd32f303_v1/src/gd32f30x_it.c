@@ -47,8 +47,7 @@ extern short int  save_clear[10000];
 extern uint32_t main_index;
 extern uint32_t send_counter;
 extern int i2c_out_K;
-extern short int save_dir[10000];
-extern uint32_t save_dir_counter;
+extern short int PressurePulsationArray[10000];
 extern short int EnvelopeArray[10000];
 extern uint16_t count_send_bluetooth;
 extern uint8_t start_send_ble_flag;
@@ -319,12 +318,12 @@ void TIMER2_IRQHandler(void)
                 }
                 else if (main_index>300)
                 {
-                    save_dir[main_index-1] = slim_mas(save_clear, DCArrayWindow, ACArrayWindow);											
+                    PressurePulsationArray[main_index-1] = SmoothAndRemoveDC(save_clear, DCArrayWindow, ACArrayWindow);											
                 }	
             
                 if (main_index >= DELAY_AFTER_START)
                 {                                        
-                    current_value=GetDerivative(save_dir, main_index-1);
+                    current_value=GetDerivative(PressurePulsationArray, main_index-1);
                     usb_send_16(current_value,(short)current_max);
                     if (current_value>current_max)
                     {
@@ -336,7 +335,6 @@ void TIMER2_IRQHandler(void)
                         if (main_index > MAX_counter + SEC_AFTER_MAX * frequency)
                         {    
                             main_index=0;        
-                            save_dir_counter=0;        
                             Wave_detect_FLAG=0;                                                    
                             current_max = 0;    
                             global_max = 0;
@@ -381,21 +379,21 @@ void TIMER2_IRQHandler(void)
                 {
                     if (lock_counter > 0)
                     {
-                        save_dir[main_index-1] = 0; 
+                        PressurePulsationArray[main_index-1] = 0; 
                     }
                     else
                     {
-                        save_dir[main_index-1]=slim_mas(save_clear, DCArrayWindow, ACArrayWindow);  
+                        PressurePulsationArray[main_index-1] = SmoothAndRemoveDC(save_clear, DCArrayWindow, ACArrayWindow);  
                     }
                 }    
                 else         
                 {
-                    save_dir[main_index-1]=0;
+                    PressurePulsationArray[main_index-1]=0;
                 }
                                     
                 if (main_index >= DELAY_AFTER_PUMPING)
                 {                                        
-                    current_value = GetDerivative(save_dir, main_index-1);
+                    current_value = GetDerivative(PressurePulsationArray, main_index-1);
                     usb_send_16(current_value, current_max); 
                     if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
                     if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval))
@@ -407,10 +405,7 @@ void TIMER2_IRQHandler(void)
                         }
                         else if (current_value < detect_level)
                         {
-                            if (current_max > global_max)
-                            {   
-                                global_max = current_max;
-                            }
+                            global_max = fmax(global_max, current_max);
                             if (process_counter > SEVEN_SECONDS && current_max < global_max * stop_meas_coeff)
                             {
                                 stop_meas = true;
@@ -433,7 +428,7 @@ void TIMER2_IRQHandler(void)
         }
         else if (mode == SEND_SAVE_BUFF_MSG) 
         {
-            if (usb_send_save(save_dir,EnvelopeArray)){            
+            if (usb_send_save(PressurePulsationArray,EnvelopeArray)){            
                     mode = INIT_START;
                     timer_2_stop();
                     main_index=0;
@@ -447,7 +442,6 @@ void reset_detector(void)
 {
     process_counter = 0;
     main_index=0;        
-    save_dir_counter=0;        
     Wave_detect_FLAG=0;    
     current_max=0;        
     global_max=0;        

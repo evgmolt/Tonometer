@@ -8,7 +8,7 @@ int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index);
 void f_sorting_MAX(void);
 void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues);
 void Get_Sys_Dia(void);
-int16_t slim_mas(uint16_t *mass_in, int16_t DC, int16_t AC);
+int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC);
 uint16_t puls_convert(void);
 
 
