@@ -302,7 +302,8 @@ void Lock(void)
 
 void TIMER2_IRQHandler(void)
 {
-    if(SET == timer_interrupt_flag_get(TIMER2, TIMER_INT_FLAG_UP)){
+    if(SET == timer_interrupt_flag_get(TIMER2, TIMER_INT_FLAG_UP))
+    {
         /* clear update interrupt bit */
         timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);        
         timer_interrupt_enable(TIMER2, TIMER_INT_UP);
@@ -321,7 +322,8 @@ void TIMER2_IRQHandler(void)
                     save_dir[main_index-1] = slim_mas(save_clear, DCArrayWindow, ACArrayWindow);											
                 }	
             
-                if (main_index >= DELAY_AFTER_START){                                        
+                if (main_index >= DELAY_AFTER_START)
+                {                                        
                     current_value=GetDerivative(save_dir, main_index-1);
                     usb_send_16(current_value,(short)current_max);
                     if (current_value>current_max)
@@ -347,7 +349,8 @@ void TIMER2_IRQHandler(void)
                     }                                        
                 }
                 
-                if (main_index > DELAY_FOR_ERROR & current_pressure < PRESSURE_FOR_ERROR){ 
+                if (main_index > DELAY_FOR_ERROR & current_pressure < PRESSURE_FOR_ERROR)
+                { 
                     reset_detector();
                     timer_2_stop();
                     print_error(2);
@@ -357,7 +360,8 @@ void TIMER2_IRQHandler(void)
                     mode = START_SCREEN;
                 }
                 
-                if (main_index>9990){
+                if (main_index>9990)
+                {
                     reset_detector();
                     timer_2_stop();
                     print_error(3);

@@ -296,7 +296,7 @@ void cdc_acm_data_receive(usb_dev *udev)
         rate_whole = cdc -> data[1];
         rate_fract = cdc -> data[2];
         rate = rate_whole + rate_fract / 100;
-        fmc_program_rate((uint32_t) rate_whole, (uint32_t) rate_fract);
+        FmcProgramRate((uint32_t) rate_whole, (uint32_t) rate_fract);
         mode = KEY_OFF;
         device_OFF();
     }

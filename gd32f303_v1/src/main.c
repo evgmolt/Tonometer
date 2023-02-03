@@ -166,110 +166,109 @@ bool stop_meas = false;
 
 int main(void)
 {
-        nvic_configuration();      // RTC
-        time_init();                        // RTC
-    
-        GPIO_config();    
-        systick_config();
-        
-        boot_mode();        
+    nvic_configuration();      // RTC
+    time_init();                        // RTC
 
-        rcu_config();                                   // USB
-        gpio_config();                                  // USB    
-        usbd_init(&usbd_cdc, &cdc_desc, &cdc_class);    // USB 
-        nvic_config();                                  // USB     
-        usbd_connect(&usbd_cdc);                        // USB 
+    GPIO_config();    
+    systick_config();
     
-        nvic_config_1();         // timer 1
-        timer_config_1();        // timer 1
-    
-        nvic_config_2();         // timer 2
-        timer_config_2();        // timer 2        
-        
-        i2c_config();                                                                                                                //I2C ADS1115
-        ADS1115_config(0b00000010, 0x00, 0x00);                                                            //Lo
-        ADS1115_config(0b00000011, 0xFF, 0xFF);                                                            //Hi
-        ADS1115_config(0b00000001, Hi_ADS1115_config, Lo_ADS1115_config);        //preconfig
-        //ADS1115_read_IT();
-        //i2c_init();
+    boot_mode();        
 
-        ADC_rcu_config();                                                                                // ADC0
-        ADC_gpio_config();                                                                            // ADC0
-        dma_config();                                                                                        // ADC0
-        adc_config();                                                                                        // ADC0
-        adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL);    // ADC0
-        
-        nvic_irq_enable(USART1_IRQn, 0, 0);                            // UART1
-        usart_config_1();                                                                // UART1
-        usart_interrupt_enable(USART1, USART_INT_RBNE);    // UART1
-        
-        nvic_irq_enable(USART0_IRQn, 0, 0);                            // UART0
-        usart_config_0();                                                                // UART0
-        usart_interrupt_enable(USART0, USART_INT_RBNE);    // UART0
+    rcu_config();                                   // USB
+    gpio_config();                                  // USB    
+    usbd_init(&usbd_cdc, &cdc_desc, &cdc_class);    // USB 
+    nvic_config();                                  // USB     
+    usbd_connect(&usbd_cdc);                        // USB 
+
+    nvic_config_1();         // timer 1
+    timer_config_1();        // timer 1
+
+    nvic_config_2();         // timer 2
+    timer_config_2();        // timer 2        
+    
+    i2c_config();                                                                                                                //I2C ADS1115
+    ADS1115_config(0b00000010, 0x00, 0x00);                                                            //Lo
+    ADS1115_config(0b00000011, 0xFF, 0xFF);                                                            //Hi
+    ADS1115_config(0b00000001, Hi_ADS1115_config, Lo_ADS1115_config);        //preconfig
+    //ADS1115_read_IT();
+    //i2c_init();
+
+    ADC_rcu_config();                                                                                // ADC0
+    ADC_gpio_config();                                                                            // ADC0
+    dma_config();                                                                                        // ADC0
+    adc_config();                                                                                        // ADC0
+    adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL);    // ADC0
+    
+    nvic_irq_enable(USART1_IRQn, 0, 0);                            // UART1
+    usart_config_1();                                                                // UART1
+    usart_interrupt_enable(USART1, USART_INT_RBNE);    // UART1
+    
+    nvic_irq_enable(USART0_IRQn, 0, 0);                            // UART0
+    usart_config_0();                                                                // UART0
+    usart_interrupt_enable(USART0, USART_INT_RBNE);    // UART0
         
     //while (USBD_CONFIGURED != usbd_cdc.cur_status) {/* wait for standard USB enumeration is finished */}    
         
-        ILI9341_Init();
-        ILI9341_Touch_init();
+    ILI9341_Init();
+    ILI9341_Touch_init();
+    
+    if (mode == USB_CHARGING){
+            ILI9341_FillScreen(ILI9341_BLACK);
+            print_battery();
+    }
+    else ILI9341_FillScreen(ILI9341_WHITE);
+    
+    button_interrupt_config();
+    
+    EN_BUTT_FLAG=1;
+    
+    if (mode == INIT_START){        
+        print_heart(true);
+        print_bluetooth(true);
+        print_gsm(true);
+        print_heartX3(true);
+        print_sys_label();
+        print_dia_label();
+        print_num_H(888,235,10,YELLOW);
+        print_num_H(888,235,120,RED);
+        print_num_H(888,235,250,BLACK);        
+    }
+    else if (mode == PRESSURE_TEST){
+        ILI9341_FillRectangle(70, 150, 100, 50, ILI9341_WHITE);
+    }    
+    
+    // waiting for button release, or sitting mode?
+    while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}    
+    delay_1ms(300);
+    while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}
+    
+    EN_BUTT_FLAG=0;    
+                
+    PUMP_OFF;
+    VALVE_1_OFF;
+    VALVE_2_OFF;    
+    
+    if (sim800_FLAG) {}      //GSM module ...        
+    delay_1ms(1000);
+    if (mode != USB_CHARGING) {            
+            clear_monitor();
+    }        
         
-        if (mode == USB_CHARGING){
-                ILI9341_FillScreen(ILI9341_BLACK);
-                print_battery();
-        }
-        else ILI9341_FillScreen(ILI9341_WHITE);
-        
-        button_interrupt_config();
-        
-        EN_BUTT_FLAG=1;
-        
-        if (mode == INIT_START){        
-            print_heart(true);
-            print_bluetooth(true);
-            print_gsm(true);
-            print_heartX3(true);
-            print_sys_label();
-            print_dia_label();
-            print_num_H(888,235,10,YELLOW);
-            print_num_H(888,235,120,RED);
-            print_num_H(888,235,250,BLACK);        
-        }
-        else if (mode == PRESSURE_TEST){
-            ILI9341_FillRectangle(70, 150, 100, 50, ILI9341_WHITE);
-        }    
-        
-        // waiting for button release, or sitting mode?
-        while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}    
-        delay_1ms(300);
-        while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}
-        
-        EN_BUTT_FLAG=0;    
-                    
-        PUMP_OFF;
-        VALVE_1_OFF;
-        VALVE_2_OFF;    
-        
-        if (sim800_FLAG) {}      //GSM module ...        
-        delay_1ms(1000);
-        if (mode != USB_CHARGING) {            
-                clear_monitor();
-        }        
-            
-        i2c_calibration();    
-        
-        fmc_serial_check();
-        delay_1ms(200);
-        str_clear(UART0_buff,200);        
-        
-        /* PMU lock enable */
-    rcu_periph_clock_enable(RCU_PMU);                                                                // 
-    /* BKP clock enable */                                                                                    //
-    rcu_periph_clock_enable(RCU_BKPI);                                                            // 
-    /* enable write access to the registers in backup domain */            //    backap data (save data)
-    pmu_backup_write_enable();                                                                            // 
-    /* clear the bit flag of tamper event */                                                //
-    bkp_flag_clear(BKP_FLAG_TAMPER);                                                                //
+    i2c_calibration();    
+    
+    FmcSerialCheck();
+    delay_1ms(200);
+    memset(UART0_buff, 0, 200);
+    /* PMU lock enable */
+    rcu_periph_clock_enable(RCU_PMU); 
+    /* BKP clock enable */
+    rcu_periph_clock_enable(RCU_BKPI);
+    /* enable write access to the registers in backup domain */
+    pmu_backup_write_enable();
+    /* clear the bit flag of tamper event */
+    bkp_flag_clear(BKP_FLAG_TAMPER); 
 
-    rate = read_rate_from_fmc();
+    rate = ReadRateFromFmc();
         
     timer_1_start();
     
@@ -355,73 +354,74 @@ int main(void)
                 if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
                 PUMP_OFF;
                 VALVE_2_OFF;
-                if (main_index>1+size_pack*(count_send_bluetooth+1)){                        
-                        uint8_t c_summ=0;                            
-                        uint8_t cur_buff_ble[400]={'0', '2', 0x05, count_send_bluetooth & 0xFF, (count_send_bluetooth>>8) & 0xFF, size_pack};
-                        
-                        for (int f=0;f<size_pack;f++){
-                                int16_t cur_press=(((save_clear[count_send_bluetooth*size_pack+f]-i2c_out_K)*100)/rate);
-                                cur_buff_ble[6+f*2]=cur_press&0xFF;
-                                cur_buff_ble[6+f*2+1]=(cur_press>>8)&0xFF;
-                        }                            
-                        for (int f=0;f<size_pack*2+6;f++){
-                                c_summ+=cur_buff_ble[f];
-                        }
-                        cur_buff_ble[size_pack*2+6]=c_summ;
-                        my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
-                        count_send_bluetooth++;
+                if (main_index>1+size_pack*(count_send_bluetooth+1))
+                {                        
+                    uint8_t c_summ=0;                            
+                    uint8_t cur_buff_ble[400]={'0', '2', 0x05, count_send_bluetooth & 0xFF, (count_send_bluetooth>>8) & 0xFF, size_pack};
+                    
+                    for (int f=0;f<size_pack;f++){
+                            int16_t cur_press=(((save_clear[count_send_bluetooth*size_pack+f]-i2c_out_K)*100)/rate);
+                            cur_buff_ble[6+f*2]=cur_press&0xFF;
+                            cur_buff_ble[6+f*2+1]=(cur_press>>8)&0xFF;
+                    }                            
+                    for (int f=0;f<size_pack*2+6;f++){
+                            c_summ+=cur_buff_ble[f];
+                    }
+                    cur_buff_ble[size_pack*2+6]=c_summ;
+                    my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
+                    count_send_bluetooth++;
                 }
-                if (current_pressure <= STOP_MEAS_LEVEL || stop_meas){
-                        //timer_2_stop();                                                   ///////////////////////////////////////////////
+                if (current_pressure <= STOP_MEAS_LEVEL || stop_meas)
+                {
+                    for (int i = 0; i < AVER_SIZE; i++) 
+                    {
+                        ArrayForAver[i] = 0;
+                    }
+                
+                    ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
+                    ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
+                    ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
+                
+                    memset(EnvelopeArray, 0, 10000);
+                    GetArrayOfWaveIndexes(save_dir, puls_buff, puls_buff_NEW);
+                    f_sorting_MAX();
+                    CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
+                    Get_Sys_Dia();
+                    puls_convert();    
+                    bonus_byte=0;
+                    if (main_index>1000 & 
+                        PSys > MIN_SYS & 
+                        PSys < MAX_SYS & 
+                        PDia > MIN_DIA & 
+                        PDia < MAX_DIA & 
+                        puls_out > MIN_PULSE & 
+                        puls_out < MAX_PULSE) 
+                    {
+                        print_sys_label();
+                        print_dia_label();    
+                        print_SYS(PSys);
+                        print_DIA(PDia);                                    
+                        print_num_H((int16_t)puls_out,235,250,BLACK);
 
-                      for (int i = 0; i < AVER_SIZE; i++) {
-                            ArrayForAver[i] = 0;
-                        }
+                        if (arrhythmia) print_heartX3(true);
                     
-                        ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
-                        ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
-                        ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
+                        cur_tim = rtc_counter_get();
+                        m_hh = cur_tim / 3600;
+                        m_mm = (cur_tim % 3600) / 60;
+                        m_ss = (cur_tim % 3600) % 60;
+                        check_backup_register(&cur_day, &cur_month, &cur_year);
+                        if     (cur_year>=255)    cur_year-=2000;
+                    }
+                    else 
+                    {
+                        bonus_byte|=0x80;
+                        print_error(4);                            
+                    }
+                    send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
                     
-                        str_clear(EnvelopeArray,10000);
-                        GetArrayOfWaveIndexes(save_dir, puls_buff, puls_buff_NEW);
-                        f_sorting_MAX();
-                        CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
-                        Get_Sys_Dia();
-                        puls_convert();    
-                        bonus_byte=0;
-                        if (main_index>1000 & 
-                            PSys > MIN_SYS & 
-                            PSys < MAX_SYS & 
-                            PDia > MIN_DIA & 
-                            PDia < MAX_DIA & 
-                            puls_out > MIN_PULSE & 
-                            puls_out < MAX_PULSE) 
-                        {
-                            print_sys_label();
-                            print_dia_label();    
-                            print_SYS(PSys);
-                            print_DIA(PDia);                                    
-                            print_num_H((int16_t)puls_out,235,250,BLACK);
-
-                            if (arrhythmia) print_heartX3(true);
-                        
-                            cur_tim = rtc_counter_get();
-                            m_hh = cur_tim / 3600;
-                            m_mm = (cur_tim % 3600) / 60;
-                            m_ss = (cur_tim % 3600) % 60;
-                            check_backup_register(&cur_day, &cur_month, &cur_year);
-                            if     (cur_year>=255)    cur_year-=2000;
-                        }
-                        else 
-                        {
-                            bonus_byte|=0x80;
-                            print_error(4);                            
-                        }
-                        send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
-                        
-                        VALVE_1_OFF;
-                        VALVE_2_OFF;
-                        mode = SEND_SAVE_BUFF_MSG;   
+                    VALVE_1_OFF;
+                    VALVE_2_OFF;
+                    mode = SEND_SAVE_BUFF_MSG;   
 //                        mode = INIT_START;
                 }                    
                 break;
@@ -829,13 +829,6 @@ void my_send_string_UART_1(char *buf, uint8_t num){
                 while(RESET == usart_flag_get(USART1, USART_FLAG_TBE));            
         }
 }
-void str_clear(char *buff, uint16_t len){
-        for (int i=0;i<len;i++){
-                buff[i]=0;
-        }
-        //memset(buff,0,strlen(buff));
-        buff[0] = '\0';
-}
 
 void nvic_configuration(void){
     nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
@@ -1047,15 +1040,6 @@ void usb_send_16(short int T1, short int T2){
         usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 5);
 }
 
-uint8_t usb_send_slim_AMP(void){
-    uint8_t send_H=(save_dir[send_counter]>>8)&0xFF;
-    uint8_t send_L=save_dir[send_counter]&0xFF;
-    uint8_t send_buff[3]={25,send_L,send_H};
-    usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 3);
-    send_counter++;
-    if (send_counter>=puls_counter) return 1;
-    else return 0;
-}
 
 void boot_mode(void){
         if (gpio_input_bit_get(GPIOB, GPIO_PIN_0)){     //
@@ -1139,7 +1123,7 @@ uint8_t finder_msg(uint8_t *buff){
                         SERIAL[7] = buff[j+8];
                         SERIAL[8] = buff[j+9];
                         
-                        fmc_program_serial();                        
+                        FmcProgramSerial();                        
                     
                         buff[j]=0xFF;
                     
@@ -1176,28 +1160,28 @@ uint8_t finder_msg(uint8_t *buff){
         return 0;
 }
 
-void fmc_flags_clear(void)
+void FmcFlagsClear(void)
 {
     fmc_flag_clear(FMC_FLAG_BANK0_END);
     fmc_flag_clear(FMC_FLAG_BANK0_WPERR);
     fmc_flag_clear(FMC_FLAG_BANK0_PGERR);
 }
 
-void fmc_erase_page(uint32_t page_address){
+void FmcErasePage(uint32_t page_address){
     /* unlock the flash program/erase controller */
     fmc_unlock();
 
     /* clear all pending flags */
-    fmc_flags_clear();
+    FmcFlagsClear();
     /* erase the flash page */
     fmc_page_erase(page_address);
     /* lock the main FMC after the erase operation */
     fmc_lock();
 }
 
-void fmc_program_serial(void)
+void FmcProgramSerial(void)
 {
-    fmc_erase_page(FMC_SERIAL_START_ADDR);  
+    FmcErasePage(FMC_SERIAL_START_ADDR);  
 
     uint8_t cur_count=0;
     /* unlock the flash program/erase controller */
@@ -1209,16 +1193,16 @@ void fmc_program_serial(void)
     while(address < FMC_SERIAL_END_ADDR){
         fmc_word_program(address, SERIAL[cur_count++]);
         address += 4;
-        fmc_flags_clear();
+        FmcFlagsClear();
     }
 
     /* lock the main FMC after the program operation */
     fmc_lock();
 }
 
-void fmc_program_rate(uint32_t whole_part, uint32_t fract_part)
+void FmcProgramRate(uint32_t whole_part, uint32_t fract_part)
 {
-    fmc_erase_page(FMC_RATE_START_ADDR);
+    FmcErasePage(FMC_RATE_START_ADDR);
     
     /* unlock the flash program/erase controller */
     fmc_unlock();
@@ -1228,15 +1212,15 @@ void fmc_program_rate(uint32_t whole_part, uint32_t fract_part)
     /* program flash */
     fmc_word_program(address, whole_part);
     address += 4;
-    fmc_flags_clear();
+    FmcFlagsClear();
     fmc_word_program(address, fract_part);
-    fmc_flags_clear();
+    FmcFlagsClear();
 
     /* lock the main FMC after the program operation */
     fmc_lock();
 }
 
-double read_rate_from_fmc()
+double ReadRateFromFmc()
 {
     uint32_t *ptr;
     ptr = (uint32_t *)FMC_RATE_START_ADDR;
@@ -1247,7 +1231,7 @@ double read_rate_from_fmc()
     return (double)(rate_whole + rate_fract / 100);
 }
 
-void fmc_serial_check(void)
+void FmcSerialCheck(void)
 {
     uint8_t cur_SERIAL[7]={0};
     uint8_t cur_buff[30]={'A','T','+','N','A','M','E','=','T','O','N','0','2'};
@@ -1275,8 +1259,8 @@ void fmc_serial_check(void)
         SERIAL[6]='0';    cur_SERIAL[4]='0';
         SERIAL[7]='0';    cur_SERIAL[5]='0';
         SERIAL[8]='0';    cur_SERIAL[6]='0';
-        fmc_erase_page(FMC_SERIAL_START_ADDR);
-        fmc_program_serial();                
+        FmcErasePage(FMC_SERIAL_START_ADDR);
+        FmcProgramSerial();                
     }        
     strncat(cur_buff,cur_SERIAL,7);
     strncat(cur_buff,"\0\n",2);

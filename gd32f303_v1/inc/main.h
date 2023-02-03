@@ -97,7 +97,6 @@ void my_send_string_UART_0(char *buf, uint8_t num);
 void usart_config_1(void);
 void my_send_string_UART_1(char *buf, uint8_t num);
 void SIM_recieve_OK(void);
-void str_clear(char *buff, uint16_t len);
 int16_t GetAver(int16_t nextValue);
 void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color);
 void time_set(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss);
@@ -130,8 +129,6 @@ int16_t GetDerivative(int16_t *dataArr, int32_t Ind);
 int GetMaxIndexInRegion(int16_t *sourceArray, int index);
 void GetArrayOfWaveIndexes(int16_t *valuesArray, int16_t *indexesArray, int16_t *indexes);
 
-uint8_t usb_send_slim_AMP(void);
-
 int GetMaxIndexInRegion(int16_t *sourceArray, int index);
 int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index);
     
@@ -156,13 +153,13 @@ uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num);
 uint8_t finder_msg(uint8_t *buff);
 
 /* erase fmc page from FMC_WRITE_START_ADDR */
-void fmc_erase_page(uint32_t page_address);
+void FmcErasePage(uint32_t page_address);
 /* program fmc word by word from FMC_WRITE_START_ADDR to FMC_WRITE_END_ADDR */
-void fmc_program_serial(void);
+void FmcProgramSerial(void);
 /* check fmc erase result */
-void fmc_erase_page_check(void);
+void FmcErasePage_check(void);
 /* check fmc program result */
-void fmc_serial_check(void);
+void FmcSerialCheck(void);
 
 void write_backup_register(uint16_t day, uint16_t month, uint16_t year);
 void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year);
@@ -173,7 +170,7 @@ void print_DIA(int16_t IN);
 
 void abort_meas(void);
 
-double read_rate_from_fmc();
+double ReadRateFromFmc();
 
 extern bool arrhythmia;
 extern bool stop_meas;
