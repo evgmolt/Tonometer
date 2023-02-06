@@ -1,9 +1,9 @@
 #include "main.h"
 #include "DataProcessing.h"
 
-#define NCoef 2 
-#define DiaCoeff 0.62
-#define SysCoeff 0.46
+#define N_COEF 2 
+#define DIA_COEF 0.62
+#define SYS_COEF 0.46
 
 uint16_t CountPulse(void)
 {
@@ -93,14 +93,15 @@ void GetArrayOfWaveIndexes(int16_t *valuesArray, int16_t *indexesArray, int16_t 
     }    
 }
 
-int GetMaxIndexInRegion(int16_t *sourceArray, int index){ 
+int GetMaxIndexInRegion(int16_t *sourceArray, int index)
+{ 
     int range = 50;
     int16_t max = -200;
     int maxIndex = 0;
-    for (int i1 = 0; i1 < range; i1++){
-        //if (i - range / 2 < 0) continue;
-        //if (i - range / 2 > strlen(sourceArray)) continue;
-        if (sourceArray[index + i1 - range / 2] > max){
+    for (int i1 = 0; i1 < range; i1++)
+    {
+        if (sourceArray[index + i1 - range / 2] > max)
+        {
             max = sourceArray[index + i1 - range / 2];
             maxIndex = i1 - range / 2;
         }
@@ -108,16 +109,19 @@ int GetMaxIndexInRegion(int16_t *sourceArray, int index){
     return index + maxIndex;
 }
 
-int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index){        
-        int range_MIN=100;
-        int16_t min = 1000;
-        int minIndex = 0;
-        for (int i1 = 0; i1 < range_MIN; i1++){
-                if (sourceArray_MIN[index+i1] < min){
-                        min=sourceArray_MIN[index+i1];
-                        minIndex=i1;
-                }
-        }            
+int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index)
+{        
+    int range_MIN=100;
+    int16_t min = 1000;
+    int minIndex = 0;
+    for (int i1 = 0; i1 < range_MIN; i1++)
+    {
+        if (sourceArray_MIN[index+i1] < min)
+        {
+            min=sourceArray_MIN[index+i1];
+            minIndex=i1;
+        }
+    }            
     return index + minIndex;
 }
 
@@ -174,7 +178,8 @@ void f_sorting_MAX(void){
         }        
 }
 
-void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues){
+void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues)
+{
     for (int i = 1; i < puls_counter; i++)
     {
         int x1 = arrayOfIndexes[i - 1];
@@ -197,27 +202,30 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues){
 
 void GetSysDia(void)
 {
-    double MaximumAmplitude=-100;
+    double MaximumAmplitude = -100;
     int skip = 3;
-    for (int i = skip; i < puls_counter - skip; i++){
-            if (puls_buff_AMP[i]>MaximumAmplitude){
-                    MaximumAmplitude=puls_buff_AMP[i];
-                    XMax=puls_buff_NEW[i];                    
-            }        
+    for (int i = skip; i < puls_counter - skip; i++)
+    {
+        if (puls_buff_AMP[i] > MaximumAmplitude)
+        {
+            MaximumAmplitude = puls_buff_AMP[i];
+            XMax=puls_buff_NEW[i];                    
+        }        
     }        
     
-    int16_t ValueSys = SysCoeff * MaximumAmplitude;
-    int16_t ValueDia = DiaCoeff * MaximumAmplitude;    
+    int16_t ValueSys = SYS_COEF * MaximumAmplitude;
+    int16_t ValueDia = DIA_COEF * MaximumAmplitude;    
 
     PSys = 0;
     PDia = 0;
     
     for (int i = XMax; i >= 0; i--)
     {
-        if (EnvelopeArray[i] < ValueSys){
-                PSys = save_clear[i]/rate;
-                indexPSys = i;
-                break;
+        if (EnvelopeArray[i] < ValueSys)
+        {
+            PSys = save_clear[i]/rate;
+            indexPSys = i;
+            break;
         }
     }
     if (PSys == 0)
@@ -257,24 +265,24 @@ int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC){
     mass_in[main_index-1] = (uint16_t)ACLevel;    
         
 /*    
-    float ACoef[NCoef+1] = { 
+    float ACoef[N_COEF+1] = { 
         0.97913295295553560000, 
         -1.95826590591107120000, 
         0.97913295295553560000 
     }; 
  
-    float BCoef[NCoef+1] = { 
+    float BCoef[N_COEF+1] = { 
         1.00000000000000000000, 
         -1.95778812550116580000, 
         0.95837795232608958000 
     }; 
  
-    static float y[NCoef+1]; //output samples 
-    static float x[NCoef+1]; //input samples 
+    static float y[N_COEF+1]; //output samples 
+    static float x[N_COEF+1]; //input samples 
     int n; 
  
     //shift the old samples 
-    for(n=NCoef; n>0; n--) { 
+    for(n=N_COEF; n>0; n--) { 
        x[n] = x[n-1]; 
        y[n] = y[n-1]; 
     } 
@@ -282,7 +290,7 @@ int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC){
     //Calculate the new output 
     x[0] = ACLevel; 
     y[0] = ACoef[0] * x[0]; 
-    for(n=1; n<=NCoef; n++) 
+    for(n=1; n<=N_COEF; n++) 
         y[0] += ACoef[n] * x[n] - BCoef[n] * y[n]; 
         
 //    return (int16_t)y[0];*/

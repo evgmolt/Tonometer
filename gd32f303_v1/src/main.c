@@ -315,9 +315,15 @@ int main(void)
                 shutdown_counter = 0;
                 ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
                 if (button_released) abort_meas();
-                if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
+//                if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
+                if (show_pressure_counter == 0)
+                {
+                    show_pressure_counter = SHOW_PRESSURE_INTERVAL;
+                    if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
+                }
             
-                if (current_pressure >= MAX_ALLOWED_PRESSURE && process_counter > MIN_PUMPING_INTERVAL) {
+                if (current_pressure >= MAX_ALLOWED_PRESSURE && process_counter > MIN_PUMPING_INTERVAL) 
+                {
                     reset_detector();
                     puls_counter=0;      
                     stop_meas = false;
@@ -348,7 +354,11 @@ int main(void)
             case MEASUREMENT:
                 shutdown_counter = 0;
                 if (button_released) abort_meas();
-                if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
+                if (show_pressure_counter == 0)
+                {
+                    show_pressure_counter = SHOW_PRESSURE_INTERVAL;
+                    if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
+                }
                 if (main_index>1+size_pack*(count_send_bluetooth+1))
                 {                        
                     uint8_t c_summ=0;                            
@@ -428,10 +438,12 @@ int main(void)
         if (UART0_flag==1){                    
             for (int w=0;w<200;w++)
             {
-                if (finder_msg(UART0_buff)){                                                                    
+                if (finder_msg(UART0_buff))
+                {                                                                    
                         ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_RED);                                                            
                 }
-                if (finder(UART0_buff, "OFF",0,&num_string)) {
+                if (finder(UART0_buff, "OFF",0,&num_string)) 
+                {
                         ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_WHITE);
                 }
             }
@@ -489,7 +501,7 @@ void i2c_config(void){
 }
 
 void SIM_recieve_OK(void){
-        usbd_ep_send (&usbd_cdc, CDC_IN_EP, "OK", 3);
+    usbd_ep_send (&usbd_cdc, CDC_IN_EP, "OK", 3);
 }
 
 void ADS1115_config(uint8_t pointer, uint8_t byte1, uint8_t byte2){
@@ -523,65 +535,66 @@ void ADS1115_config(uint8_t pointer, uint8_t byte1, uint8_t byte2){
 }
 
 uint8_t ADS1115_read_IT(void){
-        if (gpio_input_bit_get(GPIOB, GPIO_PIN_10)==0){
-                while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));
-                /* send a start condition to I2C bus */
-                i2c_start_on_bus(I2C0);
-                /* wait until SBSEND bit is set */
-                while(!i2c_flag_get(I2C0, I2C_FLAG_SBSEND));        
-                /* send slave address to I2C bus */
-                i2c_master_addressing(I2C0, I2C0_SLAVE_ADDRESS7, I2C_TRANSMITTER);
-                /* wait until ADDSEND bit is set */
-                while(!i2c_flag_get(I2C0, I2C_FLAG_ADDSEND));
-                /* clear ADDSEND bit */
-                i2c_flag_clear(I2C0, I2C_FLAG_ADDSEND);
-                /* wait until the transmit data buffer is empty */
-                while(!i2c_flag_get(I2C0, I2C_FLAG_TBE));        
+        if (gpio_input_bit_get(GPIOB, GPIO_PIN_10)==0)
+        {
+            while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));
+            /* send a start condition to I2C bus */
+            i2c_start_on_bus(I2C0);
+            /* wait until SBSEND bit is set */
+            while(!i2c_flag_get(I2C0, I2C_FLAG_SBSEND));        
+            /* send slave address to I2C bus */
+            i2c_master_addressing(I2C0, I2C0_SLAVE_ADDRESS7, I2C_TRANSMITTER);
+            /* wait until ADDSEND bit is set */
+            while(!i2c_flag_get(I2C0, I2C_FLAG_ADDSEND));
+            /* clear ADDSEND bit */
+            i2c_flag_clear(I2C0, I2C_FLAG_ADDSEND);
+            /* wait until the transmit data buffer is empty */
+            while(!i2c_flag_get(I2C0, I2C_FLAG_TBE));        
 
-                i2c_data_transmit(I2C0, 0x00);
-                while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}    
-                
-                /* send a stop condition to I2C bus */
-                i2c_stop_on_bus(I2C0);
-                /* wait until stop condition generate */
-                while(I2C_CTL0(I2C0) & 0x0200);    
-            /* wait until I2C bus is idle */    
-                while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));        ///////////////////////////////////////////////////////////////////////////
-                i2c_start_on_bus(I2C0);                                         
-                /* wait until SBSEND bit is set */
-                while(!i2c_flag_get(I2C0, I2C_FLAG_SBSEND));            
-                /* send slave address to I2C bus */
-                i2c_master_addressing(I2C0, I2C0_SLAVE_ADDRESS7, I2C_RECEIVER);
-                /* wait until ADDSEND bit is set */
-                while(!i2c_flag_get(I2C0, I2C_FLAG_ADDSEND));
-                /* clear ADDSEND bit */
-                i2c_flag_clear(I2C0, I2C_FLAG_ADDSEND);        
-                
-                /* wait until the RBNE bit is set */
-                while(!i2c_flag_get(I2C0, I2C_FLAG_RBNE));
-                /* read a data from I2C_DATA */
-                i2c_receiver[0] = i2c_data_receive(I2C0);
-                
-                /* wait until the RBNE bit is set */
-                while(!i2c_flag_get(I2C0, I2C_FLAG_RBNE));
-                /* read a data from I2C_DATA */
-                i2c_receiver[1] = i2c_data_receive(I2C0);
-                
-                while(!i2c_flag_get(I2C0, I2C_FLAG_BTC));
-                /* disable acknowledge */
-                i2c_ack_config(I2C0, I2C_ACK_DISABLE);
-                                
-                /* send a stop condition to I2C bus */
-                i2c_stop_on_bus(I2C0);
-                /* wait until stop condition generate */
-                while(I2C_CTL0(I2C0) & 0x0200);
-                /* enable acknowledge */
-                i2c_ack_config(I2C0, I2C_ACK_ENABLE);        
-                
-                ADS1115_config(0b00000001, Hi_ADS1115_config, Lo_ADS1115_config);
-                
-                return 1;
-            }
+            i2c_data_transmit(I2C0, 0x00);
+            while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}    
+            
+            /* send a stop condition to I2C bus */
+            i2c_stop_on_bus(I2C0);
+            /* wait until stop condition generate */
+            while(I2C_CTL0(I2C0) & 0x0200);    
+        /* wait until I2C bus is idle */    
+            while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));        ///////////////////////////////////////////////////////////////////////////
+            i2c_start_on_bus(I2C0);                                         
+            /* wait until SBSEND bit is set */
+            while(!i2c_flag_get(I2C0, I2C_FLAG_SBSEND));            
+            /* send slave address to I2C bus */
+            i2c_master_addressing(I2C0, I2C0_SLAVE_ADDRESS7, I2C_RECEIVER);
+            /* wait until ADDSEND bit is set */
+            while(!i2c_flag_get(I2C0, I2C_FLAG_ADDSEND));
+            /* clear ADDSEND bit */
+            i2c_flag_clear(I2C0, I2C_FLAG_ADDSEND);        
+            
+            /* wait until the RBNE bit is set */
+            while(!i2c_flag_get(I2C0, I2C_FLAG_RBNE));
+            /* read a data from I2C_DATA */
+            i2c_receiver[0] = i2c_data_receive(I2C0);
+            
+            /* wait until the RBNE bit is set */
+            while(!i2c_flag_get(I2C0, I2C_FLAG_RBNE));
+            /* read a data from I2C_DATA */
+            i2c_receiver[1] = i2c_data_receive(I2C0);
+            
+            while(!i2c_flag_get(I2C0, I2C_FLAG_BTC));
+            /* disable acknowledge */
+            i2c_ack_config(I2C0, I2C_ACK_DISABLE);
+                            
+            /* send a stop condition to I2C bus */
+            i2c_stop_on_bus(I2C0);
+            /* wait until stop condition generate */
+            while(I2C_CTL0(I2C0) & 0x0200);
+            /* enable acknowledge */
+            i2c_ack_config(I2C0, I2C_ACK_ENABLE);        
+            
+            ADS1115_config(0b00000001, Hi_ADS1115_config, Lo_ADS1115_config);
+            
+            return 1;
+        }
         return 0;
 }
 
@@ -670,25 +683,27 @@ void i2c_convers(void){
     while(I2C_CTL0(I2C0) & 0x0200);    
 }
 
-void GPIO_config(void){
-        rcu_periph_clock_enable(RCU_GPIOB);        
-        gpio_init(GPIOB, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_0);      //POWER_ON_DETECT
-        gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_10);                    //ADS_RDY  --EXTI
-        gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_8);                        // STDBY
-        gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_9);                        // CHRG
-    
-        rcu_periph_clock_enable(RCU_GPIOC);
-        gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_0);      //SIM_EXT
-        gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_1);              //SIM_PWKEY
-        gpio_init(GPIOC, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_8);                        //KEY IN
-        gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_9);              //POWER_ON
-        gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_10);    //USB_ON    
-        gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_11);              //COMP_ON/OFF
-        gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_12);              //VALVE1_OP/CL
-        gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13);              //VALVE2_OP/CL            
+void GPIO_config(void)
+{
+    rcu_periph_clock_enable(RCU_GPIOB);        
+    gpio_init(GPIOB, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_0);  //POWER_ON_DETECT
+    gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_10);         //ADS_RDY  --EXTI
+    gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_8);          // STDBY
+    gpio_init(GPIOB, GPIO_MODE_IPU, GPIO_OSPEED_50MHZ, GPIO_PIN_9);          // CHRG
+
+    rcu_periph_clock_enable(RCU_GPIOC);
+    gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_0);  //SIM_EXT
+    gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_1);       //SIM_PWKEY
+    gpio_init(GPIOC, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_8);          //KEY IN
+    gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_9);       //POWER_ON
+    gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_10); //USB_ON    
+    gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_11);      //COMP_ON/OFF
+    gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_12);      //VALVE1_OP/CL
+    gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13);      //VALVE2_OP/CL            
 }
 
-void ADC_rcu_config(void){
+void ADC_rcu_config(void)
+{
     /* enable GPIOA clock */
     rcu_periph_clock_enable(RCU_GPIOB);
     /* enable ADC0 clock */
@@ -699,12 +714,14 @@ void ADC_rcu_config(void){
     rcu_adc_clock_config(RCU_CKADC_CKAPB2_DIV8);
 }
 
-void ADC_gpio_config(void){
+void ADC_gpio_config(void)
+{
     /* config the GPIO as analog mode */
     gpio_init(GPIOB, GPIO_MODE_AIN, GPIO_OSPEED_50MHZ, GPIO_PIN_1);
 }
 
-void adc_config(void){    
+void adc_config(void)
+{    
         /* reset ADC */
     adc_deinit(ADC0);
     /* ADC mode config */
@@ -740,7 +757,8 @@ void adc_config(void){
     adc_dma_mode_enable(ADC0);
 }
 
-void dma_config(void){
+void dma_config(void)
+{
     /* ADC_DMA_channel configuration */
     dma_parameter_struct dma_data_parameter;
     
@@ -765,7 +783,8 @@ void dma_config(void){
     dma_channel_enable(DMA0, DMA_CH0);
 }
 
-void usart_config_0(void){
+void usart_config_0(void)
+{
     /* enable USART clock */
     rcu_periph_clock_enable(RCU_USART0);   
         /* enable GPIO clock */
@@ -788,11 +807,13 @@ void usart_config_0(void){
     usart_enable(USART0);
 }
 
-void my_send_string_UART_0(char *buf, uint8_t num){
-        for(int j1=0;j1<num;j1++){
-                usart_data_transmit(USART0, (uint8_t)buf[j1]);
-                while(RESET == usart_flag_get(USART0, USART_FLAG_TBE));            
-        }
+void my_send_string_UART_0(char *buf, uint8_t num)
+{
+    for(int j1=0;j1<num;j1++)
+    {
+        usart_data_transmit(USART0, (uint8_t)buf[j1]);
+        while(RESET == usart_flag_get(USART0, USART_FLAG_TBE));            
+    }
 }
 
 void usart_config_1(void){
@@ -818,19 +839,23 @@ void usart_config_1(void){
     usart_enable(USART1);
 }
 
-void my_send_string_UART_1(char *buf, uint8_t num){
-        for(int j1=0;j1<num;j1++){
-                usart_data_transmit(USART1, (uint8_t)buf[j1]);
-                while(RESET == usart_flag_get(USART1, USART_FLAG_TBE));            
-        }
+void my_send_string_UART_1(char *buf, uint8_t num)
+{
+    for(int j1=0;j1<num;j1++)
+    {
+        usart_data_transmit(USART1, (uint8_t)buf[j1]);
+        while(RESET == usart_flag_get(USART1, USART_FLAG_TBE));            
+    }
 }
 
-void nvic_configuration(void){
+void nvic_configuration(void)
+{
     nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
     nvic_irq_enable(RTC_IRQn,1,0);
 }
 
-void rtc_configuration(void){
+void rtc_configuration(void)
+{
     /* enable PMU and BKPI clocks */
     rcu_periph_clock_enable(RCU_BKPI);
     rcu_periph_clock_enable(RCU_PMU);
@@ -870,23 +895,23 @@ void rtc_configuration(void){
     rtc_lwoff_wait();
 }
 
-void time_set(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss){
+void time_set(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss)
+{
     rtc_configuration(); 
-
-        rtc_lwoff_wait();
-                
-        rtc_counter_set((tmp_hh*3600 + tmp_mm*60 + tmp_ss));
-        
-        rtc_lwoff_wait();
-
+    rtc_lwoff_wait();
+    rtc_counter_set((tmp_hh*3600 + tmp_mm*60 + tmp_ss));
+    rtc_lwoff_wait();
     bkp_write_data(BKP_DATA_0, 0xA5A5);    
 }
 
-void time_init(void){
-    if (bkp_read_data(BKP_DATA_0) != 0xA5A5){
-                time_set(0, 0, 0);
-  }
-    else{
+void time_init(void)
+{
+    if (bkp_read_data(BKP_DATA_0) != 0xA5A5)
+    {
+        time_set(0, 0, 0);
+    }
+    else
+    {
         /* check if the power on reset flag is set */
         if (rcu_flag_get(RCU_FLAG_PORRST) != RESET){}
                 else if (rcu_flag_get(RCU_FLAG_SWRST) != RESET){}
@@ -899,11 +924,12 @@ void time_init(void){
         rtc_interrupt_enable(RTC_INT_SECOND);
         /* wait until last write operation on RTC registers has finished */
         rtc_lwoff_wait();
-  }    
-  rcu_all_reset_flag_clear();
+    }    
+    rcu_all_reset_flag_clear();
 }
 
-void i2c_init(void){
+void i2c_init(void)
+{
         /* wait until I2C bus is idle */
     while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));
     /* send a start condition to I2C bus */
@@ -919,12 +945,12 @@ void i2c_init(void){
     /* wait until the transmit data buffer is empty */
     while(!i2c_flag_get(I2C0, I2C_FLAG_TBE));        
 
-        i2c_data_transmit(I2C0, 0x01);
-        while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}
-        i2c_data_transmit(I2C0, 0x8F);
-        while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}                
-        i2c_data_transmit(I2C0,0xC3);//0x83);//0xC3); //0xA3);
-        while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}        
+    i2c_data_transmit(I2C0, 0x01);
+    while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}
+    i2c_data_transmit(I2C0, 0x8F);
+    while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}                
+    i2c_data_transmit(I2C0,0xC3);//0x83);//0xC3); //0xA3);
+    while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}        
         
     /* send a stop condition to I2C bus */
     i2c_stop_on_bus(I2C0);
@@ -932,7 +958,8 @@ void i2c_init(void){
     while(I2C_CTL0(I2C0) & 0x0200);            
 }
 
-void i2c_print(void){
+void i2c_print(void)
+{
     uint8_t buff1[10]={0};
     i2c_convers();
     i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
@@ -941,7 +968,8 @@ void i2c_print(void){
     sprintf(buff1,"%6d",current_pressure);
 }
 
-void button_interrupt_config(void){
+void button_interrupt_config(void)
+{
         //nvic_priority_group_set(NVIC_PRIGROUP_PRE2_SUB2);
     
     /* enable the key user clock */
@@ -950,8 +978,8 @@ void button_interrupt_config(void){
     /* configure button pin as input */
     //gpio_init(GPIOC, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_8);
     
-        /* enable the AF clock */
-        rcu_periph_clock_enable(RCU_AF);    
+    /* enable the AF clock */
+    rcu_periph_clock_enable(RCU_AF);    
     
     /* enable and set key user EXTI interrupt to the lowest priority */
         nvic_priority_group_set(NVIC_PRIGROUP_PRE2_SUB2);
@@ -965,37 +993,44 @@ void button_interrupt_config(void){
     exti_interrupt_flag_clear(EXTI_8);
 }
 
-void device_OFF(void){
-        PUMP_OFF;
-        VALVE_FAST_OPEN;
-        VALVE_SLOW_OPEN;
-        ILI9341_FillScreen(ILI9341_BLACK);
-        gpio_bit_reset(GPIOC, GPIO_PIN_9);
+void device_OFF(void)
+{
+    PUMP_OFF;
+    VALVE_FAST_OPEN;
+    VALVE_SLOW_OPEN;
+    ILI9341_FillScreen(ILI9341_BLACK);
+    gpio_bit_reset(GPIOC, GPIO_PIN_9);
 }
 
-void i2c_calibration(void){
-        i2c_out_K=0;
-        for (int g=0;g<20;g++){            
-                while (ADS1115_read_IT()==0){}
-                i2c_out_K+=((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF);                
-        }
-        i2c_out_K = i2c_out_K/20;
+void i2c_calibration(void)
+{
+    i2c_out_K=0;
+    for (int g=0;g<20;g++)
+    {
+        while (ADS1115_read_IT()==0){}
+        i2c_out_K+=((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF);                
+    }
+    i2c_out_K = i2c_out_K/20;
 }
 
-void usb_send_i2c_convers(void){
-        i2c_convers();    
-        uint8_t send_buff[3]={25,i2c_receiver[1],i2c_receiver[0]};
-        i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-        current_pressure=i2c_out/rate;
-        usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 3);
+void usb_send_i2c_convers(void)
+{
+    i2c_convers();    
+    uint8_t send_buff[3]={25,i2c_receiver[1],i2c_receiver[0]};
+    i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
+    current_pressure=i2c_out/rate;
+    usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 3);
 }
 
-uint8_t usb_send_save(int16_t *mass1, int16_t *mass2){
+uint8_t usb_send_save(int16_t *mass1, int16_t *mass2)
+{
     //Add markers of SYS, MAX and DIA points into array
-    for (int h=0;h<puls_counter;h++){
+    for (int h=0;h<puls_counter;h++)
+    {
             if (send_counter==XMax) PressurePulsationArray[send_counter]=100;                    
     }        
-    for (int h=0;h<puls_counter;h++){
+    for (int h=0;h<puls_counter;h++)
+    {
             if (send_counter==indexPSys | send_counter==indexPDia)PressurePulsationArray[send_counter]=-100;                    
     }        
     
@@ -1011,148 +1046,165 @@ uint8_t usb_send_save(int16_t *mass1, int16_t *mass2){
     else return 0;
 }
 
-short int convert_save_16(void){            
-        if (ADS1115_read_IT()==0) return 0;
-        save_clear[main_index]=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-        if (save_clear[main_index-1]<0) save_clear[main_index-1]=0;
-        main_index++;            
-        return 1;
+short int convert_save_16(void)
+{            
+    if (ADS1115_read_IT()==0) return 0;
+    save_clear[main_index]=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
+    if (save_clear[main_index-1]<0) save_clear[main_index-1]=0;
+    main_index++;            
+    return 1;
 }
 
-short int convert_NO_save(void){            
-        if (ADS1115_read_IT()==0) return 0;
-        i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-        current_pressure=i2c_out/rate;    
-        return i2c_out;
+short int convert_NO_save(void)
+{
+    if (ADS1115_read_IT()==0) return 0;
+    i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
+    current_pressure=i2c_out/rate;    
+    return i2c_out;
 }
 
-void usb_send_16(short int T1, short int T2){
-        uint8_t send_H1=(T1>>8)&0xFF;
-        uint8_t send_L1=T1&0xFF;
-        uint8_t send_H2=(T2>>8)&0xFF;
-        uint8_t send_L2=T2&0xFF;
-        uint8_t send_buff[5]={25,send_L1,send_H1,send_L2,send_H2};
-        usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 5);
+void usb_send_16(short int T1, short int T2)
+{
+    uint8_t send_H1=(T1>>8)&0xFF;
+    uint8_t send_L1=T1&0xFF;
+    uint8_t send_H2=(T2>>8)&0xFF;
+    uint8_t send_L2=T2&0xFF;
+    uint8_t send_buff[5]={25,send_L1,send_H1,send_L2,send_H2};
+    usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 5);
 }
 
 
-void boot_mode(void){
-        if (gpio_input_bit_get(GPIOB, GPIO_PIN_0)){     //
-                delay_1ms(10);
-                if (gpio_input_bit_get(GPIOC, GPIO_PIN_8)){
-                        gpio_bit_set(GPIOC, GPIO_PIN_9);    
-                        mode = INIT_START;
-                }
-                else if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)){
-                        //gpio_bit_set(GPIOC, GPIO_PIN_9);    
-                        mode = USB_CHARGING;
-                }
+void boot_mode(void)
+{
+    if (gpio_input_bit_get(GPIOB, GPIO_PIN_0))
+    {
+        delay_1ms(10);
+        if (gpio_input_bit_get(GPIOC, GPIO_PIN_8))
+        {
+            gpio_bit_set(GPIOC, GPIO_PIN_9);    
+            mode = INIT_START;
         }
+        else if (gpio_input_bit_get(GPIOC, GPIO_PIN_10))
+        {
+            //gpio_bit_set(GPIOC, GPIO_PIN_9);    
+            mode = USB_CHARGING;
+        }
+    }
 }
 
 void bluetooth_check(void)
 { 
-        if (finder(UART0_buff,"OK",0,0)) {
-            if (bluetooth_status == CONNECTED) {
-                bluetooth_status = DISCONNECTED;
-                print_bluetooth(true);
-            }
-        }
-        else {
-            if (bluetooth_status == DISCONNECTED) {
-                print_bluetooth(false);
-                bluetooth_status = CONNECTED;    
-            }
-        }
-        my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));            
-}
-
-uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num){    
-        uint8_t _flag=0;
-        for (int j=0;j<200;j++){
-                if (buff[j]==_string[0]){
-                        _flag=1;
-                        for (int k=0;k<strlen(_string);k++){
-                                if (buff[j+k]!=_string[k]) {
-                                        _flag=0;
-                                        k=strlen(_string);
-                                }                                    
-                        }                        
-                }
-                if (_flag) {
-                        *num=j;
-                        buff[j]=_char;
-                        return 1;
-                }
-        }
-        return 0;
-}
-
-uint8_t finder_msg(uint8_t *buff){    
-        uint8_t _flag=0;
-        uint8_t _string[20]={'0','2'};
-
-        //ILI9341_WriteString(1, 30, _string, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-        for (int j=0;j<200;j++)
+    if (finder(UART0_buff,"OK",0,0)) 
+    {
+        if (bluetooth_status == CONNECTED) 
         {
-            if (buff[j]==_string[0] & buff[j+1]==_string[1])
+            bluetooth_status = DISCONNECTED;
+            print_bluetooth(true);
+        }
+    }
+    else 
+    {
+        if (bluetooth_status == DISCONNECTED) 
+        {
+            print_bluetooth(false);
+            bluetooth_status = CONNECTED;    
+        }
+    }
+    my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));            
+}
+
+uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num)
+{    
+    uint8_t _flag=0;
+    for (int j=0;j<200;j++)
+    {
+        if (buff[j]==_string[0])
+        {
+            _flag=1;
+            for (int k=0;k<strlen(_string);k++)
             {
-                _flag=1;                                                
+                if (buff[j+k]!=_string[k]) \
+                {
+                    _flag=0;
+                    k=strlen(_string);
+                }                                    
+            }                        
+        }
+        if (_flag) {
+                *num=j;
+                buff[j]=_char;
+                return 1;
+        }
+    }
+    return 0;
+}
+
+uint8_t finder_msg(uint8_t *buff)
+{    
+    uint8_t _flag=0;
+    uint8_t _string[20]={'0','2'};
+
+    //ILI9341_WriteString(1, 30, _string, Font_11x18, ILI9341_RED, ILI9341_WHITE);
+    for (int j=0;j<200;j++)
+    {
+        if (buff[j]==_string[0] & buff[j+1]==_string[1])
+        {
+            _flag=1;                                                
+        }
+        if (_flag) 
+        {
+            if (buff[j+2]==0x04)
+            {
+                uint8_t check_sum=0;
+                for (int a=0;a<10;a++)
+                {
+                    check_sum+=buff[j+a];
+                }                                
+                if (buff[j+10]==check_sum)
+                {
+                    SERIAL[2] = buff[j+3];
+                    SERIAL[3] = buff[j+4];
+                    SERIAL[4] = buff[j+5];
+                    SERIAL[5] = buff[j+6];
+                    SERIAL[6] = buff[j+7];
+                    SERIAL[7] = buff[j+8];
+                    SERIAL[8] = buff[j+9];
+                    
+                    FmcProgramSerial();                        
+                
+                    buff[j]=0xFF;
+                
+                    delay_1ms(200);                                    
+                    device_OFF();
+                
+                    return 1;
+                }
             }
-            if (_flag) 
+            else if (buff[j+2]==0x03)
             {
-                if (buff[j+2]==0x04)
+                uint8_t check_sum=0;
+                for (int a=0;a<10;a++)
                 {
-                    uint8_t check_sum=0;
-                    for (int a=0;a<10;a++)
-                    {
-                        check_sum+=buff[j+a];
-                    }                                
-                    if (buff[j+10]==check_sum)
-                    {
-                        SERIAL[2] = buff[j+3];
-                        SERIAL[3] = buff[j+4];
-                        SERIAL[4] = buff[j+5];
-                        SERIAL[5] = buff[j+6];
-                        SERIAL[6] = buff[j+7];
-                        SERIAL[7] = buff[j+8];
-                        SERIAL[8] = buff[j+9];
-                        
-                        FmcProgramSerial();                        
-                    
-                        buff[j]=0xFF;
-                    
-                        delay_1ms(200);                                    
-                        device_OFF();
-                    
-                        return 1;
-                    }
-                }
-                else if (buff[j+2]==0x03)
-                {
-                    uint8_t check_sum=0;
-                    for (int a=0;a<10;a++)
-                    {
-                        check_sum+=buff[j+a];
-                    }                                
-                    if (buff[j+10]==check_sum){
-                        cur_day=cur_month=cur_month=cur_year=cur_tss=cur_tmm=cur_thh=0;
-                        cur_day=(uint16_t)buff[j+3];
-                        cur_month=(uint16_t)buff[j+4];
-                        cur_year=(uint16_t)(2000+buff[j+5]);
-                        cur_tss=(uint32_t)buff[j+6];
-                        cur_tmm=(uint32_t)buff[j+7];
-                        cur_thh=(uint32_t)buff[j+8];    
-                    
-                        time_set((uint32_t)cur_thh,(uint32_t)cur_tmm,(uint32_t)cur_tss);
-                        write_backup_register((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
-                    
-                        buff[j]=0xFF;
-                        return 2;                    }
-                }
+                    check_sum+=buff[j+a];
+                }                                
+                if (buff[j+10]==check_sum){
+                    cur_day=cur_month=cur_month=cur_year=cur_tss=cur_tmm=cur_thh=0;
+                    cur_day=(uint16_t)buff[j+3];
+                    cur_month=(uint16_t)buff[j+4];
+                    cur_year=(uint16_t)(2000+buff[j+5]);
+                    cur_tss=(uint32_t)buff[j+6];
+                    cur_tmm=(uint32_t)buff[j+7];
+                    cur_thh=(uint32_t)buff[j+8];    
+                
+                    time_set((uint32_t)cur_thh,(uint32_t)cur_tmm,(uint32_t)cur_tss);
+                    write_backup_register((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
+                
+                    buff[j]=0xFF;
+                    return 2;                    }
             }
         }
-        return 0;
+    }
+    return 0;
 }
 
 void FmcFlagsClear(void)
@@ -1162,7 +1214,8 @@ void FmcFlagsClear(void)
     fmc_flag_clear(FMC_FLAG_BANK0_PGERR);
 }
 
-void FmcErasePage(uint32_t page_address){
+void FmcErasePage(uint32_t page_address)
+{
     /* unlock the flash program/erase controller */
     fmc_unlock();
 
@@ -1262,25 +1315,29 @@ void FmcSerialCheck(void)
     my_send_string_UART_0(cur_buff,strlen(cur_buff));
 }
 
-void write_backup_register(uint16_t day, uint16_t month, uint16_t year){
-        BKP_DATA10_41(10) = day;
-        BKP_DATA10_41(11) = month;
-        BKP_DATA10_41(12) = year;
+void write_backup_register(uint16_t day, uint16_t month, uint16_t year)
+{
+    BKP_DATA10_41(10) = day;
+    BKP_DATA10_41(11) = month;
+    BKP_DATA10_41(12) = year;
 }
 
-void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year){
-        *_day = BKP_DATA_GET(BKP_DATA10_41(10));
-        *_month = BKP_DATA_GET(BKP_DATA10_41(11));
-        *_year = BKP_DATA_GET(BKP_DATA10_41(12));
+void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year)
+{
+    *_day = BKP_DATA_GET(BKP_DATA10_41(10));
+    *_month = BKP_DATA_GET(BKP_DATA10_41(11));
+    *_year = BKP_DATA_GET(BKP_DATA10_41(12));
 }
 
-void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8_t c_ss, uint8_t c_mm, uint8_t c_hh, int16_t sis, int16_t dia, int16_t pressure, int16_t bonus){        
-        uint8_t cur_buff[13]={'0','2', 0x01, c_day, c_month, c_year, c_ss, c_mm, c_hh, sis, dia, pressure, bonus};        
-        uint8_t c_summ=0;        
-        for (int q=0;q<13;q++){
-                c_summ+=cur_buff[q];
-        }            
-        cur_buff[13]=c_summ;
-        my_send_string_UART_0(cur_buff,14);
+void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8_t c_ss, uint8_t c_mm, uint8_t c_hh, int16_t sis, int16_t dia, int16_t pressure, int16_t bonus)
+{
+    uint8_t cur_buff[13]={'0','2', 0x01, c_day, c_month, c_year, c_ss, c_mm, c_hh, sis, dia, pressure, bonus};        
+    uint8_t c_summ=0;        
+    for (int q=0;q<13;q++)
+    {
+       c_summ+=cur_buff[q];
+    }            
+    cur_buff[13]=c_summ;
+    my_send_string_UART_0(cur_buff,14);
 }
 

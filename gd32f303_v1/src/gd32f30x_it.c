@@ -108,6 +108,8 @@ uint8_t UART0_flag=0;
 
 int shutdown_counter = 0;
 int process_counter = 0;
+int show_pressure_counter = 0;
+
 
 int button_touched = 0;
 int button_pressed = 0;
@@ -240,6 +242,7 @@ void TIMER1_IRQHandler(void)
         timer_enable(TIMER1);            
 
         if (lock_counter > 0) lock_counter--;
+        if (show_pressure_counter > 0) show_pressure_counter--;
 
         process_counter++;
             

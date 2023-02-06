@@ -47,6 +47,7 @@
 #define SHUTDOWN_INTERVAL 10000 //100 seconds
 #define SEVEN_SECONDS 700
 #define MIN_PUMPING_INTERVAL 1000
+#define SHOW_PRESSURE_INTERVAL 40
 
 #define CONNECTED 1
 #define DISCONNECTED 0
@@ -315,6 +316,7 @@ extern double rate_fract;
 
 extern int shutdown_counter;
 extern int process_counter;
+extern int show_pressure_counter;
 
 extern int button_touched;
 extern int button_pressed;
