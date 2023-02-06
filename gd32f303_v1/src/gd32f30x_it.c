@@ -274,16 +274,18 @@ void TIMER1_IRQHandler(void)
             }
         }
 
-        if (mode == INIT_START) {
-                if (button_pressed_counter > GO_TO_TEST_INTERVAL) {
-                    ILI9341_FillScreen(ILI9341_WHITE);
-                    timer_2_stop();
-                    i2c_calibration();
-                    VALVE_1_ON;
-                    VALVE_2_ON;
-                    button_pressed_counter = 0;
-                    mode = PRESSURE_TEST;
-                }
+        if (mode == INIT_START) 
+        {
+            if (button_pressed_counter > GO_TO_TEST_INTERVAL) 
+            {
+                ILI9341_FillScreen(ILI9341_WHITE);
+                timer_2_stop();
+                i2c_calibration();
+                VALVE_FAST_CLOSE;
+                VALVE_SLOW_CLOSE;
+                button_pressed_counter = 0;
+                mode = PRESSURE_TEST;
+            }
         }
         else {
             if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
@@ -353,8 +355,8 @@ void TIMER2_IRQHandler(void)
                     timer_2_stop();
                     print_error(2);
                     PUMP_OFF;
-                    VALVE_1_OFF;
-                    VALVE_2_OFF;
+                    VALVE_FAST_OPEN;
+                    VALVE_SLOW_OPEN;
                     mode = START_SCREEN;
                 }
                 
@@ -364,8 +366,8 @@ void TIMER2_IRQHandler(void)
                     timer_2_stop();
                     print_error(3);
                     PUMP_OFF;
-                    VALVE_1_OFF;
-                    VALVE_2_OFF;
+                    VALVE_FAST_OPEN;
+                    VALVE_SLOW_OPEN;
                     mode = START_SCREEN;
                 }
             }
@@ -434,7 +436,12 @@ void TIMER2_IRQHandler(void)
                     main_index=0;
                     send_counter=0;
             }
-        }                
+        } 
+        else if (mode == PRESSURE_TEST)
+        {
+            VALVE_FAST_CLOSE;
+            VALVE_SLOW_CLOSE;
+        }
     }
 }
 

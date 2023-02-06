@@ -17,10 +17,10 @@
 
 #define PUMP_ON     gpio_bit_set(GPIOC, GPIO_PIN_11)
 #define PUMP_OFF    gpio_bit_reset(GPIOC, GPIO_PIN_11)
-#define VALVE_1_ON  gpio_bit_set(GPIOC, GPIO_PIN_12)
-#define VALVE_1_OFF gpio_bit_reset(GPIOC, GPIO_PIN_12)
-#define VALVE_2_ON  gpio_bit_set(GPIOC, GPIO_PIN_13)
-#define VALVE_2_OFF gpio_bit_reset(GPIOC, GPIO_PIN_13)
+#define VALVE_FAST_CLOSE    gpio_bit_set(GPIOC, GPIO_PIN_12)
+#define VALVE_FAST_OPEN     gpio_bit_reset(GPIOC, GPIO_PIN_12)
+#define VALVE_SLOW_CLOSE    gpio_bit_set(GPIOC, GPIO_PIN_13)
+#define VALVE_SLOW_OPEN     gpio_bit_reset(GPIOC, GPIO_PIN_13)
 
 #define INIT_START 0
 #define START_SCREEN 1
@@ -36,7 +36,7 @@
 #define SEC_AFTER_MAX 8
 #define DELAY_AFTER_PUMPING 50
 #define DELAY_AFTER_START 400
-#define DELAY_FOR_ERROR 500
+#define DELAY_FOR_ERROR 1000
 #define PRESSURE_FOR_ERROR 12
 #define MAX_ALLOWED_PRESSURE 176
 #define AVER_SIZE 10
@@ -133,9 +133,9 @@ int GetMaxIndexInRegion(int16_t *sourceArray, int index);
 int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index);
     
 void f_sorting_MAX(void);
-void Get_Sys_Dia(void);
+void GetSysDia(void);
 
-uint16_t puls_convert(void);
+uint16_t CountPulse(void);
 void clear_monitor(void);
 void usb_send_16(short int T1, short int T2);
 short int convert_NO_save(void);

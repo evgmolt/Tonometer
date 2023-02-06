@@ -5,50 +5,57 @@
 #define DiaCoeff 0.62
 #define SysCoeff 0.46
 
-uint16_t puls_convert(void){
-        double level = 0.06;
-        uint16_t intervals[50]={0};
-        double first_puls=0;
-        int16_t cur_puls=0;
-        puls_out=0;
-        puls_cur_counter=0;
-        if (puls_counter<10) return 0;
-        for (int m=3;m<puls_counter-3;m++){
-                cur_puls=puls_buff[m]-puls_buff[m-1];
-                if (cur_puls>LoLimit & cur_puls<HiLimit){
-                        first_puls+=cur_puls;
-                        puls_cur_counter++;
-                }
-        }        
-        first_puls=first_puls/puls_cur_counter;
-        
-        puls_cur_counter=0;
-        for (int m=1;m<puls_counter;m++){
-                cur_puls=puls_buff[m]-puls_buff[m-1];
-                if (cur_puls>LoLimit & cur_puls<HiLimit & cur_puls*1.5>first_puls & cur_puls/1.5<first_puls){
-                        puls_out+=cur_puls;
-                        intervals[puls_cur_counter]=cur_puls;
-                        puls_cur_counter++;    
-                }
+uint16_t CountPulse(void)
+{
+    double level = 0.06;
+    uint16_t intervals[50]={0};
+    double first_puls=0;
+    int16_t cur_puls=0;
+    puls_out=0;
+    puls_cur_counter=0;
+    if (puls_counter<10) return 0;
+    for (int m = 3; m < puls_counter - 3; m++)
+    {
+        cur_puls = puls_buff[m] - puls_buff[m-1];
+        if (cur_puls > LoLimit & cur_puls < HiLimit)
+        {
+            first_puls+=cur_puls;
+            puls_cur_counter++;
         }
-        
-        double Aver=puls_out/puls_cur_counter;
-        double TwentyFivePercent = Aver / 4;
-        int Counter = 0;
-    double SumSqr = 0;
-        for (int i = 0; i < puls_cur_counter; i++){
-                double Diff = intervals[i] - Aver;
-                if (abs(Diff) < TwentyFivePercent){
-                        SumSqr += Diff * Diff;
-                        Counter++;
-                }
+    }        
+    first_puls=first_puls / puls_cur_counter;
+    
+    puls_cur_counter = 0;
+    for (int m=1;m<puls_counter;m++)
+    {
+        cur_puls=puls_buff[m]-puls_buff[m-1];
+        if (cur_puls > LoLimit & cur_puls < HiLimit & cur_puls * 1.5 > first_puls & cur_puls / 1.5 < first_puls)
+        {
+            puls_out+=cur_puls;
+            intervals[puls_cur_counter]=cur_puls;
+            puls_cur_counter++;    
+        }
     }
-        
-        double SKO = sqrt(SumSqr/Counter);
-        arrhythmia = (SKO/Aver)>level;
-        
-        puls_out=60/(puls_out/(puls_cur_counter*frequency));
-        return puls_out;
+    
+    double Aver=puls_out / puls_cur_counter;
+    double TwentyFivePercent = Aver / 4;
+    int Counter = 0;
+    double SumSqr = 0;
+    for (int i = 0; i < puls_cur_counter; i++)
+    {
+        double Diff = intervals[i] - Aver;
+        if (abs(Diff) < TwentyFivePercent)
+        {
+            SumSqr += Diff * Diff;
+            Counter++;
+        }
+    }
+    
+    double SKO = sqrt(SumSqr/Counter);
+    arrhythmia = (SKO/Aver)>level;
+    
+    puls_out=60/(puls_out/(puls_cur_counter*frequency));
+    return puls_out;
 }
 
 
@@ -188,7 +195,7 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues){
 }
 
 
-void Get_Sys_Dia(void)
+void GetSysDia(void)
 {
     double MaximumAmplitude=-100;
     int skip = 3;

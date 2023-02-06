@@ -242,11 +242,7 @@ int main(void)
     while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}
     
     EN_BUTT_FLAG=0;    
-                
-    PUMP_OFF;
-    VALVE_1_OFF;
-    VALVE_2_OFF;    
-    
+                   
     if (sim800_FLAG) {}      //GSM module ...        
     delay_1ms(1000);
     if (mode != USB_CHARGING) {            
@@ -296,8 +292,8 @@ int main(void)
                     current_pressure=0;
                     i2c_calibration();
                     PUMP_ON;
-                    VALVE_1_ON;
-                    VALVE_2_ON;
+                    VALVE_FAST_CLOSE;
+                    VALVE_SLOW_CLOSE;
                     _lockInterval=50;
                     sector_start_scan=0;
                     reset_detector();
@@ -325,6 +321,8 @@ int main(void)
                     reset_detector();
                     puls_counter=0;      
                     stop_meas = false;
+                    PUMP_OFF;
+                    VALVE_SLOW_OPEN;
                     mode = MEASUREMENT;        
                 }                        
                 break;
@@ -351,8 +349,6 @@ int main(void)
                 shutdown_counter = 0;
                 if (button_released) abort_meas();
                 if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
-                PUMP_OFF;
-                VALVE_2_OFF;
                 if (main_index>1+size_pack*(count_send_bluetooth+1))
                 {                        
                     uint8_t c_summ=0;                            
@@ -385,8 +381,8 @@ int main(void)
                     GetArrayOfWaveIndexes(PressurePulsationArray, puls_buff, puls_buff_NEW);
                     f_sorting_MAX();
                     CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
-                    Get_Sys_Dia();
-                    puls_convert();    
+                    GetSysDia();
+                    CountPulse();    
                     bonus_byte=0;
                     if (main_index>1000 & 
                         PSys > MIN_SYS & 
@@ -418,8 +414,8 @@ int main(void)
                     }
                     send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
                     
-                    VALVE_1_OFF;
-                    VALVE_2_OFF;
+                    VALVE_FAST_OPEN;
+                    VALVE_SLOW_OPEN;
                     mode = SEND_SAVE_BUFF_MSG;   
 //                        mode = INIT_START;
                 }                    
@@ -465,8 +461,8 @@ void abort_meas(void)
 {
     mode = START_SCREEN;
     PUMP_OFF;
-    VALVE_1_OFF;
-    VALVE_2_OFF;
+    VALVE_FAST_OPEN;
+    VALVE_SLOW_OPEN;
     button_released = 0;
     button_pressed_counter = 0;
 }
@@ -971,8 +967,8 @@ void button_interrupt_config(void){
 
 void device_OFF(void){
         PUMP_OFF;
-        VALVE_1_OFF;
-        VALVE_2_OFF;
+        VALVE_FAST_OPEN;
+        VALVE_SLOW_OPEN;
         ILI9341_FillScreen(ILI9341_BLACK);
         gpio_bit_reset(GPIOC, GPIO_PIN_9);
 }
