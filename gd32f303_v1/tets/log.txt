@@ -1,3 +1,0 @@
-Start connect
-port.GetValueNames
-new Serial port

@@ -57,8 +57,8 @@ extern uint16_t frequency;
 const int LoLimit = 50;  //ms - 200 
 const int HiLimit = 250; //ms - 30
 
-uint8_t EN_BUTT_FLAG=0;
-uint8_t EN_BUTT_count=0;
+uint8_t en_butt_flag=0;
+uint8_t en_butt_count=0;
 
 uint8_t UART1_buff[200]={0};
 uint8_t UART1_count=0;
@@ -82,11 +82,11 @@ double stop_meas_coeff = 0.65;
 int16_t current_value=0;
 double current_max=0;
 double global_max=0;
-uint8_t Wave_detect_FLAG=0;
+uint8_t wave_detect_flag=0;
 int16_t Wave_detect_time=0;
 int16_t Wave_detect_time_OLD=0;
 int16_t T_Wave=0;
-uint8_t Wave_ind_FLAG=0;
+uint8_t wave_ind_flag=0;
 int16_t silence_time_start=0;
 int16_t MAX_dir_wave=0;
 int16_t puls_buff[50]={0};
@@ -254,27 +254,27 @@ void TIMER1_IRQHandler(void)
         }
     
         button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
-        if (button_touched) {
+        if (button_touched) 
+        {
             button_touched_counter++;
-            if (button_touched_counter > DEBONCE_INTERVAL) {
-                button_pressed = 1;
-            }
+            if (button_touched_counter > DEBONCE_INTERVAL) button_pressed = 1;
         }
-        else {
+        else 
+        {
             button_touched = 0;
             button_pressed = 0;
             button_released = 0;
             button_touched_counter = 0;
         }
         
-        if (button_pressed) {
+        if (button_pressed) 
+        {
             button_pressed_counter++;
             shutdown_counter = 0;
         }
-        else {
-            if (button_pressed_counter > 0) {
-                button_released = 1;
-            }
+        else 
+        {
+            if (button_pressed_counter > 0) button_released = 1;
         }
 
         if (mode == INIT_START) 
@@ -340,7 +340,7 @@ void TIMER2_IRQHandler(void)
                         if (main_index > MAX_counter + SEC_AFTER_MAX * frequency)
                         {    
                             main_index=0;        
-                            Wave_detect_FLAG=0;                                                    
+                            wave_detect_flag=0;                                                    
                             current_max = 0;    
                             global_max = 0;
                             //MAX_counter=0;
@@ -400,8 +400,8 @@ void TIMER2_IRQHandler(void)
                 {                                        
                     current_value = GetDerivative(PressurePulsationArray, main_index-1);
                     usb_send_16(current_value, current_max); 
-                    if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) Wave_detect_FLAG=1;
-                    if (Wave_detect_FLAG==1 & (main_index-1)>(silence_time_start+_lockInterval))
+                    if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) wave_detect_flag=1;
+                    if (wave_detect_flag==1 & (main_index-1)>(silence_time_start+_lockInterval))
                     {
                         if (current_value > current_max) 
                         {
@@ -418,14 +418,14 @@ void TIMER2_IRQHandler(void)
                             Wave_detect_time_OLD=Wave_detect_time;
                             Wave_detect_time=MAX_counter-1;                                                                                                                        
                             puls_buff[puls_counter++]=MAX_counter-1;
-                            Wave_ind_FLAG=1;                                                
+                            wave_ind_flag=1;                                                
                             _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
                             if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
                             silence_time_start = MAX_counter-1;
                             detect_level = current_max * detect_levelCoeff;
                             if (detect_level < detect_level_start) detect_level = detect_level_start;
                             current_max=0;
-                            Wave_detect_FLAG=0;
+                            wave_detect_flag=0;
                         }
                     }                        
                 }                        
@@ -452,7 +452,7 @@ void reset_detector(void)
 {
     process_counter = 0;
     main_index=0;        
-    Wave_detect_FLAG=0;    
+    wave_detect_flag=0;    
     current_max=0;        
     global_max=0;        
     detect_level=detect_level_start;
@@ -625,8 +625,8 @@ void EXTI5_9_IRQHandler(void)
     if (RESET != exti_interrupt_flag_get(EXTI_8)){
         int statusBtn = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
             if (statusBtn){
-//                    EN_BUTT_FLAG=1;
-//                    EN_BUTT_count=0;
+//                    en_butt_flag=1;
+//                    en_butt_count=0;
             }
     }
     exti_interrupt_flag_clear(EXTI_8);

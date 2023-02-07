@@ -179,11 +179,11 @@ extern bool stop_meas;
 extern uint16_t detect_FLAG;
 extern uint16_t finish_time;
 
-extern const int LoLimit;  //ms - 200 
+extern const int LoLimit; //ms - 200 
 extern const int HiLimit; //ms - 30
 
-extern uint8_t EN_BUTT_FLAG;
-extern uint8_t EN_BUTT_count;
+extern uint8_t en_butt_flag;
+extern uint8_t en_butt_count;
 
 extern uint8_t UART1_buff[200];
 extern uint8_t UART1_count;
@@ -207,11 +207,11 @@ extern double stop_meas_coeff;
 extern int16_t current_value;
 extern double current_max;
 extern double global_max;
-extern uint8_t Wave_detect_FLAG;
+extern uint8_t wave_detect_flag;
 extern int16_t Wave_detect_time;
 extern int16_t Wave_detect_time_OLD;
 extern int16_t T_Wave;
-extern uint8_t Wave_ind_FLAG;
+extern uint8_t wave_ind_flag;
 extern int16_t silence_time_start;
 extern int16_t MAX_dir_wave;
 extern int16_t puls_buff[50];

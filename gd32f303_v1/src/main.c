@@ -68,10 +68,10 @@ __IO uint32_t timedisplay;
 #define I2C0_OWN_ADDRESS7      0x72 
 #define I2C0_SLAVE_ADDRESS7    0x91 
 
-extern uint8_t EN_BUTT_FLAG;
-extern uint8_t EN_BUTT_count;
-extern uint8_t Wave_ind_FLAG;
-extern uint8_t Wave_detect_FLAG;
+extern uint8_t en_butt_flag;
+extern uint8_t en_butt_count;
+extern uint8_t wave_ind_flag;
+extern uint8_t wave_detect_flag;
 extern int16_t T_Wave;
 extern double detect_level;
 extern int16_t silence_time_start;
@@ -185,41 +185,42 @@ int main(void)
     nvic_config_2();         // timer 2
     timer_config_2();        // timer 2        
     
-    i2c_config();                                                                                                                //I2C ADS1115
-    ADS1115_config(0b00000010, 0x00, 0x00);                                                            //Lo
-    ADS1115_config(0b00000011, 0xFF, 0xFF);                                                            //Hi
-    ADS1115_config(0b00000001, Hi_ADS1115_config, Lo_ADS1115_config);        //preconfig
+    i2c_config();                                                      //I2C ADS1115
+    ADS1115_config(0b00000010, 0x00, 0x00);                            //Lo
+    ADS1115_config(0b00000011, 0xFF, 0xFF);                            //Hi
+    ADS1115_config(0b00000001, Hi_ADS1115_config, Lo_ADS1115_config);  //preconfig
     //ADS1115_read_IT();
     //i2c_init();
 
-    ADC_rcu_config();                                                                                // ADC0
-    ADC_gpio_config();                                                                            // ADC0
-    dma_config();                                                                                        // ADC0
-    adc_config();                                                                                        // ADC0
-    adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL);    // ADC0
+    ADC_rcu_config();   // ADC0
+    ADC_gpio_config();  // ADC0
+    dma_config();       // ADC0
+    adc_config();       // ADC0
+    adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL); // ADC0
     
-    nvic_irq_enable(USART1_IRQn, 0, 0);                            // UART1
-    usart_config_1();                                                                // UART1
-    usart_interrupt_enable(USART1, USART_INT_RBNE);    // UART1
+    nvic_irq_enable(USART1_IRQn, 0, 0);             // UART1
+    usart_config_1();                               // UART1
+    usart_interrupt_enable(USART1, USART_INT_RBNE); // UART1
     
-    nvic_irq_enable(USART0_IRQn, 0, 0);                            // UART0
-    usart_config_0();                                                                // UART0
-    usart_interrupt_enable(USART0, USART_INT_RBNE);    // UART0
+    nvic_irq_enable(USART0_IRQn, 0, 0);             // UART0
+    usart_config_0();                               // UART0
+    usart_interrupt_enable(USART0, USART_INT_RBNE); // UART0
         
     //while (USBD_CONFIGURED != usbd_cdc.cur_status) {/* wait for standard USB enumeration is finished */}    
         
     ILI9341_Init();
     ILI9341_Touch_init();
     
-    if (mode == USB_CHARGING){
-            ILI9341_FillScreen(ILI9341_BLACK);
-            print_battery();
+    if (mode == USB_CHARGING)
+    {
+        ILI9341_FillScreen(ILI9341_BLACK);
+        print_battery();
     }
     else ILI9341_FillScreen(ILI9341_WHITE);
     
     button_interrupt_config();
     
-    EN_BUTT_FLAG=1;
+    en_butt_flag=1;
     
     if (mode == INIT_START){        
         print_heart(true);
@@ -232,7 +233,8 @@ int main(void)
         print_num_H(888,235,120,RED);
         print_num_H(888,235,250,BLACK);        
     }
-    else if (mode == PRESSURE_TEST){
+    else if (mode == PRESSURE_TEST)
+    {
         ILI9341_FillRectangle(70, 150, 100, 50, ILI9341_WHITE);
     }    
     
@@ -241,7 +243,7 @@ int main(void)
     delay_1ms(300);
     while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}
     
-    EN_BUTT_FLAG=0;    
+    en_butt_flag=0;    
                    
     if (sim800_FLAG) {}      //GSM module ...        
     delay_1ms(1000);
@@ -450,12 +452,12 @@ int main(void)
             UART0_flag=0;
         }
         
-        if (Wave_ind_FLAG)
+        if (wave_ind_flag)
         {                
             print_heart(true);
             delay_1ms(200);
             print_heart(false);
-            Wave_ind_FLAG=0;
+            wave_ind_flag=0;
         }
                     
         if (0U == cdc_acm_check_ready(&usbd_cdc)) 
