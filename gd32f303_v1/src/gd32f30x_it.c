@@ -47,8 +47,7 @@ extern short int  save_clear[10000];
 extern uint32_t main_index;
 extern uint32_t send_counter;
 extern int i2c_out_K;
-extern short int PressurePulsationArray[10000];
-extern short int EnvelopeArray[10000];
+extern short int PressureArray[10000];
 extern uint16_t count_send_bluetooth;
 extern uint8_t start_send_ble_flag;
 extern uint8_t start_finish_ble_flag;
@@ -323,14 +322,14 @@ void TIMER2_IRQHandler(void)
                 }
                 else if (main_index>300)
                 {
-                    PressurePulsationArray[main_index-1] = SmoothAndRemoveDC(save_clear, DCArrayWindow, ACArrayWindow);											
+                    PressureArray[main_index-1] = SmoothAndRemoveDC(save_clear, DCArrayWindow, ACArrayWindow);											
                 }	
             
                 if (main_index >= DELAY_AFTER_START)
                 {                                        
-                    current_value=GetDerivative(PressurePulsationArray, main_index-1);
+                    current_value=GetDerivative(PressureArray, main_index-1);
                     usb_send_16(current_value,(short)current_max);
-                    if (current_value>current_max)
+                    if (current_value > current_max)
                     {
                         current_max=current_value;
                         MAX_counter=main_index;
@@ -384,21 +383,21 @@ void TIMER2_IRQHandler(void)
                 {
                     if (lock_counter > 0)
                     {
-                        PressurePulsationArray[main_index-1] = 0; 
+                        PressureArray[main_index-1] = 0; 
                     }
                     else
                     {
-                        PressurePulsationArray[main_index-1] = SmoothAndRemoveDC(save_clear, DCArrayWindow, ACArrayWindow);  
+                        PressureArray[main_index-1] = SmoothAndRemoveDC(save_clear, DCArrayWindow, ACArrayWindow);  
                     }
                 }    
                 else         
                 {
-                    PressurePulsationArray[main_index-1]=0;
+                    PressureArray[main_index-1]=0;
                 }
                                     
                 if (main_index >= DELAY_AFTER_PUMPING)
                 {                                        
-                    current_value = GetDerivative(PressurePulsationArray, main_index-1);
+                    current_value = GetDerivative(PressureArray, main_index-1);
                     usb_send_16(current_value, current_max); 
                     if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) wave_detect_flag=1;
                     if (wave_detect_flag==1 & (main_index-1)>(silence_time_start+_lockInterval))
@@ -433,7 +432,7 @@ void TIMER2_IRQHandler(void)
         }
         else if (mode == SEND_SAVE_BUFF_MSG) 
         {
-            if (usb_send_save(PressurePulsationArray,EnvelopeArray)){            
+            if (usb_send_save(PressureArray, PressureArray)){            
                     mode = INIT_START;
                     timer_2_stop();
                     main_index=0;

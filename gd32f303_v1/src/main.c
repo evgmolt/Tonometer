@@ -148,8 +148,7 @@ uint16_t count_send_bluetooth=0;
 uint8_t size_pack=20;
 short int save_clear[10000]={0};
 uint32_t main_index=0;
-short int PressurePulsationArray[10000]={0};
-short int EnvelopeArray[10000]={0};
+short int PressureArray[10000]={0};
 uint32_t send_counter=0;
 
 int lock_counter = 0;
@@ -389,8 +388,7 @@ int main(void)
                     ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
                     ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
                 
-                    memset(EnvelopeArray, 0, 10000);
-                    GetArrayOfWaveIndexes(PressurePulsationArray, puls_buff, puls_buff_NEW);
+                    GetArrayOfWaveIndexes(PressureArray, puls_buff, puls_buff_NEW);
                     f_sorting_MAX();
                     CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
                     GetSysDia();
@@ -1029,11 +1027,11 @@ uint8_t usb_send_save(int16_t *mass1, int16_t *mass2)
     //Add markers of SYS, MAX and DIA points into array
     for (int h=0;h<puls_counter;h++)
     {
-            if (send_counter==XMax) PressurePulsationArray[send_counter]=100;                    
+            if (send_counter==XMax) PressureArray[send_counter]=100;                    
     }        
     for (int h=0;h<puls_counter;h++)
     {
-            if (send_counter==indexPSys | send_counter==indexPDia)PressurePulsationArray[send_counter]=-100;                    
+            if (send_counter==indexPSys | send_counter==indexPDia)PressureArray[send_counter]=-100;                    
     }        
     
     uint8_t send_H1=(mass1[send_counter]>>8)&0xFF;

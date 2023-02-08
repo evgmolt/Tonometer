@@ -303,8 +303,7 @@ extern uint8_t size_pack;
 
 extern short int save_clear[10000];
 extern uint32_t main_index;
-extern short int PressurePulsationArray[10000];
-extern short int EnvelopeArray[10000];
+extern short int PressureArray[10000];
 
 extern uint32_t send_counter;
 

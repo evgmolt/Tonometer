@@ -194,7 +194,7 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues)
             {
                 break;
             }
-            EnvelopeArray[i + j] = y1 + coeff * (j - x1);
+            PressureArray[i + j] = y1 + coeff * (j - x1);
         }                
     }
 }
@@ -221,7 +221,7 @@ void GetSysDia(void)
     
     for (int i = XMax; i >= 0; i--)
     {
-        if (EnvelopeArray[i] < ValueSys)
+        if (PressureArray[i] < ValueSys)
         {
             PSys = save_clear[i]/rate;
             indexPSys = i;
@@ -235,7 +235,7 @@ void GetSysDia(void)
 
     for (int i = XMax; i < main_index; i++)
     {
-        if (EnvelopeArray[i] < ValueDia)
+        if (PressureArray[i] < ValueDia)
         {
             PDia = save_clear[i]/rate;
             indexPDia = i;
