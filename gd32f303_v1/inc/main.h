@@ -5,18 +5,18 @@
 #include "usbd_conf.h"
 #include "stdbool.h"
 
-#define GREEN     0x1
-#define RED         0x2
-#define YELLOW     0x3
-#define BLACK     0x4
+#define GREEN 0x1
+#define RED 0x2
+#define YELLOW 0x3
+#define BLACK 0x4
 
 #define YELLOW_LEVEL_SYS 140
 #define RED_LEVEL_SYS 160
 #define YELLOW_LEVEL_DIA 90
 #define RED_LEVEL_DIA 100
 
-#define PUMP_ON     gpio_bit_set(GPIOC, GPIO_PIN_11)
-#define PUMP_OFF    gpio_bit_reset(GPIOC, GPIO_PIN_11)
+#define PUMP_ON             gpio_bit_set(GPIOC, GPIO_PIN_11)
+#define PUMP_OFF            gpio_bit_reset(GPIOC, GPIO_PIN_11)
 #define VALVE_FAST_CLOSE    gpio_bit_set(GPIOC, GPIO_PIN_12)
 #define VALVE_FAST_OPEN     gpio_bit_reset(GPIOC, GPIO_PIN_12)
 #define VALVE_SLOW_CLOSE    gpio_bit_set(GPIOC, GPIO_PIN_13)
@@ -80,13 +80,11 @@ void GPIO_config(void);
     
 void spi_rcu_config(void);
 void spi_gpio_config(void);    
-
 void spi_config(void);
 
 void nvic_configuration(void);
 void rtc_configuration(void);
 void print_time(uint32_t timevar);
-
 
 void usb_send_i2c_convers(void);
 void i2c_convers(void);    
@@ -179,8 +177,8 @@ extern bool stop_meas;
 extern uint16_t detect_FLAG;
 extern uint16_t finish_time;
 
-extern const int LoLimit; //ms - 200 
-extern const int HiLimit; //ms - 30
+extern const int lo_limit; //ms - 200 
+extern const int hi_limit; //ms - 30
 
 extern uint8_t en_butt_flag;
 extern uint8_t en_butt_count;
@@ -268,7 +266,7 @@ extern uint8_t indicate_charge_counter;
 
 extern uint16_t cur_day, cur_month, cur_year;
 extern uint32_t cur_thh,cur_tmm,cur_tss;
-extern uint32_t cur_tim;
+extern uint32_t cur_time;
 
 extern uint8_t bluetooth_status;
 extern uint8_t bonus_byte;

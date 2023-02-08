@@ -17,7 +17,7 @@ uint16_t CountPulse(void)
     for (int m = 3; m < puls_counter - 3; m++)
     {
         cur_puls = puls_buff[m] - puls_buff[m-1];
-        if (cur_puls > LoLimit & cur_puls < HiLimit)
+        if (cur_puls > lo_limit & cur_puls < hi_limit)
         {
             first_puls+=cur_puls;
             puls_cur_counter++;
@@ -29,7 +29,7 @@ uint16_t CountPulse(void)
     for (int m=1;m<puls_counter;m++)
     {
         cur_puls=puls_buff[m]-puls_buff[m-1];
-        if (cur_puls > LoLimit & cur_puls < HiLimit & cur_puls * 1.5 > first_puls & cur_puls / 1.5 < first_puls)
+        if (cur_puls > lo_limit & cur_puls < hi_limit & cur_puls * 1.5 > first_puls & cur_puls / 1.5 < first_puls)
         {
             puls_out+=cur_puls;
             intervals[puls_cur_counter]=cur_puls;

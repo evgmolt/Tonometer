@@ -53,8 +53,8 @@ extern uint8_t start_send_ble_flag;
 extern uint8_t start_finish_ble_flag;
 extern uint16_t frequency;
 
-const int LoLimit = 50;  //ms - 200 
-const int HiLimit = 250; //ms - 30
+const int lo_limit = 30;  // 256 bpm
+const int hi_limit = 250; // 30 bpm
 
 uint8_t en_butt_flag=0;
 uint8_t en_butt_count=0;
@@ -419,7 +419,7 @@ void TIMER2_IRQHandler(void)
                             puls_buff[puls_counter++]=MAX_counter-1;
                             wave_ind_flag=1;                                                
                             _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
-                            if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
+                            if (_lockInterval>hi_limit | _lockInterval<lo_limit) _lockInterval=50;
                             silence_time_start = MAX_counter-1;
                             detect_level = current_max * detect_levelCoeff;
                             if (detect_level < detect_level_start) detect_level = detect_level_start;

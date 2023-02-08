@@ -109,8 +109,8 @@ uint8_t Lo_ADS1115_config = 0b11100100;
 
 uint8_t ADS1115_FLAG=0;
 
-extern const int LoLimit;  
-extern const int HiLimit; 
+extern const int lo_limit;  
+extern const int hi_limit; 
 
 int16_t PSys = 0;
 int16_t PDia = 0;
@@ -131,7 +131,7 @@ uint8_t indicate_charge_toggle=1;
 uint8_t indicate_charge_counter=1;
 uint16_t cur_day=13, cur_month=12, cur_year=2022;
 uint32_t cur_thh=0,cur_tmm=0,cur_tss=0;
-uint32_t cur_tim=0;
+uint32_t cur_time=0;
 uint8_t bluetooth_status=0;
 uint8_t bonus_byte=0;
 uint8_t mode = INIT_START;
@@ -411,10 +411,10 @@ int main(void)
 
                         if (arrhythmia) print_heartX3(true);
                     
-                        cur_tim = rtc_counter_get();
-                        m_hh = cur_tim / 3600;
-                        m_mm = (cur_tim % 3600) / 60;
-                        m_ss = (cur_tim % 3600) % 60;
+                        cur_time = rtc_counter_get();
+                        m_hh = cur_time / 3600;
+                        m_mm = (cur_time % 3600) / 60;
+                        m_ss = (cur_time % 3600) % 60;
                         check_backup_register(&cur_day, &cur_month, &cur_year);
                         if     (cur_year>=255)    cur_year-=2000;
                     }
