@@ -277,8 +277,8 @@ extern uint8_t bonus_byte;
 extern uint32_t MAX_counter;
 extern uint16_t Time_measurement; 
 
-extern int16_t DCArrayWindow;
-extern int16_t ACArrayWindow;
+extern int16_t dc_array_window;
+extern int16_t ac_array_window;
 extern uint8_t UART0_flag;
 
 extern uint8_t Hi_ADS1115_config;
@@ -303,7 +303,8 @@ extern uint8_t size_pack;
 
 extern short int save_clear[10000];
 extern uint32_t main_index;
-extern short int PressureArray[10000];
+extern short int pressure_array[10000];
+extern short int dc_array[10000];
 
 extern uint32_t send_counter;
 

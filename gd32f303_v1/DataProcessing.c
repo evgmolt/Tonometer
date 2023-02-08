@@ -194,7 +194,7 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues)
             {
                 break;
             }
-            PressureArray[i + j] = y1 + coeff * (j - x1);
+            pressure_array[i + j] = y1 + coeff * (j - x1);
         }                
     }
 }
@@ -221,30 +221,30 @@ void GetSysDia(void)
     
     for (int i = XMax; i >= 0; i--)
     {
-        if (PressureArray[i] < ValueSys)
+        if (pressure_array[i] < ValueSys)
         {
-            PSys = save_clear[i]/rate;
+            PSys = dc_array[i]/rate;
             indexPSys = i;
             break;
         }
     }
     if (PSys == 0)
     {
-        PSys = save_clear[0]/rate;        
+        PSys = dc_array[0]/rate;        
     }
 
     for (int i = XMax; i < main_index; i++)
     {
-        if (PressureArray[i] < ValueDia)
+        if (pressure_array[i] < ValueDia)
         {
-            PDia = save_clear[i]/rate;
+            PDia = dc_array[i]/rate;
             indexPDia = i;
             break;
         }
     }
     if (PDia == 0)
     {
-        PDia = save_clear[main_index - 1] / rate;
+        PDia = dc_array[main_index - 1] / rate;
     }
 }
 
@@ -255,6 +255,7 @@ int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC){
                 DCLevel+=mass_in[main_index-1-r];
         }
         DCLevel/=DC;    
+        dc_array[main_index - 1] = DCLevel;
         for (int j=0;j<AC;j++){
        ACLevel+=mass_in[main_index-1-j];
     }
