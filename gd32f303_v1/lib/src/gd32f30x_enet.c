@@ -3244,7 +3244,7 @@ void enet_ptp_feature_disable(uint32_t feature)
       \arg        ENET_CKNT_PEER_TO_PEER: type of peer-to-peer transparent clock node type for timestamp
       \arg        ENET_PTP_ADDEND_UPDATE: addend register update
       \arg        ENET_PTP_SYSTIME_UPDATE: timestamp update
-      \arg        ENET_PTP_SYSTIME_INIT: timestamp initialize
+      \arg        ENET_PTP_SYSTimeInit: timestamp initialize
       \arg        ENET_PTP_FINEMODE: the system timestamp uses the fine method for updating
       \arg        ENET_PTP_COARSEMODE: the system timestamp uses the coarse method for updating
       \arg        ENET_SUBSECOND_DIGITAL_ROLLOVER: digital rollover mode
@@ -3299,7 +3299,7 @@ ErrStatus enet_ptp_timestamp_function_config(enet_ptp_function_enum func)
             ENET_PTP_TSCTL |= ENET_PTP_TSCTL_TMSSTU;
         }
         break;
-    case ENET_PTP_SYSTIME_INIT:
+    case ENET_PTP_SYSTimeInit:
         /* this bit must be read as zero before application set it */
         do{
             temp_state = ENET_PTP_TSCTL & ENET_PTP_TSCTL_TMSSTI;
@@ -3470,7 +3470,7 @@ void enet_ptp_start(int32_t updatemethod, uint32_t init_sec, uint32_t init_subse
 
     /* initialize the system time */
     enet_ptp_timestamp_update_config(ENET_PTP_ADD_TO_TIME, init_sec, init_subsec);
-    enet_ptp_timestamp_function_config(ENET_PTP_SYSTIME_INIT);
+    enet_ptp_timestamp_function_config(ENET_PTP_SYSTimeInit);
 
 #ifdef SELECT_DESCRIPTORS_ENHANCED_MODE
     enet_desc_select_enhanced_mode();
@@ -3543,10 +3543,10 @@ void enet_ptp_finecorrection_settime(enet_ptp_systime_struct * systime_struct)
 
     /* initialize the system time */
     enet_ptp_timestamp_update_config(systime_struct->sign, systime_struct->second, subsecond_val);
-    enet_ptp_timestamp_function_config(ENET_PTP_SYSTIME_INIT);
+    enet_ptp_timestamp_function_config(ENET_PTP_SYSTimeInit);
     
     /* wait until the system time initialzation finished */
-    while(SET == enet_ptp_flag_get((uint32_t)ENET_PTP_SYSTIME_INIT)){
+    while(SET == enet_ptp_flag_get((uint32_t)ENET_PTP_SYSTimeInit)){
     }
 }
 
@@ -3555,7 +3555,7 @@ void enet_ptp_finecorrection_settime(enet_ptp_systime_struct * systime_struct)
     \param[in]  flag: ptp flag status to be checked  
       \arg        ENET_PTP_ADDEND_UPDATE: addend register update
       \arg        ENET_PTP_SYSTIME_UPDATE: timestamp update
-      \arg        ENET_PTP_SYSTIME_INIT: timestamp initialize
+      \arg        ENET_PTP_SYSTimeInit: timestamp initialize
     \param[out] none
     \retval     FlagStatus: SET or RESET
 */

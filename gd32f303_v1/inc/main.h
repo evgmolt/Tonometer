@@ -101,11 +101,9 @@ void my_send_string_UART_1(char *buf, uint8_t num);
 void SIM_recieve_OK(void);
 int16_t GetAver(int16_t nextValue);
 void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color);
-void time_set(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss);
-void time_init(void);
-void i2c_init(void);
-void i2c_print(void);
-void button_interrupt_config(void);
+void TimeSet(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss);
+void TimeInit(void);
+void ButtonInterruptConfig(void);
 
 void DeviceOff(void);
 void i2cCalibration(void);
@@ -123,7 +121,6 @@ void Timer1Start(void);
 short int convert_save_16(void);
 
 uint8_t usb_send_save(int16_t *mass1, int16_t *mass2);
-void f_dis(void);
 
 int16_t GetDerivative(int16_t *dataArr, int32_t Ind);
 
@@ -169,7 +166,7 @@ void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uin
 void PrintSYS(int16_t IN);
 void PrintDIA(int16_t IN);
 
-void abort_meas(void);
+void AbortMeas(void);
 
 double ReadRateFromFmc();
 

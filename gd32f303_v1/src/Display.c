@@ -182,7 +182,7 @@ void print_time(uint32_t timevar){
         if (thh>23) {
                 cur_day++; 
                 thh=0;
-                time_set(thh,tmm,tss);
+                TimeSet(thh,tmm,tss);
                 write_backup_register(cur_day, cur_month, cur_year);                
         }
         if (cur_day>=29) { //add calendar....

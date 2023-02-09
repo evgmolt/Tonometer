@@ -166,7 +166,7 @@ bool stop_meas = false;
 int main(void)
 {
     nvic_configuration();      // RTC
-    time_init();                        // RTC
+    TimeInit();                        // RTC
 
     GPIO_config();    
     systick_config();
@@ -190,8 +190,7 @@ int main(void)
     ADS1115_config(0b00000011, 0xFF, 0xFF);                            //Hi
     ADS1115_config(0b00000001, Hi_ADS1115_config, Lo_ADS1115_config);  //preconfig
     //ADS1115_read_IT();
-    //i2c_init();
-
+    
     ADC_rcu_config();   // ADC0
     ADC_gpio_config();  // ADC0
     dma_config();       // ADC0
@@ -218,7 +217,7 @@ int main(void)
     }
     else ILI9341_FillScreen(ILI9341_WHITE);
     
-    button_interrupt_config();
+    ButtonInterruptConfig();
     
     en_butt_flag=1;
     
@@ -316,7 +315,7 @@ int main(void)
                 BluetoothCheck();
                 shutdown_counter = 0;
                 ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
-                if (button_released) abort_meas();
+                if (button_released) AbortMeas();
 //                if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
                 if (show_pressure_counter == 0)
                 {
@@ -355,7 +354,7 @@ int main(void)
                 break;
             case MEASUREMENT:
                 shutdown_counter = 0;
-                if (button_released) abort_meas();
+                if (button_released) AbortMeas();
                 if (show_pressure_counter == 0)
                 {
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
@@ -471,7 +470,7 @@ int main(void)
     }
 }
 
-void abort_meas(void) 
+void AbortMeas(void) 
 {
     mode = START_SCREEN;
     PUMP_OFF;
@@ -897,7 +896,7 @@ void rtc_configuration(void)
     rtc_lwoff_wait();
 }
 
-void time_set(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss)
+void TimeSet(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss)
 {
     rtc_configuration(); 
     rtc_lwoff_wait();
@@ -906,11 +905,11 @@ void time_set(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss)
     bkp_write_data(BKP_DATA_0, 0xA5A5);    
 }
 
-void time_init(void)
+void TimeInit(void)
 {
     if (bkp_read_data(BKP_DATA_0) != 0xA5A5)
     {
-        time_set(0, 0, 0);
+        TimeSet(0, 0, 0);
     }
     else
     {
@@ -930,47 +929,7 @@ void time_init(void)
     rcu_all_reset_flag_clear();
 }
 
-void i2c_init(void)
-{
-        /* wait until I2C bus is idle */
-    while(i2c_flag_get(I2C0, I2C_FLAG_I2CBSY));
-    /* send a start condition to I2C bus */
-    i2c_start_on_bus(I2C0);
-    /* wait until SBSEND bit is set */
-    while(!i2c_flag_get(I2C0, I2C_FLAG_SBSEND));        
-        /* send slave address to I2C bus */
-    i2c_master_addressing(I2C0, I2C0_SLAVE_ADDRESS7, I2C_TRANSMITTER);
-    /* wait until ADDSEND bit is set */
-    while(!i2c_flag_get(I2C0, I2C_FLAG_ADDSEND));
-    /* clear ADDSEND bit */
-    i2c_flag_clear(I2C0, I2C_FLAG_ADDSEND);
-    /* wait until the transmit data buffer is empty */
-    while(!i2c_flag_get(I2C0, I2C_FLAG_TBE));        
-
-    i2c_data_transmit(I2C0, 0x01);
-    while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}
-    i2c_data_transmit(I2C0, 0x8F);
-    while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}                
-    i2c_data_transmit(I2C0,0xC3);//0x83);//0xC3); //0xA3);
-    while(!i2c_flag_get(I2C0, I2C_FLAG_TBE)){}        
-        
-    /* send a stop condition to I2C bus */
-    i2c_stop_on_bus(I2C0);
-    /* wait until stop condition generate */
-    while(I2C_CTL0(I2C0) & 0x0200);            
-}
-
-void i2c_print(void)
-{
-    uint8_t buff1[10]={0};
-    i2c_convers();
-    i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-    current_pressure=((((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K)/rate);
-    sprintf(buff1,"%6d",i2c_out);
-    sprintf(buff1,"%6d",current_pressure);
-}
-
-void button_interrupt_config(void)
+void ButtonInterruptConfig(void)
 {
         //nvic_priority_group_set(NVIC_PRIGROUP_PRE2_SUB2);
     
@@ -1198,7 +1157,7 @@ uint8_t finder_msg(uint8_t *buff)
                     cur_tmm=(uint32_t)buff[j+7];
                     cur_thh=(uint32_t)buff[j+8];    
                 
-                    time_set((uint32_t)cur_thh,(uint32_t)cur_tmm,(uint32_t)cur_tss);
+                    TimeSet((uint32_t)cur_thh,(uint32_t)cur_tmm,(uint32_t)cur_tss);
                     write_backup_register((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
                 
                     buff[j]=0xFF;

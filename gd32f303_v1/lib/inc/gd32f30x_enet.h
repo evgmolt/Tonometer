@@ -1433,7 +1433,7 @@ typedef enum{
     ENET_CKNT_BOUNDARY                = PTP_TSCTL_CKNT(1),                                      /*!< type of boundary clock node type for timestamp */
     ENET_CKNT_END_TO_END              = PTP_TSCTL_CKNT(2),                                      /*!< type of end-to-end transparent clock node type for timestamp */
     ENET_CKNT_PEER_TO_PEER            = PTP_TSCTL_CKNT(3),                                      /*!< type of peer-to-peer transparent clock node type for timestamp */
-    ENET_PTP_SYSTIME_INIT             = ENET_PTP_TSCTL_TMSSTI,                                  /*!< timestamp initialize */
+    ENET_PTP_SYSTimeInit             = ENET_PTP_TSCTL_TMSSTI,                                  /*!< timestamp initialize */
     ENET_PTP_SYSTIME_UPDATE           = ENET_PTP_TSCTL_TMSSTU,                                  /*!< timestamp update */ 
     ENET_PTP_ADDEND_UPDATE            = ENET_PTP_TSCTL_TMSARU,                                  /*!< addend register update */
     ENET_PTP_FINEMODE                 = (int32_t)(ENET_PTP_TSCTL_TMSFCU| BIT(31)),              /*!< the system timestamp uses the fine method for updating */
