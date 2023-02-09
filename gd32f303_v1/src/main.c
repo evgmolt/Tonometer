@@ -296,7 +296,7 @@ int main(void)
                     PUMP_ON;
                     VALVE_FAST_CLOSE;
                     VALVE_SLOW_CLOSE;
-                    _lockInterval=50;
+                    lock_interval=50;
                     sector_start_scan=0;
                     reset_detector();
                     puls_counter=0;            

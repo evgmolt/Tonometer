@@ -203,7 +203,7 @@ extern float slim_K;
 
 extern int16_t detect_level_start;
 extern double detect_level;
-extern int16_t _lockInterval;
+extern int16_t lock_interval;
 extern double detect_levelCoeff;
 extern double stop_meas_coeff;
 extern int16_t current_value;

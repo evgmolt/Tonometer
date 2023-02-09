@@ -76,7 +76,7 @@ float slim_K=1;
 
 int16_t detect_level_start = 4;
 double detect_level = 4;
-int16_t _lockInterval = 50;
+int16_t lock_interval = 50;
 double detect_levelCoeff = 0.7;
 double stop_meas_coeff = 0.65;
 int16_t current_value=0;
@@ -407,8 +407,8 @@ void TIMER2_IRQHandler(void)
                     }
                     current_value = GetDerivative(PressurePulsationArray, main_index-1);
                     usb_send_16(current_value, current_max); 
-                    if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) wave_detect_flag=1;
-                    if (wave_detect_flag==1 & (main_index-1)>(silence_time_start+_lockInterval))
+                    if (current_value>detect_level & (main_index-1)>(silence_time_start+lock_interval)) wave_detect_flag=1;
+                    if (wave_detect_flag==1 & (main_index-1)>(silence_time_start +lock_interval))
                     {
                         if (current_value > current_max) 
                         {
@@ -426,8 +426,8 @@ void TIMER2_IRQHandler(void)
                             Wave_detect_time=MAX_counter-1;                                                                                                                        
                             puls_buff[puls_counter++]=MAX_counter-1;
                             wave_ind_flag=1;                                                
-                            _lockInterval=(Wave_detect_time-Wave_detect_time_OLD)/2;
-                            if (_lockInterval>HiLimit | _lockInterval<LoLimit) _lockInterval=50;
+                            lock_interval=(Wave_detect_time-Wave_detect_time_OLD)/2;
+                            if (lock_interval>HiLimit | lock_interval<LoLimit) lock_interval=50;
                             silence_time_start = MAX_counter-1;
                             detect_level = current_max * detect_levelCoeff;
                             if (detect_level < detect_level_start) detect_level = detect_level_start;
