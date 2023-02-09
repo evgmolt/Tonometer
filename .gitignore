@@ -54,3 +54,7 @@ Mkfile.old
 dkms.conf
 
 Data/*.txt
+
+BPM.*
+BPM.*.*
+
