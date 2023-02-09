@@ -67,6 +67,8 @@
 #define ERROR_TIME 3
 #define ERROR_MEAS 4
 
+#define NO_WAVE_INTERVAL 250
+
 /* function declarations */
 
 void i2c_config(void);
@@ -205,6 +207,7 @@ extern int16_t _lockInterval;
 extern double detect_levelCoeff;
 extern double stop_meas_coeff;
 extern int16_t current_value;
+extern int16_t current_interval;
 extern double current_max;
 extern double global_max;
 extern uint8_t wave_detect_flag;

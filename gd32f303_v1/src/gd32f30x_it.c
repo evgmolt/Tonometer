@@ -80,6 +80,7 @@ int16_t _lockInterval = 50;
 double detect_levelCoeff = 0.7;
 double stop_meas_coeff = 0.65;
 int16_t current_value=0;
+int16_t current_interval = 0;
 double current_max=0;
 double global_max=0;
 uint8_t wave_detect_flag=0;
@@ -346,6 +347,7 @@ void TIMER2_IRQHandler(void)
                             //MAX_counter=0;
                             Lock();
                             PUMP_OFF;
+                            VALVE_SLOW_OPEN;
                             stop_meas = false;
                             mode = MEASUREMENT;
                         }
@@ -397,7 +399,12 @@ void TIMER2_IRQHandler(void)
                 }
                                     
                 if (main_index >= DELAY_AFTER_PUMPING)
-                {                                        
+                {                
+                    current_interval++;
+                    if (current_interval > NO_WAVE_INTERVAL)
+                    {
+                        detect_level = detect_level_start;
+                    }
                     current_value = GetDerivative(PressurePulsationArray, main_index-1);
                     usb_send_16(current_value, current_max); 
                     if (current_value>detect_level & (main_index-1)>(silence_time_start+_lockInterval)) wave_detect_flag=1;
@@ -425,6 +432,7 @@ void TIMER2_IRQHandler(void)
                             detect_level = current_max * detect_levelCoeff;
                             if (detect_level < detect_level_start) detect_level = detect_level_start;
                             current_max=0;
+                            current_interval = 0;
                             wave_detect_flag=0;
                         }
                     }                        
