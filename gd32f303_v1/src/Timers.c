@@ -1,19 +1,19 @@
 #include "main.h"
 #include "Timers.h"
 
-void nvic_config_1(void)
+void NvicConfig1(void)
 {
     nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
     nvic_irq_enable(TIMER1_IRQn, 1, 1);
 }
 
-void nvic_config_2(void)
+void NvicConfig2(void)
 {
     nvic_priority_group_set(NVIC_PRIGROUP_PRE1_SUB3);
     nvic_irq_enable(TIMER2_IRQn, 1, 1);
 }
 
-void timer_config_1(void)
+void TimerConfig1(void)
 {
     /* ----------------------------------------------------------------------------
     TIMER1 Configuration: 
@@ -37,7 +37,7 @@ void timer_config_1(void)
     timer_enable(TIMER1);
 }
 
-void timer_config_2(void)
+void TimerConfig2(void)
 {
 //     ----------------------------------------------------------------------------
 //    TIMER2 Configuration: 
@@ -63,21 +63,18 @@ void timer_config_2(void)
     //timer_enable(TIMER2);
 }
 
-void timer_2_start(void){
+void Timer2Start(void){
         timer_interrupt_flag_clear(TIMER2, TIMER_INT_FLAG_UP);
     timer_interrupt_enable(TIMER2, TIMER_INT_UP);
     timer_enable(TIMER2);
 }
 
-void timer_2_stop(void){
+void Timer2Stop(void){
     timer_disable(TIMER2);            
 }
 
-void timer_1_start(void){
+void Timer1Start(void){
         timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);
     timer_interrupt_enable(TIMER1, TIMER_INT_UP);
     timer_enable(TIMER1);
-}
-void timer_1_stop(void){
-    timer_disable(TIMER1);            
 }

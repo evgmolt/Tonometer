@@ -54,8 +54,8 @@ extern uint8_t start_send_ble_flag;
 extern uint8_t start_finish_ble_flag;
 extern uint16_t frequency;
 
-const int LoLimit = 50;  //ms - 200 
-const int HiLimit = 250; //ms - 30
+const int lo_limit = 30;  // 256 bpm
+const int hi_limit = 250; // 30 bpm
 
 uint8_t en_butt_flag=0;
 uint8_t en_butt_count=0;
@@ -283,8 +283,8 @@ void TIMER1_IRQHandler(void)
             if (button_pressed_counter > GO_TO_TEST_INTERVAL) 
             {
                 ILI9341_FillScreen(ILI9341_WHITE);
-                timer_2_stop();
-                i2c_calibration();
+                Timer2Stop();
+                i2cCalibration();
                 VALVE_FAST_CLOSE;
                 VALVE_SLOW_CLOSE;
                 button_pressed_counter = 0;
@@ -357,8 +357,8 @@ void TIMER2_IRQHandler(void)
                 if (main_index > DELAY_FOR_ERROR & current_pressure < PRESSURE_FOR_ERROR)
                 { 
                     reset_detector();
-                    timer_2_stop();
-                    print_error(2);
+                    Timer2Stop();
+                    PrintError(2);
                     PUMP_OFF;
                     VALVE_FAST_OPEN;
                     VALVE_SLOW_OPEN;
@@ -368,8 +368,8 @@ void TIMER2_IRQHandler(void)
                 if (main_index>9990)
                 {
                     reset_detector();
-                    timer_2_stop();
-                    print_error(3);
+                    Timer2Stop();
+                    PrintError(3);
                     PUMP_OFF;
                     VALVE_FAST_OPEN;
                     VALVE_SLOW_OPEN;
@@ -427,7 +427,7 @@ void TIMER2_IRQHandler(void)
                             puls_buff[puls_counter++]=MAX_counter-1;
                             wave_ind_flag=1;                                                
                             lock_interval=(Wave_detect_time-Wave_detect_time_OLD)/2;
-                            if (lock_interval>HiLimit | lock_interval<LoLimit) lock_interval=50;
+                            if (lock_interval>hi_limit | lock_interval<lo_limit) lock_interval=50;
                             silence_time_start = MAX_counter-1;
                             detect_level = current_max * detect_levelCoeff;
                             if (detect_level < detect_level_start) detect_level = detect_level_start;
@@ -443,7 +443,7 @@ void TIMER2_IRQHandler(void)
         {
             if (usb_send_save(PressurePulsationArray,EnvelopeArray)){            
                     mode = INIT_START;
-                    timer_2_stop();
+                    Timer2Stop();
                     main_index=0;
                     send_counter=0;
             }

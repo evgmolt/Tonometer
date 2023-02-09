@@ -61,22 +61,22 @@ void print_gsm(bool show){
         }
 }
 
-void print_sys_label(void) {
+void PrintSYS_label(void) {
         ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
 }
 
-void print_dia_label(void) {
+void PrintDIA_label(void) {
         ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);
 }
 
-void print_SYS(int16_t IN){        
+void PrintSYS(int16_t IN){        
         uint8_t color = GREEN;
         if (IN > YELLOW_LEVEL_SYS) color = YELLOW;
         if (IN > RED_LEVEL_SYS) color = RED;
         print_num_H(IN, 235, 10, color);
 }
 
-void print_DIA(int16_t IN){
+void PrintDIA(int16_t IN){
         uint8_t color = GREEN;
         if (IN > YELLOW_LEVEL_DIA) color = YELLOW;
         if (IN > RED_LEVEL_DIA) color = RED;
@@ -90,7 +90,7 @@ void print_battery(void){
         ILI9341_FillRectangle(40+2, 150+35-20+2, 10-2, 40-4, ILI9341_WHITE);
 }
 
-void print_batt_charge(void){
+void PrintBattCharge(void){
         uint8_t num_of_segments = 6;
         uint16_t adc_1;
 
@@ -128,7 +128,7 @@ void print_batt_charge(void){
 }
 
 
-void print_error(uint8_t K){
+void PrintError(uint8_t K){
         ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
         ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
         ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
@@ -222,9 +222,7 @@ void TFT_print(void){
         uint8_t buff[5]={0};
         sprintf(buff,"%04d:",adc_1);
 //        ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-    
-        if (adc_1<1800) return;
-
+ 
         if (adc_1> BATT_RANG_MAX)                    rang_batt=5;
         else if (adc_1 < BATT_RANG_MAX & adc_1 > BATT_RANG_5) rang_batt=5;
         else if (adc_1 < BATT_RANG_5 & adc_1 > BATT_RANG_4) rang_batt=4;
@@ -236,7 +234,8 @@ void TFT_print(void){
         if (rang_batt_old!=rang_batt)
         {    
             ILI9341_DrawImage(6, 285, 44, 24, (const uint16_t*)bat_clr);            
-            for (int i1=0;i1<rang_batt;i1++){
+            for (int i1=0;i1<rang_batt;i1++)
+            {
                     ILI9341_DrawImage(42-i1*8, 286, 7, 22, (const uint16_t*)bat_dif);
             }
             rang_batt_old=rang_batt;

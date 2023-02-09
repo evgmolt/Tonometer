@@ -109,8 +109,8 @@ uint8_t Lo_ADS1115_config = 0b11100100;
 
 uint8_t ADS1115_FLAG=0;
 
-extern const int LoLimit;  
-extern const int HiLimit; 
+extern const int lo_limit;  
+extern const int hi_limit; 
 
 int16_t PSys = 0;
 int16_t PDia = 0;
@@ -171,7 +171,7 @@ int main(void)
     GPIO_config();    
     systick_config();
     
-    boot_mode();        
+    BootMode();        
 
     rcu_config();                                   // USB
     gpio_config();                                  // USB    
@@ -179,11 +179,11 @@ int main(void)
     nvic_config();                                  // USB     
     usbd_connect(&usbd_cdc);                        // USB 
 
-    nvic_config_1();         // timer 1
-    timer_config_1();        // timer 1
+    NvicConfig1();         // timer 1
+    TimerConfig1();        // timer 1
 
-    nvic_config_2();         // timer 2
-    timer_config_2();        // timer 2        
+    NvicConfig2();         // timer 2
+    TimerConfig2();        // timer 2        
     
     i2c_config();                                                      //I2C ADS1115
     ADS1115_config(0b00000010, 0x00, 0x00);                            //Lo
@@ -227,8 +227,8 @@ int main(void)
         print_bluetooth(true);
         print_gsm(true);
         print_heartX3(true);
-        print_sys_label();
-        print_dia_label();
+        PrintSYS_label();
+        PrintDIA_label();
         print_num_H(888,235,10,YELLOW);
         print_num_H(888,235,120,RED);
         print_num_H(888,235,250,BLACK);        
@@ -251,7 +251,7 @@ int main(void)
             clear_monitor();
     }        
         
-    i2c_calibration();    
+    i2cCalibration();    
     
     FmcSerialCheck();
     delay_1ms(200);
@@ -267,7 +267,7 @@ int main(void)
 
     rate = ReadRateFromFmc();
         
-    timer_1_start();
+    Timer1Start();
     
     while (1) 
     {    
@@ -282,7 +282,7 @@ int main(void)
                 }
                 break;
             case START_SCREEN:
-                bluetooth_check();
+                BluetoothCheck();
                 TFT_print();
                 if (button_released) 
                 {
@@ -292,7 +292,7 @@ int main(void)
                     count_send_bluetooth=0;
                 
                     current_pressure=0;
-                    i2c_calibration();
+                    i2cCalibration();
                     PUMP_ON;
                     VALVE_FAST_CLOSE;
                     VALVE_SLOW_CLOSE;
@@ -301,7 +301,7 @@ int main(void)
                     reset_detector();
                     puls_counter=0;            
                     detect_FLAG=0;
-                    timer_2_start();
+                    Timer2Start();
                     finish_6_flag=0;
                     stop_meas = false;
                     mode = PUMPING_MANAGEMENT;
@@ -310,10 +310,10 @@ int main(void)
                 }
                 break;
             case KEY_OFF:
-                device_OFF();
+                DeviceOff();
                 break;
             case PUMPING_MANAGEMENT:
-                bluetooth_check();
+                BluetoothCheck();
                 shutdown_counter = 0;
                 ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
                 if (button_released) abort_meas();
@@ -337,9 +337,9 @@ int main(void)
             case USB_CHARGING:
                 shutdown_counter = 0;
                 if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
-                print_batt_charge();                
+                PrintBattCharge();                
                 delay_1ms(1500);                
-                if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) device_OFF();                        
+                if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) DeviceOff();                        
                 break;
             case PRESSURE_TEST:
                 shutdown_counter = 0;
@@ -404,10 +404,10 @@ int main(void)
                         puls_out > MIN_PULSE & 
                         puls_out < MAX_PULSE) 
                     {
-                        print_sys_label();
-                        print_dia_label();    
-                        print_SYS(PSys);
-                        print_DIA(PDia);                                    
+                        PrintSYS_label();
+                        PrintDIA_label();    
+                        PrintSYS(PSys);
+                        PrintDIA(PDia);                                    
                         print_num_H((int16_t)puls_out,235,250,BLACK);
 
                         if (arrhythmia) print_heartX3(true);
@@ -422,7 +422,7 @@ int main(void)
                     else 
                     {
                         bonus_byte|=0x80;
-                        print_error(4);                            
+                        PrintError(4);                            
                     }
                     send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
                     
@@ -995,7 +995,7 @@ void button_interrupt_config(void)
     exti_interrupt_flag_clear(EXTI_8);
 }
 
-void device_OFF(void)
+void DeviceOff(void)
 {
     PUMP_OFF;
     VALVE_FAST_OPEN;
@@ -1004,7 +1004,7 @@ void device_OFF(void)
     gpio_bit_reset(GPIOC, GPIO_PIN_9);
 }
 
-void i2c_calibration(void)
+void i2cCalibration(void)
 {
     i2c_out_K=0;
     for (int g=0;g<20;g++)
@@ -1076,7 +1076,7 @@ void usb_send_16(short int T1, short int T2)
 }
 
 
-void boot_mode(void)
+void BootMode(void)
 {
     if (gpio_input_bit_get(GPIOB, GPIO_PIN_0))
     {
@@ -1094,7 +1094,7 @@ void boot_mode(void)
     }
 }
 
-void bluetooth_check(void)
+void BluetoothCheck(void)
 { 
     if (finder(UART0_buff,"OK",0,0)) 
     {
@@ -1177,7 +1177,7 @@ uint8_t finder_msg(uint8_t *buff)
                     buff[j]=0xFF;
                 
                     delay_1ms(200);                                    
-                    device_OFF();
+                    DeviceOff();
                 
                     return 1;
                 }

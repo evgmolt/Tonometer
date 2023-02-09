@@ -1,8 +1,7 @@
-void timer_config_1(void);
-void timer_config_2(void);
-void timer_2_start(void);
-void timer_2_stop(void);
-void timer_1_start(void);
-void timer_1_stop(void);
-void nvic_config_1(void);
-void nvic_config_2(void);
+void TimerConfig1(void);
+void TimerConfig2(void);
+void Timer2Start(void);
+void Timer2Stop(void);
+void Timer1Start(void);
+void NvicConfig1(void);
+void NvicConfig2(void);

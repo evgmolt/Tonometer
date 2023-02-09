@@ -15,8 +15,8 @@
 #define YELLOW_LEVEL_DIA 90
 #define RED_LEVEL_DIA 100
 
-#define PUMP_ON     gpio_bit_set(GPIOC, GPIO_PIN_11)
-#define PUMP_OFF    gpio_bit_reset(GPIOC, GPIO_PIN_11)
+#define PUMP_ON             gpio_bit_set(GPIOC, GPIO_PIN_11)
+#define PUMP_OFF            gpio_bit_reset(GPIOC, GPIO_PIN_11)
 #define VALVE_FAST_CLOSE    gpio_bit_set(GPIOC, GPIO_PIN_12)
 #define VALVE_FAST_OPEN     gpio_bit_reset(GPIOC, GPIO_PIN_12)
 #define VALVE_SLOW_CLOSE    gpio_bit_set(GPIOC, GPIO_PIN_13)
@@ -89,7 +89,6 @@ void nvic_configuration(void);
 void rtc_configuration(void);
 void print_time(uint32_t timevar);
 
-
 void usb_send_i2c_convers(void);
 void i2c_convers(void);    
 void TFT_print(void);
@@ -108,19 +107,18 @@ void i2c_init(void);
 void i2c_print(void);
 void button_interrupt_config(void);
 
-void device_OFF(void);
-void i2c_calibration(void);
+void DeviceOff(void);
+void i2cCalibration(void);
 
-void timer_config_1(void);
-void nvic_config_1(void);
+void TimerConfig1(void);
+void NvicConfig1(void);
 
-void timer_config_2(void);
-void nvic_config_2(void);
+void TimerConfig2(void);
+void NvicConfig2(void);
 
-void timer_2_start(void);
-void timer_2_stop(void);
-void timer_1_start(void);
-void timer_1_stop(void);
+void Timer2Start(void);
+void Timer2Stop(void);
+void Timer1Start(void);
 
 short int convert_save_16(void);
 
@@ -148,10 +146,10 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues);
 
 void ADS1115_config(uint8_t pointer, uint8_t byte1, uint8_t byte2);
 uint8_t ADS1115_read_IT(void);
-void print_error(uint8_t K);
-void boot_mode(void);
-void print_batt_charge(void);
-void bluetooth_check(void);
+void PrintError(uint8_t K);
+void BootMode(void);
+void PrintBattCharge(void);
+void BluetoothCheck(void);
 uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num);
 uint8_t finder_msg(uint8_t *buff);
 
@@ -168,8 +166,8 @@ void write_backup_register(uint16_t day, uint16_t month, uint16_t year);
 void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year);
 void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8_t c_ss, uint8_t c_mm, uint8_t c_hh, int16_t sis, int16_t dia, int16_t pressure, int16_t bonus);
 
-void print_SYS(int16_t IN);
-void print_DIA(int16_t IN);
+void PrintSYS(int16_t IN);
+void PrintDIA(int16_t IN);
 
 void abort_meas(void);
 
@@ -181,8 +179,8 @@ extern bool stop_meas;
 extern uint16_t detect_FLAG;
 extern uint16_t finish_time;
 
-extern const int LoLimit; //ms - 200 
-extern const int HiLimit; //ms - 30
+extern const int lo_limit; //ms - 200 
+extern const int hi_limit; //ms - 30
 
 extern uint8_t en_butt_flag;
 extern uint8_t en_butt_count;
