@@ -199,6 +199,18 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues)
     }
 }
 
+int16_t GetAverAroundPoint(int16_t *in_array, int point)
+{
+    int aver_size_half = 8;
+    int index = 0;
+    int32_t sum = 0;
+    for (int i = point - aver_size_half; i < point + aver_size_half; i++)
+    {
+        sum += in_array[i];
+        index++;
+    }
+    return (int16_t)(sum / index);
+}
 
 void GetSysDia(void)
 {
@@ -223,7 +235,7 @@ void GetSysDia(void)
     {
         if (EnvelopeArray[i] < ValueSys)
         {
-            PSys = save_clear[i]/rate;
+            PSys = GetAverAroundPoint(save_clear, i)/rate;
             indexPSys = i;
             break;
         }
@@ -237,7 +249,7 @@ void GetSysDia(void)
     {
         if (EnvelopeArray[i] < ValueDia)
         {
-            PDia = save_clear[i]/rate;
+            PDia = GetAverAroundPoint(save_clear, i)/rate;
             indexPDia = i;
             break;
         }

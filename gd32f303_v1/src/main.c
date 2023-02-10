@@ -421,7 +421,7 @@ int main(void)
                     else 
                     {
                         bonus_byte|=0x80;
-                        PrintError(4);                            
+                        PrintError(ERROR_MEAS);                            
                     }
                     send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
                     
@@ -1033,7 +1033,6 @@ void usb_send_16(short int T1, short int T2)
     uint8_t send_buff[5]={25,send_L1,send_H1,send_L2,send_H2};
     usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 5);
 }
-
 
 void BootMode(void)
 {

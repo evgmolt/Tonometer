@@ -78,7 +78,7 @@ int16_t detect_level_start = 4;
 double detect_level = 4;
 int16_t lock_interval = 50;
 double detect_levelCoeff = 0.7;
-double stop_meas_coeff = 0.65;
+double stop_meas_coeff = 0.62;
 int16_t current_value=0;
 int16_t current_interval = 0;
 double current_max=0;
@@ -358,7 +358,7 @@ void TIMER2_IRQHandler(void)
                 { 
                     reset_detector();
                     Timer2Stop();
-                    PrintError(2);
+                    PrintError(ERROR_CUFF);
                     PUMP_OFF;
                     VALVE_FAST_OPEN;
                     VALVE_SLOW_OPEN;
@@ -369,7 +369,7 @@ void TIMER2_IRQHandler(void)
                 {
                     reset_detector();
                     Timer2Stop();
-                    PrintError(3);
+                    PrintError(ERROR_TIME);
                     PUMP_OFF;
                     VALVE_FAST_OPEN;
                     VALVE_SLOW_OPEN;
