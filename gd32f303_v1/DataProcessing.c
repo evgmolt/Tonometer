@@ -235,28 +235,28 @@ void GetSysDia(void)
     {
         if (EnvelopeArray[i] < ValueSys)
         {
-            PSys = GetAverAroundPoint(save_clear, i)/rate;
+            PSys = GetAverAroundPoint(pressure_array, i)/rate;
             indexPSys = i;
             break;
         }
     }
     if (PSys == 0)
     {
-        PSys = save_clear[0]/rate;        
+        PSys = pressure_array[0]/rate;        
     }
 
     for (int i = XMax; i < main_index; i++)
     {
         if (EnvelopeArray[i] < ValueDia)
         {
-            PDia = GetAverAroundPoint(save_clear, i)/rate;
+            PDia = GetAverAroundPoint(pressure_array, i)/rate;
             indexPDia = i;
             break;
         }
     }
     if (PDia == 0)
     {
-        PDia = save_clear[main_index - 1] / rate;
+        PDia = pressure_array[main_index - 1] / rate;
     }
 }
 

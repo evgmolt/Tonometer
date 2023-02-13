@@ -60,6 +60,7 @@
 #define MAX_PULSE 250
 
 #define LOCK_INTERVAL 20
+#define HEART_INTERVAL 20
 
 #define USB_COMMAND_SET_RATE 11
 
@@ -68,6 +69,7 @@
 #define ERROR_MEAS 4
 
 #define NO_WAVE_INTERVAL 250
+#define BLE_PACKET_SIZE 20
 
 /* function declarations */
 
@@ -210,6 +212,8 @@ extern int16_t Wave_detect_time;
 extern int16_t Wave_detect_time_OLD;
 extern int16_t T_Wave;
 extern uint8_t wave_ind_flag;
+extern bool show_heart;
+extern bool erase_heart;
 extern int16_t silence_time_start;
 extern int16_t MAX_dir_wave;
 extern int16_t puls_buff[50];
@@ -275,8 +279,8 @@ extern uint8_t bonus_byte;
 extern uint32_t MAX_counter;
 extern uint16_t Time_measurement; 
 
-extern int16_t DCArrayWindow;
-extern int16_t ACArrayWindow;
+extern int16_t dc_array_window;
+extern int16_t ac_array_window;
 extern uint8_t UART0_flag;
 
 extern uint8_t Hi_ADS1115_config;
@@ -284,6 +288,8 @@ extern uint8_t Lo_ADS1115_config;
 
 extern uint8_t mode;
 
+extern bool ble_data_ready;
+extern uint8_t ble_buffer_counter;
 extern uint8_t sim800_FLAG;
 extern uint8_t rang_batt_old;
 extern uint8_t i2c_transmitter[16];
@@ -297,11 +303,11 @@ extern uint16_t adc_value[8];
 extern uint16_t num_string;
 
 extern uint16_t count_send_bluetooth;
-extern uint8_t size_pack;
 
-extern short int save_clear[10000];
+extern short int ble_buffer[BLE_PACKET_SIZE];
+extern short int pressure_array[10000];
 extern uint32_t main_index;
-extern short int PressurePulsationArray[10000];
+extern short int pressure_pulsation_array[10000];
 extern short int EnvelopeArray[10000];
 
 extern uint32_t send_counter;
@@ -314,6 +320,7 @@ extern double rate_fract;
 
 extern int shutdown_counter;
 extern int process_counter;
+extern int heart_counter;
 extern int show_pressure_counter;
 
 extern int button_touched;

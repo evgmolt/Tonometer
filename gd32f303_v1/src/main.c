@@ -135,6 +135,8 @@ uint32_t cur_tim=0;
 uint8_t bluetooth_status=0;
 uint8_t bonus_byte=0;
 uint8_t mode = INIT_START;
+bool ble_data_ready = false;
+uint8_t ble_buffer_counter = 0;
 uint8_t sim800_FLAG=0;
 uint8_t rang_batt_old=99;
 uint8_t i2c_transmitter[16];
@@ -145,10 +147,10 @@ usb_dev usbd_cdc;
 uint16_t adc_value[8];
 uint16_t num_string=0;
 uint16_t count_send_bluetooth=0;
-uint8_t size_pack=20;
-short int save_clear[10000]={0};
+short int ble_buffer[BLE_PACKET_SIZE] = {0};
+short int pressure_array[10000]={0};
 uint32_t main_index=0;
-short int PressurePulsationArray[10000]={0};
+short int pressure_pulsation_array[10000]={0};
 short int EnvelopeArray[10000]={0};
 uint32_t send_counter=0;
 
@@ -360,21 +362,24 @@ int main(void)
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
                     if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
                 }
-                if (main_index>1+size_pack*(count_send_bluetooth+1))
+                if (ble_data_ready)
                 {                        
+                    ble_data_ready = false;
                     uint8_t c_summ=0;                            
-                    uint8_t cur_buff_ble[400]={'0', '2', 0x05, count_send_bluetooth & 0xFF, (count_send_bluetooth>>8) & 0xFF, size_pack};
+                    uint8_t cur_buff_ble[400]={'0', '2', 0x05, count_send_bluetooth & 0xFF, (count_send_bluetooth>>8) & 0xFF, BLE_PACKET_SIZE};
                     
-                    for (int f=0;f<size_pack;f++){
-                            int16_t cur_press=(((save_clear[count_send_bluetooth*size_pack+f]-i2c_out_K)*100)/rate);
-                            cur_buff_ble[6+f*2]=cur_press&0xFF;
-                            cur_buff_ble[6+f*2+1]=(cur_press>>8)&0xFF;
+                    for (int f = 0; f < BLE_PACKET_SIZE; f++)
+                    {
+                        int16_t cur_press = ble_buffer[f];
+                        cur_buff_ble[6+f*2]=cur_press&0xFF;
+                        cur_buff_ble[6+f*2+1]=(cur_press>>8)&0xFF;
                     }                            
-                    for (int f=0;f<size_pack*2+6;f++){
-                            c_summ+=cur_buff_ble[f];
+                    for (int f=0; f < BLE_PACKET_SIZE * 2 + 6; f++)
+                    {
+                        c_summ+=cur_buff_ble[f];
                     }
-                    cur_buff_ble[size_pack*2+6]=c_summ;
-                    my_send_string_UART_0(cur_buff_ble,size_pack*2+6+1);
+                    cur_buff_ble[BLE_PACKET_SIZE * 2 + 6] = c_summ;
+                    my_send_string_UART_0(cur_buff_ble, BLE_PACKET_SIZE * 2 + 6 + 1);
                     count_send_bluetooth++;
                 }
                 if (current_pressure <= STOP_MEAS_LEVEL || stop_meas)
@@ -389,7 +394,7 @@ int main(void)
                     ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
                 
                     memset(EnvelopeArray, 0, 10000);
-                    GetArrayOfWaveIndexes(PressurePulsationArray, puls_buff, puls_buff_NEW);
+                    GetArrayOfWaveIndexes(pressure_pulsation_array, puls_buff, puls_buff_NEW);
                     f_sorting_MAX();
                     CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
                     GetSysDia();
@@ -451,12 +456,16 @@ int main(void)
             UART0_flag=0;
         }
         
-        if (wave_ind_flag)
-        {                
+        if (show_heart)
+        {             
             print_heart(true);
-            delay_1ms(200);
+            show_heart = false;
+        }
+        
+        if (erase_heart)
+        {
             print_heart(false);
-            wave_ind_flag=0;
+            erase_heart = false;
         }
                     
         if (0U == cdc_acm_check_ready(&usbd_cdc)) 
@@ -988,11 +997,11 @@ uint8_t usb_send_save(int16_t *mass1, int16_t *mass2)
     //Add markers of SYS, MAX and DIA points into array
     for (int h=0;h<puls_counter;h++)
     {
-            if (send_counter==XMax) PressurePulsationArray[send_counter]=100;                    
+            if (send_counter==XMax) pressure_pulsation_array[send_counter]=100;                    
     }        
     for (int h=0;h<puls_counter;h++)
     {
-            if (send_counter==indexPSys | send_counter==indexPDia)PressurePulsationArray[send_counter]=-100;                    
+            if (send_counter==indexPSys | send_counter==indexPDia) pressure_pulsation_array[send_counter]=-100;                    
     }        
     
     uint8_t send_H1=(mass1[send_counter]>>8)&0xFF;
@@ -1010,8 +1019,8 @@ uint8_t usb_send_save(int16_t *mass1, int16_t *mass2)
 short int convert_save_16(void)
 {            
     if (ADS1115_read_IT()==0) return 0;
-    save_clear[main_index]=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-    if (save_clear[main_index-1]<0) save_clear[main_index-1]=0;
+    pressure_array[main_index]= (((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
+//    if (pressure_array[main_index-1]<0) pressure_array[main_index-1]=0;
     main_index++;            
     return 1;
 }
@@ -1070,7 +1079,7 @@ void BluetoothCheck(void)
             bluetooth_status = CONNECTED;    
         }
     }
-    my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));            
+//    my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));            
 }
 
 uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num)

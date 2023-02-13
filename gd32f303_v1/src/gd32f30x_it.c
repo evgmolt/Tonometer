@@ -43,11 +43,11 @@ OF SUCH DAMAGE.
 extern __IO uint32_t timedisplay;
 extern uint8_t mode;
 extern int16_t current_pressure;
-extern short int  save_clear[10000];
+extern short int  pressure_array[10000];
 extern uint32_t main_index;
 extern uint32_t send_counter;
 extern int i2c_out_K;
-extern short int PressurePulsationArray[10000];
+extern short int pressure_pulsation_array[10000];
 extern short int EnvelopeArray[10000];
 extern uint16_t count_send_bluetooth;
 extern uint8_t start_send_ble_flag;
@@ -78,7 +78,7 @@ int16_t detect_level_start = 4;
 double detect_level = 4;
 int16_t lock_interval = 50;
 double detect_levelCoeff = 0.7;
-double stop_meas_coeff = 0.62;
+double stop_meas_coeff = 0.6;
 int16_t current_value=0;
 int16_t current_interval = 0;
 double current_max=0;
@@ -88,6 +88,8 @@ int16_t Wave_detect_time=0;
 int16_t Wave_detect_time_OLD=0;
 int16_t T_Wave=0;
 uint8_t wave_ind_flag=0;
+bool show_heart = false;
+bool erase_heart = false;
 int16_t silence_time_start=0;
 int16_t MAX_dir_wave=0;
 int16_t puls_buff[50]={0};
@@ -102,13 +104,14 @@ uint16_t finish_time=500;
 uint32_t MAX_counter=0;
 uint16_t Time_measurement=50; 
 
-int16_t DCArrayWindow = 30;
-int16_t ACArrayWindow = 4;
+int16_t dc_array_window = 30;
+int16_t ac_array_window = 4;
 
 uint8_t UART0_flag=0;
 
 int shutdown_counter = 0;
 int process_counter = 0;
+int heart_counter = 0;
 int show_pressure_counter = 0;
 
 
@@ -246,6 +249,12 @@ void TIMER1_IRQHandler(void)
         if (show_pressure_counter > 0) show_pressure_counter--;
 
         process_counter++;
+        
+        if (heart_counter > 0)
+        {
+            heart_counter--;
+            erase_heart = (heart_counter == 0);
+        }
             
         shutdown_counter++;
         if (shutdown_counter > SHUTDOWN_INTERVAL) 
@@ -324,12 +333,12 @@ void TIMER2_IRQHandler(void)
                 }
                 else if (main_index>300)
                 {
-                    PressurePulsationArray[main_index-1] = SmoothAndRemoveDC(save_clear, DCArrayWindow, ACArrayWindow);											
+                    pressure_pulsation_array[main_index-1] = SmoothAndRemoveDC(pressure_array, dc_array_window, ac_array_window);											
                 }	
             
                 if (main_index >= DELAY_AFTER_START)
                 {                                        
-                    current_value=GetDerivative(PressurePulsationArray, main_index-1);
+                    current_value=GetDerivative(pressure_pulsation_array, main_index-1);
                     usb_send_16(current_value,(short)current_max);
                     if (current_value>current_max)
                     {
@@ -341,6 +350,7 @@ void TIMER2_IRQHandler(void)
                         if (main_index > MAX_counter + SEC_AFTER_MAX * frequency)
                         {    
                             main_index=0;        
+                            ble_buffer_counter = 0;
                             wave_detect_flag=0;                                                    
                             current_max = 0;    
                             global_max = 0;
@@ -382,20 +392,33 @@ void TIMER2_IRQHandler(void)
         {
             if (convert_save_16()) 
             {
+                //Подготовка данных для передачи по bluetooth
+                ble_buffer_counter++;
+                if (ble_buffer_counter > BLE_PACKET_SIZE - 1)
+                {
+                    ble_buffer_counter = 0;
+                    for (int i = 0; i < BLE_PACKET_SIZE; i++)
+                    {
+//                        ble_buffer[i] = main_index - 1 - BLE_PACKET_SIZE + i; 
+                        ble_buffer[i] = (pressure_array[main_index - 1 - BLE_PACKET_SIZE + i] * 100) / rate;                        
+                    }
+                    ble_data_ready = true;
+                }
+                
                 if (main_index>100)
                 {
                     if (lock_counter > 0)
                     {
-                        PressurePulsationArray[main_index-1] = 0; 
+                        pressure_pulsation_array[main_index-1] = 0; 
                     }
                     else
                     {
-                        PressurePulsationArray[main_index-1] = SmoothAndRemoveDC(save_clear, DCArrayWindow, ACArrayWindow);  
+                        pressure_pulsation_array[main_index-1] = SmoothAndRemoveDC(pressure_array, dc_array_window, ac_array_window);  
                     }
                 }    
                 else         
                 {
-                    PressurePulsationArray[main_index-1]=0;
+                    pressure_pulsation_array[main_index-1]=0;
                 }
                                     
                 if (main_index >= DELAY_AFTER_PUMPING)
@@ -405,7 +428,7 @@ void TIMER2_IRQHandler(void)
                     {
                         detect_level = detect_level_start;
                     }
-                    current_value = GetDerivative(PressurePulsationArray, main_index-1);
+                    current_value = GetDerivative(pressure_pulsation_array, main_index-1);
                     usb_send_16(current_value, current_max); 
                     if (current_value>detect_level & (main_index-1)>(silence_time_start+lock_interval)) wave_detect_flag=1;
                     if (wave_detect_flag==1 & (main_index-1)>(silence_time_start +lock_interval))
@@ -425,7 +448,9 @@ void TIMER2_IRQHandler(void)
                             Wave_detect_time_OLD=Wave_detect_time;
                             Wave_detect_time=MAX_counter-1;                                                                                                                        
                             puls_buff[puls_counter++]=MAX_counter-1;
-                            wave_ind_flag=1;                                                
+                            heart_counter = HEART_INTERVAL;
+                            wave_ind_flag=1; 
+                            show_heart = true;    
                             lock_interval=(Wave_detect_time-Wave_detect_time_OLD)/2;
                             if (lock_interval>hi_limit | lock_interval<lo_limit) lock_interval=50;
                             silence_time_start = MAX_counter-1;
@@ -441,10 +466,22 @@ void TIMER2_IRQHandler(void)
         }
         else if (mode == SEND_SAVE_BUFF_MSG) 
         {
-            if (usb_send_save(PressurePulsationArray,EnvelopeArray)){            
+            if (button_released) 
+            {
+                mode = START_SCREEN;
+                button_released = 0;
+                button_pressed_counter = 0;
+                VALVE_FAST_OPEN;
+                VALVE_SLOW_OPEN;
+                PUMP_OFF;
+            }
+            else
+            if (usb_send_save(pressure_pulsation_array,EnvelopeArray))
+            {            
                     mode = INIT_START;
                     Timer2Stop();
                     main_index=0;
+                    ble_buffer_counter = 0;
                     send_counter=0;
             }
         } 
@@ -465,6 +502,7 @@ void reset_detector(void)
     global_max=0;        
     detect_level=detect_level_start;
     silence_time_start=0;
+    ble_buffer_counter = 0;
 }
 
 void my_i2c_send(uint8_t data){
