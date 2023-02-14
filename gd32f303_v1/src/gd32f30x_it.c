@@ -78,8 +78,7 @@ int16_t detect_level_start = 4;
 double detect_level = 4;
 int16_t lock_interval = 50;
 double detect_levelCoeff = 0.7;
-double stop_meas_coeff = 0.6;
-int16_t current_value=0;
+double stop_meas_coeff = 0.58;
 int16_t current_interval = 0;
 double current_max=0;
 double global_max=0;
@@ -239,6 +238,9 @@ void USBD_WKUP_IRQHandler (void)
 
 void TIMER1_IRQHandler(void)
 {    
+    const int pwrkey_down_time = 100;
+    const int ext_up_time = 120;
+    const int pwrkey_up_time = 250;
     if(SET == timer_interrupt_flag_get(TIMER1, TIMER_INT_FLAG_UP))
     {        
         timer_interrupt_flag_clear(TIMER1, TIMER_INT_FLAG_UP);        
@@ -249,6 +251,17 @@ void TIMER1_IRQHandler(void)
         if (show_pressure_counter > 0) show_pressure_counter--;
 
         process_counter++;
+/*        if (mode == INIT_START || mode == START_SCREEN || mode == PUMPING_MANAGEMENT) 
+        {
+            if (process_counter == pwrkey_down_time) 
+            SIM800_PWRKEY_DOWN;
+        if (process_counter == ext_up_time)      
+            SIM800_EXT_UP;
+        if (process_counter == pwrkey_up_time)   
+            SIM800_PWRKEY_UP;
+            if (process_counter == 300) 
+                my_send_string_UART_1("AT",strlen("AT"));            
+        }*/
         
         if (heart_counter > 0)
         {
@@ -316,6 +329,8 @@ void Lock(void)
 
 void TIMER2_IRQHandler(void)
 {
+    int16_t current_value;
+
     if(SET == timer_interrupt_flag_get(TIMER2, TIMER_INT_FLAG_UP))
     {
         /* clear update interrupt bit */
@@ -366,7 +381,7 @@ void TIMER2_IRQHandler(void)
                 
                 if (main_index > DELAY_FOR_ERROR & current_pressure < PRESSURE_FOR_ERROR)
                 { 
-                    reset_detector();
+                    ResetDetector();
                     Timer2Stop();
                     PrintError(ERROR_CUFF);
                     PUMP_OFF;
@@ -377,7 +392,7 @@ void TIMER2_IRQHandler(void)
                 
                 if (main_index>9990)
                 {
-                    reset_detector();
+                    ResetDetector();
                     Timer2Stop();
                     PrintError(ERROR_TIME);
                     PUMP_OFF;
@@ -399,7 +414,6 @@ void TIMER2_IRQHandler(void)
                     ble_buffer_counter = 0;
                     for (int i = 0; i < BLE_PACKET_SIZE; i++)
                     {
-//                        ble_buffer[i] = main_index - 1 - BLE_PACKET_SIZE + i; 
                         ble_buffer[i] = (pressure_array[main_index - 1 - BLE_PACKET_SIZE + i] * 100) / rate;                        
                     }
                     ble_data_ready = true;
@@ -493,7 +507,7 @@ void TIMER2_IRQHandler(void)
     }
 }
 
-void reset_detector(void)
+void ResetDetector(void)
 {
     process_counter = 0;
     main_index=0;        
@@ -625,14 +639,15 @@ void USART0_IRQHandler(void)            //CH-08
 
 void USART1_IRQHandler(void)        //SIM800C
 {
-        uint8_t cur_buff[5]={0};
-    if(RESET != usart_interrupt_flag_get(USART1, USART_INT_FLAG_RBNE)){            
-            UART1_buff[UART1_count]=usart_data_receive(USART1);
-            cur_buff[0]=usart_data_receive(USART1);
-            usbd_ep_send (&usbd_cdc, CDC_IN_EP, cur_buff, 1);
-            UART1_count++;            
-            if (UART1_count>=200) UART1_count=0;        
-            usart_interrupt_flag_clear(USART1, USART_INT_FLAG_RBNE);                        
+    uint8_t cur_buff[5]={0};
+    if(RESET != usart_interrupt_flag_get(USART1, USART_INT_FLAG_RBNE))
+    {            
+        UART1_buff[UART1_count]=usart_data_receive(USART1);
+        cur_buff[0]=usart_data_receive(USART1);
+        usbd_ep_send (&usbd_cdc, CDC_IN_EP, cur_buff, 1);
+        UART1_count++;            
+        if (UART1_count>=200) UART1_count=0;        
+        usart_interrupt_flag_clear(USART1, USART_INT_FLAG_RBNE);                        
     }
 }
 uint8_t check_FLAG_CONT_CH(void){

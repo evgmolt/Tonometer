@@ -22,6 +22,11 @@
 #define VALVE_SLOW_CLOSE    gpio_bit_set(GPIOC, GPIO_PIN_13)
 #define VALVE_SLOW_OPEN     gpio_bit_reset(GPIOC, GPIO_PIN_13)
 
+#define SIM800_PWRKEY_DOWN  gpio_bit_reset(GPIOC, GPIO_PIN_1)
+#define SIM800_PWRKEY_UP    gpio_bit_set(GPIOC, GPIO_PIN_1)
+#define SIM800_EXT_DOWN     gpio_bit_reset(GPIOC, GPIO_PIN_0)
+#define SIM800_EXT_UP       gpio_bit_set(GPIOC, GPIO_PIN_0)
+
 #define INIT_START 0
 #define START_SCREEN 1
 #define KEY_OFF 2
@@ -32,7 +37,7 @@
 #define SEND_SAVE_BUFF_MSG 7
 
 #define STOP_MEAS_LEVEL 60
-#define MIN_PRESSURE 120    
+#define MIN_PRESSURE 130    
 #define SEC_AFTER_MAX 8
 #define DELAY_AFTER_PUMPING 50
 #define DELAY_AFTER_START 400
@@ -203,7 +208,6 @@ extern double detect_level;
 extern int16_t lock_interval;
 extern double detect_levelCoeff;
 extern double stop_meas_coeff;
-extern int16_t current_value;
 extern int16_t current_interval;
 extern double current_max;
 extern double global_max;

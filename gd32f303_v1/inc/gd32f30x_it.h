@@ -76,6 +76,6 @@ void master_STOP(void);
 void ACK(void);
 void ADS115_config(void);
 void EXTI5_9_IRQHandler(void);
-void reset_detector(void);
+void ResetDetector(void);
 #endif /* GD32F10X_IT_H */
 

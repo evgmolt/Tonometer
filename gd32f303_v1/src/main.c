@@ -269,6 +269,16 @@ int main(void)
     rate = ReadRateFromFmc();
         
     Timer1Start();
+
+/*    SIM800_PWRKEY_UP;
+    SIM800_EXT_DOWN;
+    delay_1ms(200);
+    SIM800_PWRKEY_DOWN;
+    delay_1ms(6);
+    SIM800_EXT_UP;
+    delay_1ms(100);
+    SIM800_PWRKEY_UP;
+    delay_1ms(100);    */
     
     while (1) 
     {    
@@ -299,7 +309,7 @@ int main(void)
                     VALVE_SLOW_CLOSE;
                     lock_interval=50;
                     sector_start_scan=0;
-                    reset_detector();
+                    ResetDetector();
                     puls_counter=0;            
                     detect_FLAG=0;
                     Timer2Start();
@@ -318,7 +328,6 @@ int main(void)
                 shutdown_counter = 0;
                 ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
                 if (button_released) AbortMeas();
-//                if (current_pressure>=0 & current_pressure<400) print_num_H(GetAver(current_pressure),235,120,GREEN);
                 if (show_pressure_counter == 0)
                 {
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
@@ -327,7 +336,7 @@ int main(void)
             
                 if (current_pressure >= MAX_ALLOWED_PRESSURE && process_counter > MIN_PUMPING_INTERVAL) 
                 {
-                    reset_detector();
+                    ResetDetector();
                     puls_counter=0;      
                     stop_meas = false;
                     PUMP_OFF;
@@ -1020,7 +1029,7 @@ short int convert_save_16(void)
 {            
     if (ADS1115_read_IT()==0) return 0;
     pressure_array[main_index]= (((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-//    if (pressure_array[main_index-1]<0) pressure_array[main_index-1]=0;
+    if (pressure_array[main_index] < 0) pressure_array[main_index] = 0;
     main_index++;            
     return 1;
 }
