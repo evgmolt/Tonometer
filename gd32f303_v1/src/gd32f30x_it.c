@@ -100,7 +100,7 @@ uint8_t finish_6_flag=0;
 uint16_t detect_FLAG=0;
 uint16_t finish_time=500;
 
-uint32_t MAX_counter=0;
+//uint32_t max_index=0;
 uint16_t Time_measurement=50; 
 
 int16_t dc_array_window = 30;
@@ -329,6 +329,8 @@ void Lock(void)
 
 void TIMER2_IRQHandler(void)
 {
+    static int32_t max_index;
+    
     int16_t current_value;
 
     if(SET == timer_interrupt_flag_get(TIMER2, TIMER_INT_FLAG_UP))
@@ -358,18 +360,17 @@ void TIMER2_IRQHandler(void)
                     if (current_value>current_max)
                     {
                         current_max=current_value;
-                        MAX_counter=main_index;
+                        max_index=main_index;
                     }
                     if (current_pressure > MIN_PRESSURE)
                     {                                                
-                        if (main_index > MAX_counter + SEC_AFTER_MAX * frequency)
+                        if (main_index > max_index + SEC_AFTER_MAX * frequency)
                         {    
                             main_index=0;        
                             ble_buffer_counter = 0;
                             wave_detect_flag=0;                                                    
                             current_max = 0;    
                             global_max = 0;
-                            //MAX_counter=0;
                             Lock();
                             PUMP_OFF;
                             VALVE_SLOW_OPEN;
@@ -450,7 +451,7 @@ void TIMER2_IRQHandler(void)
                         if (current_value > current_max) 
                         {
                             current_max = current_value;
-                            MAX_counter=main_index-1;
+                            max_index=main_index-1;
                         }
                         else if (current_value < detect_level)
                         {
@@ -460,14 +461,14 @@ void TIMER2_IRQHandler(void)
                                 stop_meas = true;
                             }
                             Wave_detect_time_OLD=Wave_detect_time;
-                            Wave_detect_time=MAX_counter-1;                                                                                                                        
-                            puls_buff[puls_counter++]=MAX_counter-1;
+                            Wave_detect_time=max_index-1;                                                                                                                        
+                            puls_buff[puls_counter++]=max_index-1;
                             heart_counter = HEART_INTERVAL;
                             wave_ind_flag=1; 
                             show_heart = true;    
                             lock_interval=(Wave_detect_time-Wave_detect_time_OLD)/2;
                             if (lock_interval>hi_limit | lock_interval<lo_limit) lock_interval=50;
-                            silence_time_start = MAX_counter-1;
+                            silence_time_start = max_index-1;
                             detect_level = current_max * detect_levelCoeff;
                             if (detect_level < detect_level_start) detect_level = detect_level_start;
                             current_max=0;

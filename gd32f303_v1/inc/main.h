@@ -280,7 +280,7 @@ extern uint8_t bluetooth_status;
 extern uint8_t bonus_byte;
 
 
-extern uint32_t MAX_counter;
+//extern uint32_t MAX_counter;
 extern uint16_t Time_measurement; 
 
 extern int16_t dc_array_window;
