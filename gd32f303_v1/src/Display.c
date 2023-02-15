@@ -26,61 +26,90 @@
 
 extern uint16_t adc_value[8];
 
-void print_heart(bool show){
-    if (show) {
-            ILI9341_DrawImage(72, 279, 31, 30, (const uint16_t*)heart);
-        }
-        else {
-            ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);    
-        }
+void PrintHeart(bool show)
+{
+    if (show) 
+    {
+        ILI9341_DrawImage(HEART_LEFT, HEART_TOP, 31, 30, (const uint16_t*)heart);
+    }
+    else 
+    {
+        ILI9341_FillRectangle(HEART_LEFT, HEART_TOP, 31, 30, ILI9341_WHITE);    
+    }
 }
 
-void print_heartX3(bool show){
-    if (show) {
-            ILI9341_DrawImage(65, 245, 45, 27, (const uint16_t*)heartX3);
-        }
-        else {
-            ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);            
-        }
+void PrintHeartX3(bool show)
+{
+    if (show) 
+    {
+        ILI9341_DrawImage(HEART_X3_LEFT, HEART_X3_TOP, 45, 27, (const uint16_t*)heartX3);
+    }
+    else 
+    {
+        ILI9341_FillRectangle(HEART_X3_LEFT, HEART_X3_TOP, 45, 27, ILI9341_WHITE);            
+    }
 }
 
-void print_bluetooth(bool show){    
-    if (show) {
-            ILI9341_DrawImage(5, 255, 15, 24, (const uint16_t*)bluetooth);
-        }
-        else {
-            ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);            
-        }
+void PrintBluetooth(bool show)
+{    
+    if (show) 
+    {
+        ILI9341_DrawImage(LEFT_MIN, BLUETOOTH_TOP, 15, 24, (const uint16_t*)bluetooth);
+    }
+    else 
+    {
+        ILI9341_FillRectangle(LEFT_MIN, BLUETOOTH_TOP, 15, 24, ILI9341_WHITE);            
+    }
 }
 
-void print_gsm(bool show){
-    if (show) {
-            ILI9341_DrawImage(22, 258, 29, 18, (const uint16_t*)gsm);        }
-        else {
-            ILI9341_FillRectangle(22, 258, 29, 18, ILI9341_WHITE);            
-        }
+void PrintGsm(bool show)
+{
+    if (show) 
+    {
+        ILI9341_DrawImage(GSM_LEFT, 258, 29, 18, (const uint16_t*)gsm);        
+    }
+    else 
+    {
+        ILI9341_FillRectangle(GSM_LEFT, 258, 29, 18, ILI9341_WHITE);            
+    }
 }
 
-void PrintSYS_label(void) {
-        ILI9341_DrawImage(5, 10, 46, 36, (const uint16_t*)SYS);
+void PrintSYS_label(bool show) 
+{
+    if (show) 
+    {
+        ILI9341_DrawImage(LEFT_MIN, SYS_TOP, 46, 36, (const uint16_t*)SYS);
+    }
+    else
+    {
+        ILI9341_FillRectangle(LEFT_MIN, SYS_TOP, 46, 36, ILI9341_WHITE);
+    }
 }
 
-void PrintDIA_label(void) {
-        ILI9341_DrawImage(5, 133, 45, 35, (const uint16_t*)DIA);
+void PrintDIA_label(bool show) 
+{
+    if (show) 
+    {
+        ILI9341_DrawImage(LEFT_MIN, DIA_TOP, 45, 35, (const uint16_t*)DIA);
+    }
+    else
+    {
+        ILI9341_FillRectangle(LEFT_MIN, DIA_TOP, 45, 35, ILI9341_WHITE);//DIA label
+    }
 }
 
 void PrintSYS(int16_t IN){        
         uint8_t color = GREEN;
         if (IN > YELLOW_LEVEL_SYS) color = YELLOW;
         if (IN > RED_LEVEL_SYS) color = RED;
-        print_num_H(IN, 235, 10, color);
+        print_num_H(IN, BIG_NUM_RIGHT, SYS_TOP, color);
 }
 
 void PrintDIA(int16_t IN){
         uint8_t color = GREEN;
         if (IN > YELLOW_LEVEL_DIA) color = YELLOW;
         if (IN > RED_LEVEL_DIA) color = RED;
-        print_num_H(IN, 235, 120, color);
+        print_num_H(IN, BIG_NUM_RIGHT, DIA_TOP, color);
 }
 
 void print_battery(void){
@@ -129,8 +158,8 @@ void PrintBattCharge(void){
 
 
 void PrintError(uint8_t K){
-        ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
-        ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
+        ILI9341_FillRectangle(SYS_DIA_LEFT, SYS_TOP, 180, 106, ILI9341_WHITE);
+        ILI9341_FillRectangle(SYS_DIA_LEFT, 120, 180, 106, ILI9341_WHITE);
         ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
         uint8_t _buff[15]={0};
         if (K==ERROR_CUFF){
@@ -147,17 +176,15 @@ void PrintError(uint8_t K){
         }        
 }
 
-void clear_monitor(void){
-        ILI9341_FillRectangle(72, 279, 31, 30, ILI9341_WHITE);
-        ILI9341_FillRectangle(5, 255, 15, 24, ILI9341_WHITE);
-        ILI9341_FillRectangle(22, 258, 29, 18, ILI9341_WHITE);
-        ILI9341_FillRectangle(65, 245, 45, 27, ILI9341_WHITE);
-        ILI9341_FillRectangle(5, 10, 46, 36, ILI9341_WHITE);
-        ILI9341_FillRectangle(5, 133, 45, 35, ILI9341_WHITE);                
-
-        ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
-        ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
-        ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
+void ClearScreen(void)
+{
+    PrintHeart(false);
+    PrintBluetooth(false);
+    PrintGsm(false);
+    PrintHeart(false);
+    PrintHeartX3(false);
+    PrintSYS_label(false);
+    PrintDIA_label(false);
 }
 
 void print_time(uint32_t timevar){

@@ -22,8 +22,8 @@
 #define VALVE_SLOW_CLOSE    gpio_bit_set(GPIOC, GPIO_PIN_13)
 #define VALVE_SLOW_OPEN     gpio_bit_reset(GPIOC, GPIO_PIN_13)
 
-#define SIM800_PWRKEY_DOWN  gpio_bit_reset(GPIOC, GPIO_PIN_1)
-#define SIM800_PWRKEY_UP    gpio_bit_set(GPIOC, GPIO_PIN_1)
+#define SIM800_PWRKEY_DOWN  gpio_bit_set(GPIOC, GPIO_PIN_1)
+#define SIM800_PWRKEY_UP    gpio_bit_reset(GPIOC, GPIO_PIN_1)
 #define SIM800_EXT_DOWN     gpio_bit_reset(GPIOC, GPIO_PIN_0)
 #define SIM800_EXT_UP       gpio_bit_set(GPIOC, GPIO_PIN_0)
 
@@ -75,6 +75,23 @@
 
 #define NO_WAVE_INTERVAL 250
 #define BLE_PACKET_SIZE 20
+
+//Координаты и размеры
+#define LEFT_MIN 5
+#define BIG_NUM_RIGHT 230
+#define HEART_LEFT 72
+#define HEART_TOP 279
+#define GSM_LEFT 22
+#define GSM_TOP 258
+#define HEART_X3_LEFT 63
+#define HEART_X3_TOP 245
+#define BLUETOOTH_TOP 255
+#define SYS_DIA_LEFT 50
+#define SYS_TOP 10
+#define DIA_TOP 120
+#define PULSE_LEFT 107
+
+
 
 /* function declarations */
 
@@ -141,7 +158,7 @@ void f_sorting_MAX(void);
 void GetSysDia(void);
 
 uint16_t CountPulse(void);
-void clear_monitor(void);
+void ClearScreen(void);
 void usb_send_16(short int T1, short int T2);
 short int convert_NO_save(void);
 int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC);

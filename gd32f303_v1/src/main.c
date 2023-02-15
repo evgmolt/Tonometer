@@ -224,15 +224,15 @@ int main(void)
     en_butt_flag=1;
     
     if (mode == INIT_START){        
-        print_heart(true);
-        print_bluetooth(true);
-        print_gsm(true);
-        print_heartX3(true);
-        PrintSYS_label();
-        PrintDIA_label();
-        print_num_H(888,235,10,YELLOW);
-        print_num_H(888,235,120,RED);
-        print_num_H(888,235,250,BLACK);        
+        PrintHeart(true);
+        PrintBluetooth(true);
+        PrintGsm(true);
+        PrintHeartX3(true);
+        PrintSYS_label(true);
+        PrintDIA_label(true);
+        print_num_H(888,BIG_NUM_RIGHT,10,YELLOW);
+        print_num_H(888,BIG_NUM_RIGHT,120,RED);
+        print_num_H(888,BIG_NUM_RIGHT,250,BLACK);        
     }
     else if (mode == PRESSURE_TEST)
     {
@@ -248,8 +248,9 @@ int main(void)
                    
     if (sim800_FLAG) {}      //GSM module ...        
     delay_1ms(1000);
-    if (mode != USB_CHARGING) {            
-            clear_monitor();
+    if (mode != USB_CHARGING) 
+    {            
+        ClearScreen();
     }        
         
     i2cCalibration();    
@@ -270,7 +271,7 @@ int main(void)
         
     Timer1Start();
 
-/*    SIM800_PWRKEY_UP;
+    SIM800_PWRKEY_UP;
     SIM800_EXT_DOWN;
     delay_1ms(200);
     SIM800_PWRKEY_DOWN;
@@ -278,7 +279,7 @@ int main(void)
     SIM800_EXT_UP;
     delay_1ms(100);
     SIM800_PWRKEY_UP;
-    delay_1ms(100);    */
+    delay_1ms(100);   
     
     while (1) 
     {    
@@ -297,6 +298,8 @@ int main(void)
                 TFT_print();
                 if (button_released) 
                 {
+                    my_send_string_UART_1("AT\0\n",strlen("AT\0\n"));            
+                    
                     ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);                            
                     ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);                        
                 
@@ -331,7 +334,7 @@ int main(void)
                 if (show_pressure_counter == 0)
                 {
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
-                    if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
+                    if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,BIG_NUM_RIGHT,120,GREEN);
                 }
             
                 if (current_pressure >= MAX_ALLOWED_PRESSURE && process_counter > MIN_PUMPING_INTERVAL) 
@@ -354,7 +357,7 @@ int main(void)
             case PRESSURE_TEST:
                 shutdown_counter = 0;
                 convert_NO_save();
-                print_num_H(current_pressure,235,120,GREEN);
+                print_num_H(current_pressure,BIG_NUM_RIGHT,120,GREEN);
                 usb_send_16(i2c_out,0);
                 delay_1ms(200);
                 print_time(rtc_counter_get());
@@ -369,7 +372,7 @@ int main(void)
                 if (show_pressure_counter == 0)
                 {
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
-                    if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,235,120,GREEN);
+                    if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,BIG_NUM_RIGHT,120,GREEN);
                 }
                 if (ble_data_ready)
                 {                        
@@ -417,13 +420,13 @@ int main(void)
                         puls_out > MIN_PULSE & 
                         puls_out < MAX_PULSE) 
                     {
-                        PrintSYS_label();
-                        PrintDIA_label();    
+                        PrintSYS_label(true);
+                        PrintDIA_label(true);    
                         PrintSYS(PSys);
                         PrintDIA(PDia);                                    
-                        print_num_H((int16_t)puls_out,235,250,BLACK);
+                        print_num_H((int16_t)puls_out, BIG_NUM_RIGHT, 250, BLACK);
 
-                        if (arrhythmia) print_heartX3(true);
+                        if (arrhythmia) PrintHeartX3(true);
                     
                         cur_tim = rtc_counter_get();
                         m_hh = cur_tim / 3600;
@@ -467,13 +470,13 @@ int main(void)
         
         if (show_heart)
         {             
-            print_heart(true);
+            PrintHeart(true);
             show_heart = false;
         }
         
         if (erase_heart)
         {
-            print_heart(false);
+            PrintHeart(false);
             erase_heart = false;
         }
                     
@@ -1077,14 +1080,14 @@ void BluetoothCheck(void)
         if (bluetooth_status == CONNECTED) 
         {
             bluetooth_status = DISCONNECTED;
-            print_bluetooth(true);
+            PrintBluetooth(true);
         }
     }
     else 
     {
         if (bluetooth_status == DISCONNECTED) 
         {
-            print_bluetooth(false);
+            PrintBluetooth(false);
             bluetooth_status = CONNECTED;    
         }
     }
