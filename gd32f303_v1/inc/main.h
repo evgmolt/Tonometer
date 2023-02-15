@@ -76,7 +76,7 @@
 #define NO_WAVE_INTERVAL 250
 #define BLE_PACKET_SIZE 20
 
-//Координаты и размеры
+//Координаты
 #define LEFT_MIN 5
 #define BIG_NUM_RIGHT 230
 #define HEART_LEFT 72
@@ -88,8 +88,9 @@
 #define BLUETOOTH_TOP 255
 #define SYS_DIA_LEFT 50
 #define SYS_TOP 10
-#define DIA_TOP 120
+#define DIA_TOP 122
 #define PULSE_LEFT 107
+#define PULSE_TOP 240
 
 
 

@@ -230,9 +230,9 @@ int main(void)
         PrintHeartX3(true);
         PrintSYS_label(true);
         PrintDIA_label(true);
-        print_num_H(888,BIG_NUM_RIGHT,10,YELLOW);
-        print_num_H(888,BIG_NUM_RIGHT,120,RED);
-        print_num_H(888,BIG_NUM_RIGHT,250,BLACK);        
+        print_num_H(888,BIG_NUM_RIGHT,SYS_TOP,YELLOW);
+        print_num_H(888,BIG_NUM_RIGHT,DIA_TOP,RED);
+        print_num_H(888,BIG_NUM_RIGHT,PULSE_TOP,BLACK);        
     }
     else if (mode == PRESSURE_TEST)
     {
@@ -401,9 +401,9 @@ int main(void)
                         ArrayForAver[i] = 0;
                     }
                 
-                    ILI9341_FillRectangle(55, 10, 180, 106, ILI9341_WHITE);
-                    ILI9341_FillRectangle(55, 120, 180, 106, ILI9341_WHITE);
-                    ILI9341_FillRectangle(112, 250, 123, 64, ILI9341_WHITE);    
+                    ILI9341_FillRectangle(SYS_DIA_LEFT, SYS_TOP, 180, 106, ILI9341_WHITE);
+                    ILI9341_FillRectangle(SYS_DIA_LEFT, DIA_TOP, 180, 106, ILI9341_WHITE);
+                    ILI9341_FillRectangle(PULSE_LEFT, PULSE_TOP, 123, 64, ILI9341_WHITE);    
                 
                     memset(EnvelopeArray, 0, 10000);
                     GetArrayOfWaveIndexes(pressure_pulsation_array, puls_buff, puls_buff_NEW);
@@ -424,7 +424,7 @@ int main(void)
                         PrintDIA_label(true);    
                         PrintSYS(PSys);
                         PrintDIA(PDia);                                    
-                        print_num_H((int16_t)puls_out, BIG_NUM_RIGHT, 250, BLACK);
+                        print_num_H((int16_t)puls_out, BIG_NUM_RIGHT, PULSE_TOP, BLACK);
 
                         if (arrhythmia) PrintHeartX3(true);
                     

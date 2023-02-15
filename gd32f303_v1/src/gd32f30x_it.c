@@ -273,7 +273,7 @@ void TIMER1_IRQHandler(void)
         if (shutdown_counter > SHUTDOWN_INTERVAL) 
         {
             shutdown_counter = 0;
-//            mode = KEY_OFF;                    
+            mode = KEY_OFF;                    
         }
     
         button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
