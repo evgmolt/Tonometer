@@ -66,11 +66,11 @@ void PrintGsm(bool show)
 {
     if (show) 
     {
-        ILI9341_DrawImage(GSM_LEFT, 258, 29, 18, (const uint16_t*)gsm);        
+        ILI9341_DrawImage(GSM_LEFT, GSM_TOP, 29, 18, (const uint16_t*)gsm);        
     }
     else 
     {
-        ILI9341_FillRectangle(GSM_LEFT, 258, 29, 18, ILI9341_WHITE);            
+        ILI9341_FillRectangle(GSM_LEFT, GSM_TOP, 29, 18, ILI9341_WHITE);            
     }
 }
 
@@ -281,89 +281,94 @@ void TFT_print(void){
 
 void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color)
 {
-    double now=0;
-    uint16_t now1=0;
+    #define BIG_NUM_W 60
+    #define MID_NUM_W 41
+    #define BIG_NUM_H 106
+    #define MID_NUM_H 64
+    
+    double now = 0;
+    uint16_t now1 = 0;
     uint8_t max;
     if (num >= 100) max = 3;
     else 
-    if (num>=10) 
+    if (num >= 10) 
     {
         max = 2;
-        if (color==BLACK) ILI9341_FillRectangle(X0-41*3, Y0, 41, 64, ILI9341_WHITE);
-        else  ILI9341_FillRectangle(X0-60*3, Y0, 60, 106, ILI9341_WHITE);
+        if (color==BLACK) ILI9341_FillRectangle(X0-41*3, Y0, MID_NUM_W, MID_NUM_H, ILI9341_WHITE);
+        else  ILI9341_FillRectangle(X0-BIG_NUM_W*3, Y0, BIG_NUM_W, BIG_NUM_H, ILI9341_WHITE);
     }
     else 
     {
         max = 1;
-        if (color==BLACK) ILI9341_FillRectangle(X0-41*3, Y0, 82, 64, ILI9341_WHITE);
-        else                             ILI9341_FillRectangle(X0-60*3, Y0, 120, 106, ILI9341_WHITE);
+        if (color==BLACK) ILI9341_FillRectangle(X0-41*3, Y0, 82, MID_NUM_H, ILI9341_WHITE);
+        else ILI9341_FillRectangle(X0-BIG_NUM_W*3, Y0, 120, BIG_NUM_H, ILI9341_WHITE);
     }
             
     for (int g=0; g < max; g++)
     {
-        now = pow(10,g);
+        now = pow(10, g);
         now1 = now;            
-        switch ((num/now1)%10)    
+        switch ((num / now1) % 10)    
         {    
             case 0:                    
-                if (color==GREEN)       ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_0);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_0);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_0);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_0);
+                if (color==GREEN)       ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_0);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_0);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_0);
+                else if (color==BLACK)  ILI9341_DrawImage(X0 - MID_NUM_W - g * MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_0);
             break;
             case 1:
-                 if (color==GREEN)      ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_1);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_1);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_1);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_1);
+                 if (color==GREEN)      ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_1);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_1);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_1);
+                else if (color==BLACK)  ILI9341_DrawImage(X0-MID_NUM_W-g*MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_1);
             break;
             case 2:
-                 if (color==GREEN)      ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_2);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_2);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_2);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_2);
+                 if (color==GREEN)      ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_2);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_2);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_2);
+                else if (color==BLACK)  ILI9341_DrawImage(X0-MID_NUM_W-g*MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_2);
             break;
             case 3:
-                if (color==GREEN)       ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_3);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_3);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_3);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_3);
+                if (color==GREEN)       ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_3);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_3);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_3);
+                else if (color==BLACK)  ILI9341_DrawImage(X0-MID_NUM_W-g*MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_3);
             break;
             case 4:
-                if (color==GREEN)       ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_4);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_4);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_4);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_4);
+                if (color==GREEN)       ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_4);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_4);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_4);
+                else if (color==BLACK)  ILI9341_DrawImage(X0-MID_NUM_W-g*MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_4);
             break;
             case 5:
-                if (color==GREEN)       ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_5);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_5);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_5);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_5);
+                if (color==GREEN)       ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_5);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_5);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_5);
+                else if (color==BLACK)  ILI9341_DrawImage(X0-MID_NUM_W-g*MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_5);
             break;
             case 6:
-                if (color==GREEN)       ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_6);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_6);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_6);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_6);
+                if (color==GREEN)       ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_6);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_6);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_6);
+                else if (color==BLACK)  ILI9341_DrawImage(X0-MID_NUM_W-g*MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_6);
             break;
             case 7:
-                if (color==GREEN)       ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_7);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_7);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_7);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_7);
+                if (color==GREEN)       ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_7);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_7);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_7);
+                else if (color==BLACK)  ILI9341_DrawImage(X0-MID_NUM_W-g*MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_7);
             break;
             case 8:
-                if (color==GREEN)       ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_8);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_8);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_8);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_8);
+                if (color==GREEN)       ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_8);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_8);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_8);
+                else if (color==BLACK)  ILI9341_DrawImage(X0-MID_NUM_W-g*MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_8);
             break;
             case 9:
-                if (color==GREEN)       ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)G_9);
-                else if (color==RED)    ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)R_9);
-                else if (color==YELLOW) ILI9341_DrawImage(X0-60-g*60, Y0, 60, 106, (const uint16_t*)Y_9);
-                else if (color==BLACK)  ILI9341_DrawImage(X0-41-g*41, Y0, 41, 64, (const uint16_t*)B_L_9);
+                if (color==GREEN)       ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)G_9);
+                else if (color==RED)    ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)R_9);
+                else if (color==YELLOW) ILI9341_DrawImage(X0-BIG_NUM_W-g*BIG_NUM_W, Y0, BIG_NUM_W, BIG_NUM_H, (const uint16_t*)Y_9);
+                else if (color==BLACK)  ILI9341_DrawImage(X0-MID_NUM_W-g*MID_NUM_W, Y0, MID_NUM_W, MID_NUM_H,  (const uint16_t*)B_L_9);
             break;
         }
     }

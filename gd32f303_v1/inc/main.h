@@ -79,20 +79,20 @@
 //Координаты
 #define LEFT_MIN 5
 #define BIG_NUM_RIGHT 230
-#define HEART_LEFT 72
+#define HEART_LEFT 70
 #define HEART_TOP 279
 #define GSM_LEFT 22
 #define GSM_TOP 258
-#define HEART_X3_LEFT 63
+#define HEART_X3_LEFT 61
 #define HEART_X3_TOP 245
 #define BLUETOOTH_TOP 255
 #define SYS_DIA_LEFT 50
 #define SYS_TOP 10
-#define DIA_TOP 122
+#define DIA_TOP 124
 #define PULSE_LEFT 107
 #define PULSE_TOP 240
 
-
+#define MAIN_ARRAY_SIZE 10000
 
 /* function declarations */
 
@@ -328,12 +328,12 @@ extern uint16_t num_string;
 extern uint16_t count_send_bluetooth;
 
 extern short int ble_buffer[BLE_PACKET_SIZE];
-extern short int pressure_array[10000];
+extern short int pressure_array[MAIN_ARRAY_SIZE];
 extern uint32_t main_index;
 extern uint32_t total_size;
 extern uint32_t first_max;
-extern short int pressure_pulsation_array[10000];
-extern short int EnvelopeArray[10000];
+extern short int pressure_pulsation_array[MAIN_ARRAY_SIZE];
+extern short int EnvelopeArray[MAIN_ARRAY_SIZE];
 
 extern uint32_t send_counter;
 

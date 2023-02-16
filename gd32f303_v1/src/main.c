@@ -148,19 +148,19 @@ uint16_t adc_value[8];
 uint16_t num_string=0;
 uint16_t count_send_bluetooth=0;
 short int ble_buffer[BLE_PACKET_SIZE] = {0};
-short int pressure_array[10000]={0};
+short int pressure_array[MAIN_ARRAY_SIZE]={0};
 uint32_t main_index = 0;
 uint32_t first_max;
 uint32_t total_size = 0;
-short int pressure_pulsation_array[10000]={0};
-short int EnvelopeArray[10000]={0};
+short int pressure_pulsation_array[MAIN_ARRAY_SIZE]={0};
+short int EnvelopeArray[MAIN_ARRAY_SIZE]={0};
 uint32_t send_counter=0;
 
 int lock_counter = 0;
 
 uint8_t usb_command;
 
-double rate=18.69;
+double rate=18.1;
 double rate_whole;
 double rate_fract;
 
@@ -419,7 +419,7 @@ int main(void)
                     ILI9341_FillRectangle(SYS_DIA_LEFT, DIA_TOP, 180, 106, ILI9341_WHITE);
                     ILI9341_FillRectangle(PULSE_LEFT, PULSE_TOP, 123, 64, ILI9341_WHITE);    
                 
-                    memset(EnvelopeArray, 0, 10000);
+                    memset(EnvelopeArray, 0, MAIN_ARRAY_SIZE);
                     GetArrayOfWaveIndexes(pressure_pulsation_array, puls_buff, puls_buff_NEW);
                     f_sorting_MAX();
                     CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);

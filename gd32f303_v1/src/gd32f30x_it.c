@@ -43,12 +43,12 @@ OF SUCH DAMAGE.
 extern __IO uint32_t timedisplay;
 extern uint8_t mode;
 extern int16_t current_pressure;
-extern short int  pressure_array[10000];
+extern short int  pressure_array[MAIN_ARRAY_SIZE];
 extern uint32_t main_index;
 extern uint32_t send_counter;
 extern int i2c_out_K;
-extern short int pressure_pulsation_array[10000];
-extern short int EnvelopeArray[10000];
+extern short int pressure_pulsation_array[MAIN_ARRAY_SIZE];
+extern short int EnvelopeArray[MAIN_ARRAY_SIZE];
 extern uint16_t count_send_bluetooth;
 extern uint8_t start_send_ble_flag;
 extern uint8_t start_finish_ble_flag;
