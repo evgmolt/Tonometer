@@ -78,6 +78,7 @@ int16_t detect_level_start = 4;
 double detect_level = 4;
 int16_t lock_interval = 50;
 double detect_levelCoeff = 0.7;
+double detect_levelCoeffDia = 0.55;
 double stop_meas_coeff = 0.58;
 int16_t current_interval = 0;
 double current_max=0;
@@ -273,7 +274,7 @@ void TIMER1_IRQHandler(void)
         if (shutdown_counter > SHUTDOWN_INTERVAL) 
         {
             shutdown_counter = 0;
-            mode = KEY_OFF;                    
+//            mode = KEY_OFF;                    
         }
     
         button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
@@ -460,6 +461,7 @@ void TIMER2_IRQHandler(void)
                             {
                                 stop_meas = true;
                             }
+                            first_max = max_index;
                             Wave_detect_time_OLD=Wave_detect_time;
                             Wave_detect_time=max_index-1;                                                                                                                        
                             puls_buff[puls_counter++]=max_index-1;
@@ -507,6 +509,72 @@ void TIMER2_IRQHandler(void)
         }
     }
 }
+
+uint8_t usb_send_save(int16_t *mass1, int16_t *mass2)
+{
+    //Add markers of SYS, MAX and DIA points into array
+    for (int h=0;h<puls_counter;h++)
+    {
+            if (send_counter==XMax) pressure_pulsation_array[send_counter]=100;                    
+    }        
+    for (int h=0;h<puls_counter;h++)
+    {
+            if (send_counter==indexPSys | send_counter==indexPDia) pressure_pulsation_array[send_counter]=-100;                    
+    }        
+    
+    uint8_t send_H1=(mass1[send_counter]>>8)&0xFF;
+    uint8_t send_L1=mass1[send_counter]&0xFF;
+    uint8_t send_H2=(mass2[send_counter]>>8)&0xFF;
+    uint8_t send_L2=mass2[send_counter]&0xFF;
+    
+    uint8_t send_buff[5]={25,send_L1,send_H1,send_L2,send_H2};
+    usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 5);
+    send_counter++;
+    if (send_counter >= total_size) return 1;
+    else return 0;
+}
+
+//Функция используется при втором проходе по массиву пульсаций давления, когда уже известно положение максимума.
+//До максимума используется detect_levelCoeff, а после detect_levelCoeffDia, так как скорость спада амплитуд пульсаций
+//после максимума выше
+void Detect(int32_t x_max, uint16_t index)
+{                
+    static int32_t index_of_max;
+    int16_t current_value;
+    double coeff;
+        
+    current_interval++;
+    if (current_interval > NO_WAVE_INTERVAL)
+    {
+        detect_level = detect_level_start;
+    }
+    current_value = GetDerivative(pressure_pulsation_array, index - 1);
+    if (current_value>detect_level & (index-1)>(silence_time_start+lock_interval)) wave_detect_flag = 1;
+    if (wave_detect_flag == 1 & (index - 1) > (silence_time_start + lock_interval))
+    {
+        if (current_value > current_max) 
+        {
+            current_max = current_value;
+            index_of_max = index-1;
+        }
+        else if (current_value < detect_level)
+        {
+            global_max = fmax(global_max, current_max);
+            Wave_detect_time_OLD = Wave_detect_time;
+            Wave_detect_time = index_of_max-1;                                                                                                                        
+            puls_buff[puls_counter++] = index_of_max-1;
+            lock_interval=(Wave_detect_time - Wave_detect_time_OLD) / 2;
+//            if (lock_interval > hi_limit | lock_interval < lo_limit) lock_interval = 50;
+            silence_time_start = index_of_max - 1;
+            if (index < x_max) coeff = detect_levelCoeff; else coeff = detect_levelCoeffDia;
+            detect_level = current_max * coeff;
+            if (detect_level < detect_level_start) detect_level = detect_level_start;
+            current_max=0;
+            current_interval = 0;
+            wave_detect_flag=0;
+        }
+    }                        
+}                        
 
 void ResetDetector(void)
 {

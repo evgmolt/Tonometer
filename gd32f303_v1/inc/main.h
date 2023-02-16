@@ -225,6 +225,7 @@ extern int16_t detect_level_start;
 extern double detect_level;
 extern int16_t lock_interval;
 extern double detect_levelCoeff;
+extern double detect_levelCoeffDia;
 extern double stop_meas_coeff;
 extern int16_t current_interval;
 extern double current_max;
@@ -329,6 +330,8 @@ extern uint16_t count_send_bluetooth;
 extern short int ble_buffer[BLE_PACKET_SIZE];
 extern short int pressure_array[10000];
 extern uint32_t main_index;
+extern uint32_t total_size;
+extern uint32_t first_max;
 extern short int pressure_pulsation_array[10000];
 extern short int EnvelopeArray[10000];
 

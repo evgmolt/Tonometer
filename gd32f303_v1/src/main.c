@@ -149,7 +149,9 @@ uint16_t num_string=0;
 uint16_t count_send_bluetooth=0;
 short int ble_buffer[BLE_PACKET_SIZE] = {0};
 short int pressure_array[10000]={0};
-uint32_t main_index=0;
+uint32_t main_index = 0;
+uint32_t first_max;
+uint32_t total_size = 0;
 short int pressure_pulsation_array[10000]={0};
 short int EnvelopeArray[10000]={0};
 uint32_t send_counter=0;
@@ -396,6 +398,18 @@ int main(void)
                 }
                 if (current_pressure <= STOP_MEAS_LEVEL || stop_meas)
                 {
+                    total_size = main_index;
+                    current_max=0;        
+                    global_max=0;        
+                    detect_level=detect_level_start;
+                    silence_time_start=0;
+                    puls_counter=0;            
+
+                    for (int i = 0; i < total_size; i++)
+                    {
+                        Detect(first_max, i);
+                    }
+                    
                     for (int i = 0; i < AVER_SIZE; i++) 
                     {
                         ArrayForAver[i] = 0;
@@ -412,7 +426,7 @@ int main(void)
                     GetSysDia();
                     CountPulse();    
                     bonus_byte=0;
-                    if (main_index>1000 & 
+                    if (//main_index>1000 & 
                         PSys > MIN_SYS & 
                         PSys < MAX_SYS & 
                         PDia > MIN_DIA & 
@@ -1004,29 +1018,6 @@ void usb_send_i2c_convers(void)
     usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 3);
 }
 
-uint8_t usb_send_save(int16_t *mass1, int16_t *mass2)
-{
-    //Add markers of SYS, MAX and DIA points into array
-    for (int h=0;h<puls_counter;h++)
-    {
-            if (send_counter==XMax) pressure_pulsation_array[send_counter]=100;                    
-    }        
-    for (int h=0;h<puls_counter;h++)
-    {
-            if (send_counter==indexPSys | send_counter==indexPDia) pressure_pulsation_array[send_counter]=-100;                    
-    }        
-    
-    uint8_t send_H1=(mass1[send_counter]>>8)&0xFF;
-    uint8_t send_L1=mass1[send_counter]&0xFF;
-    uint8_t send_H2=(mass2[send_counter]>>8)&0xFF;
-    uint8_t send_L2=mass2[send_counter]&0xFF;
-    
-    uint8_t send_buff[5]={25,send_L1,send_H1,send_L2,send_H2};
-    usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 5);
-    send_counter++;
-    if (send_counter>=main_index) return 1;
-    else return 0;
-}
 
 short int convert_save_16(void)
 {            
