@@ -68,11 +68,8 @@ __IO uint32_t timedisplay;
 #define I2C0_OWN_ADDRESS7      0x72 
 #define I2C0_SLAVE_ADDRESS7    0x91 
 
-extern uint8_t en_butt_flag;
-extern uint8_t en_butt_count;
 extern uint8_t wave_ind_flag;
 extern uint8_t wave_detect_flag;
-extern int16_t T_Wave;
 extern double detect_level;
 extern int16_t silence_time_start;
 extern int16_t puls_buff[50];
@@ -81,16 +78,14 @@ extern double current_max;
 extern int16_t detect_level_start;
 extern uint8_t UART0_buff[200];
 extern uint8_t UART0_count;
-extern uint8_t finish_6_flag;
 
-double puls_out=0;
-uint8_t puls_cur_counter=0;
+double pulse=0;
 
 uint32_t *ptrd;
 uint32_t address = 0x00000000U;
 uint32_t SERIAL[9]   = {'0','2','0','2','2','2','0','0','1'};
 /* calculate the number of page to be programmed/erased */
-uint32_t PageNum = (FMC_SERIAL_END_ADDR - FMC_SERIAL_START_ADDR) / FMC_SERIAL_PAGE_SIZE;
+uint32_t page_num = (FMC_SERIAL_END_ADDR - FMC_SERIAL_START_ADDR) / FMC_SERIAL_PAGE_SIZE;
 
 extern uint8_t UART0_flag;
 
@@ -120,18 +115,16 @@ uint16_t m_hh;
 int indexPSys = 0;
 int indexPDia = 0;
 int16_t XMax = 0;
-int DerivativeShift = 13;
-int DerivativeAverageWidth = 4;
 int16_t current_pressure=0;
-int16_t ArrayForAver[AVER_SIZE] = {0};
-int8_t ArrayForAverIndex = 0;
+int16_t array_for_aver[AVER_SIZE] = {0};
+int8_t array_for_aver_index = 0;
 int16_t i2c_out=0;
 int i2c_out_K=0;
 uint8_t indicate_charge_toggle=1;
 uint8_t indicate_charge_counter=1;
 uint16_t cur_day=13, cur_month=12, cur_year=2022;
 uint32_t cur_thh=0,cur_tmm=0,cur_tss=0;
-uint32_t cur_tim=0;
+uint32_t cur_time=0;
 uint8_t bluetooth_status=0;
 uint8_t bonus_byte=0;
 uint8_t mode = INIT_START;
@@ -153,7 +146,7 @@ uint32_t main_index = 0;
 uint32_t first_max;
 uint32_t total_size = 0;
 short int pressure_pulsation_array[MAIN_ARRAY_SIZE]={0};
-short int EnvelopeArray[MAIN_ARRAY_SIZE]={0};
+short int envelope_array[MAIN_ARRAY_SIZE]={0};
 uint32_t send_counter=0;
 
 int lock_counter = 0;
@@ -223,8 +216,6 @@ int main(void)
     
     ButtonInterruptConfig();
     
-    en_butt_flag=1;
-    
     if (mode == INIT_START){        
         PrintHeart(true);
         PrintBluetooth(true);
@@ -232,9 +223,9 @@ int main(void)
         PrintHeartX3(true);
         PrintSYS_label(true);
         PrintDIA_label(true);
-        print_num_H(888,BIG_NUM_RIGHT,SYS_TOP,YELLOW);
-        print_num_H(888,BIG_NUM_RIGHT,DIA_TOP,RED);
-        print_num_H(888,BIG_NUM_RIGHT,PULSE_TOP,BLACK);        
+        PrintNum(888,BIG_NUM_RIGHT,SYS_TOP,YELLOW);
+        PrintNum(888,BIG_NUM_RIGHT,DIA_TOP,RED);
+        PrintNum(888,BIG_NUM_RIGHT,PULSE_TOP,BLACK);        
     }
     else if (mode == PRESSURE_TEST)
     {
@@ -246,8 +237,6 @@ int main(void)
     delay_1ms(300);
     while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}
     
-    en_butt_flag=0;    
-                   
     if (sim800_FLAG) {}      //GSM module ...        
     delay_1ms(1000);
     if (mode != USB_CHARGING) 
@@ -313,12 +302,9 @@ int main(void)
                     VALVE_FAST_CLOSE;
                     VALVE_SLOW_CLOSE;
                     lock_interval=50;
-                    sector_start_scan=0;
                     ResetDetector();
                     puls_counter=0;            
-                    detect_FLAG=0;
                     Timer2Start();
-                    finish_6_flag=0;
                     stop_meas = false;
                     mode = PUMPING_MANAGEMENT;
                     button_released = 0;
@@ -336,7 +322,7 @@ int main(void)
                 if (show_pressure_counter == 0)
                 {
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
-                    if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,BIG_NUM_RIGHT,120,GREEN);
+                    if (current_pressure>=0 & current_pressure<400) PrintNum(current_pressure, BIG_NUM_RIGHT, DIA_TOP, GREEN);
                 }
             
                 if (current_pressure >= MAX_ALLOWED_PRESSURE && process_counter > MIN_PUMPING_INTERVAL) 
@@ -359,10 +345,10 @@ int main(void)
             case PRESSURE_TEST:
                 shutdown_counter = 0;
                 convert_NO_save();
-                print_num_H(current_pressure,BIG_NUM_RIGHT,120,GREEN);
+                PrintNum(current_pressure, BIG_NUM_RIGHT, DIA_TOP, GREEN);
                 usb_send_16(i2c_out,0);
                 delay_1ms(200);
-                print_time(rtc_counter_get());
+                PrintTime(rtc_counter_get());
                 if (usb_command == USB_COMMAND_SET_RATE)
                 {   
                     rate = rate_whole + rate_fract / 100;
@@ -374,7 +360,7 @@ int main(void)
                 if (show_pressure_counter == 0)
                 {
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
-                    if (current_pressure>=0 & current_pressure<400) print_num_H(current_pressure,BIG_NUM_RIGHT,120,GREEN);
+                    if (current_pressure>=0 & current_pressure<400) PrintNum(current_pressure, BIG_NUM_RIGHT, DIA_TOP, GREEN);
                 }
                 if (ble_data_ready)
                 {                        
@@ -412,41 +398,41 @@ int main(void)
                     
                     for (int i = 0; i < AVER_SIZE; i++) 
                     {
-                        ArrayForAver[i] = 0;
+                        array_for_aver[i] = 0;
                     }
                 
                     ILI9341_FillRectangle(SYS_DIA_LEFT, SYS_TOP, 180, 106, ILI9341_WHITE);
                     ILI9341_FillRectangle(SYS_DIA_LEFT, DIA_TOP, 180, 106, ILI9341_WHITE);
                     ILI9341_FillRectangle(PULSE_LEFT, PULSE_TOP, 123, 64, ILI9341_WHITE);    
                 
-                    memset(EnvelopeArray, 0, MAIN_ARRAY_SIZE);
+                    memset(envelope_array, 0, MAIN_ARRAY_SIZE);
                     GetArrayOfWaveIndexes(pressure_pulsation_array, puls_buff, puls_buff_NEW);
                     f_sorting_MAX();
                     CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
                     GetSysDia();
-                    CountPulse();    
+                    pulse = CountPulse();    
                     bonus_byte=0;
                     if (//main_index>1000 & 
                         PSys > MIN_SYS & 
                         PSys < MAX_SYS & 
                         PDia > MIN_DIA & 
                         PDia < MAX_DIA & 
-                        puls_out > MIN_PULSE & 
-                        puls_out < MAX_PULSE) 
+                        pulse > MIN_PULSE & 
+                        pulse < MAX_PULSE) 
                     {
                         PrintSYS_label(true);
                         PrintDIA_label(true);    
                         PrintSYS(PSys);
                         PrintDIA(PDia);                                    
-                        print_num_H((int16_t)puls_out, BIG_NUM_RIGHT, PULSE_TOP, BLACK);
+                        PrintNum((int16_t)pulse, BIG_NUM_RIGHT, PULSE_TOP, BLACK);
 
                         if (arrhythmia) PrintHeartX3(true);
                     
-                        cur_tim = rtc_counter_get();
-                        m_hh = cur_tim / 3600;
-                        m_mm = (cur_tim % 3600) / 60;
-                        m_ss = (cur_tim % 3600) % 60;
-                        check_backup_register(&cur_day, &cur_month, &cur_year);
+                        cur_time = rtc_counter_get();
+                        m_hh = cur_time / 3600;
+                        m_mm = (cur_time % 3600) / 60;
+                        m_ss = (cur_time % 3600) % 60;
+                        CheckBackupRegister(&cur_day, &cur_month, &cur_year);
                         if     (cur_year>=255)    cur_year-=2000;
                     }
                     else 
@@ -454,7 +440,7 @@ int main(void)
                         bonus_byte|=0x80;
                         PrintError(ERROR_MEAS);                            
                     }
-                    send_result_measurement((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)puls_out,bonus_byte);
+                    SendMeasurementResult((uint8_t)cur_day, (uint8_t)cur_month, (uint8_t)cur_year, (uint8_t)m_ss, (uint8_t)m_mm, (uint8_t)m_hh, (uint8_t)PSys, (uint8_t)PDia, (uint8_t)pulse,bonus_byte);
                     
                     VALVE_FAST_OPEN;
                     VALVE_SLOW_OPEN;
@@ -1159,7 +1145,8 @@ uint8_t finder_msg(uint8_t *buff)
                 {
                     check_sum+=buff[j+a];
                 }                                
-                if (buff[j+10]==check_sum){
+                if (buff[j+10]==check_sum)
+                {
                     cur_day=cur_month=cur_month=cur_year=cur_tss=cur_tmm=cur_thh=0;
                     cur_day=(uint16_t)buff[j+3];
                     cur_month=(uint16_t)buff[j+4];
@@ -1169,10 +1156,11 @@ uint8_t finder_msg(uint8_t *buff)
                     cur_thh=(uint32_t)buff[j+8];    
                 
                     TimeSet((uint32_t)cur_thh,(uint32_t)cur_tmm,(uint32_t)cur_tss);
-                    write_backup_register((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
+                    WriteBackupRegister((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
                 
                     buff[j]=0xFF;
-                    return 2;                    }
+                    return 2;                    
+                }
             }
         }
     }
@@ -1190,7 +1178,6 @@ void FmcErasePage(uint32_t page_address)
 {
     /* unlock the flash program/erase controller */
     fmc_unlock();
-
     /* clear all pending flags */
     FmcFlagsClear();
     /* erase the flash page */
@@ -1210,7 +1197,8 @@ void FmcProgramSerial(void)
     address = FMC_SERIAL_START_ADDR;
 
     /* program flash */
-    while(address < FMC_SERIAL_END_ADDR){
+    while(address < FMC_SERIAL_END_ADDR)
+    {
         fmc_word_program(address, SERIAL[cur_count++]);
         address += 4;
         FmcFlagsClear();
@@ -1287,21 +1275,21 @@ void FmcSerialCheck(void)
     my_send_string_UART_0(cur_buff,strlen(cur_buff));
 }
 
-void write_backup_register(uint16_t day, uint16_t month, uint16_t year)
+void WriteBackupRegister(uint16_t day, uint16_t month, uint16_t year)
 {
     BKP_DATA10_41(10) = day;
     BKP_DATA10_41(11) = month;
     BKP_DATA10_41(12) = year;
 }
 
-void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year)
+void CheckBackupRegister(uint16_t *_day, uint16_t *_month, uint16_t *_year)
 {
     *_day = BKP_DATA_GET(BKP_DATA10_41(10));
     *_month = BKP_DATA_GET(BKP_DATA10_41(11));
     *_year = BKP_DATA_GET(BKP_DATA10_41(12));
 }
 
-void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8_t c_ss, uint8_t c_mm, uint8_t c_hh, int16_t sis, int16_t dia, int16_t pressure, int16_t bonus)
+void SendMeasurementResult(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8_t c_ss, uint8_t c_mm, uint8_t c_hh, int16_t sis, int16_t dia, int16_t pressure, int16_t bonus)
 {
     uint8_t cur_buff[13]={'0','2', 0x01, c_day, c_month, c_year, c_ss, c_mm, c_hh, sis, dia, pressure, bonus};        
     uint8_t c_summ=0;        

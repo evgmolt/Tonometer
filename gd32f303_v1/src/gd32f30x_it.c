@@ -41,38 +41,17 @@ OF SUCH DAMAGE.
 #include "ili9341.h"
 
 extern __IO uint32_t timedisplay;
-extern uint8_t mode;
-extern int16_t current_pressure;
-extern short int  pressure_array[MAIN_ARRAY_SIZE];
-extern uint32_t main_index;
-extern uint32_t send_counter;
-extern int i2c_out_K;
-extern short int pressure_pulsation_array[MAIN_ARRAY_SIZE];
-extern short int EnvelopeArray[MAIN_ARRAY_SIZE];
-extern uint16_t count_send_bluetooth;
 extern uint8_t start_send_ble_flag;
 extern uint8_t start_finish_ble_flag;
-extern uint16_t frequency;
 
 const int lo_limit = 30;  // 256 bpm
 const int hi_limit = 250; // 30 bpm
-
-uint8_t en_butt_flag=0;
-uint8_t en_butt_count=0;
 
 uint8_t UART1_buff[200]={0};
 uint8_t UART1_count=0;
 
 uint8_t UART0_buff[200]={0};
 uint8_t UART0_count=0;
-
-uint8_t FLAG_CONT_CH=0;
-
-int slim_sr=0;
-int slim_sr_final=0;
-int slim_sr_OLD=0;
-uint8_t slim_count=0;
-float slim_K=1;
 
 int16_t detect_level_start = 4;
 double detect_level = 4;
@@ -86,23 +65,12 @@ double global_max=0;
 uint8_t wave_detect_flag=0;
 int16_t Wave_detect_time=0;
 int16_t Wave_detect_time_OLD=0;
-int16_t T_Wave=0;
 uint8_t wave_ind_flag=0;
 bool show_heart = false;
 bool erase_heart = false;
 int16_t silence_time_start=0;
-int16_t MAX_dir_wave=0;
 int16_t puls_buff[50]={0};
 uint8_t puls_counter=0;
-int16_t sector_scan = 20;
-int16_t sector_start_scan=0;
-uint8_t finish_6_flag=0;
-
-uint16_t detect_FLAG=0;
-uint16_t finish_time=500;
-
-//uint32_t max_index=0;
-uint16_t Time_measurement=50; 
 
 int16_t dc_array_window = 30;
 int16_t ac_array_window = 4;
@@ -113,7 +81,6 @@ int shutdown_counter = 0;
 int process_counter = 0;
 int heart_counter = 0;
 int show_pressure_counter = 0;
-
 
 int button_touched = 0;
 int button_pressed = 0;
@@ -462,20 +429,20 @@ void TIMER2_IRQHandler(void)
                                 stop_meas = true;
                             }
                             first_max = max_index;
-                            Wave_detect_time_OLD=Wave_detect_time;
-                            Wave_detect_time=max_index-1;                                                                                                                        
-                            puls_buff[puls_counter++]=max_index-1;
+                            Wave_detect_time_OLD = Wave_detect_time;
+                            Wave_detect_time = max_index - 1;                                                                                                                        
+                            puls_buff[puls_counter++]= max_index - 1;
                             heart_counter = HEART_INTERVAL;
-                            wave_ind_flag=1; 
+                            wave_ind_flag = 1; 
                             show_heart = true;    
-                            lock_interval=(Wave_detect_time-Wave_detect_time_OLD)/2;
-                            if (lock_interval>hi_limit | lock_interval<lo_limit) lock_interval=50;
-                            silence_time_start = max_index-1;
+                            lock_interval=(Wave_detect_time - Wave_detect_time_OLD) / 2;
+                            if (lock_interval > hi_limit | lock_interval < lo_limit) lock_interval = 50;
+                            silence_time_start = max_index - 1;
                             detect_level = current_max * detect_levelCoeff;
                             if (detect_level < detect_level_start) detect_level = detect_level_start;
-                            current_max=0;
+                            current_max = 0;
                             current_interval = 0;
-                            wave_detect_flag=0;
+                            wave_detect_flag = 0;
                         }
                     }                        
                 }                        
@@ -493,7 +460,7 @@ void TIMER2_IRQHandler(void)
                 PUMP_OFF;
             }
             else
-            if (usb_send_save(pressure_pulsation_array,EnvelopeArray))
+            if (usb_send_save(pressure_pulsation_array,envelope_array))
             {            
                     mode = INIT_START;
                     Timer2Stop();

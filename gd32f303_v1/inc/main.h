@@ -94,6 +94,9 @@
 
 #define MAIN_ARRAY_SIZE 10000
 
+#define DERIVATIVE_SHIFT 13
+#define DERIVATIVE_AVER_WIDTH 4
+
 /* function declarations */
 
 void i2c_config(void);
@@ -112,7 +115,7 @@ void spi_config(void);
 
 void nvic_configuration(void);
 void rtc_configuration(void);
-void print_time(uint32_t timevar);
+void PrintTime(uint32_t timevar);
 
 void usb_send_i2c_convers(void);
 void i2c_convers(void);    
@@ -125,7 +128,7 @@ void usart_config_1(void);
 void my_send_string_UART_1(char *buf, uint8_t num);
 void SIM_recieve_OK(void);
 int16_t GetAver(int16_t nextValue);
-void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color);
+void PrintNum(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color);
 void TimeSet(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss);
 void TimeInit(void);
 void ButtonInterruptConfig(void);
@@ -184,9 +187,9 @@ void FmcErasePage_check(void);
 /* check fmc program result */
 void FmcSerialCheck(void);
 
-void write_backup_register(uint16_t day, uint16_t month, uint16_t year);
-void check_backup_register(uint16_t *_day, uint16_t *_month, uint16_t *_year);
-void send_result_measurement(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8_t c_ss, uint8_t c_mm, uint8_t c_hh, int16_t sis, int16_t dia, int16_t pressure, int16_t bonus);
+void WriteBackupRegister(uint16_t day, uint16_t month, uint16_t year);
+void CheckBackupRegister(uint16_t *_day, uint16_t *_month, uint16_t *_year);
+void SendMeasurementResult(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8_t c_ss, uint8_t c_mm, uint8_t c_hh, int16_t sis, int16_t dia, int16_t pressure, int16_t bonus);
 
 void PrintSYS(int16_t IN);
 void PrintDIA(int16_t IN);
@@ -198,28 +201,14 @@ double ReadRateFromFmc();
 extern bool arrhythmia;
 extern bool stop_meas;
 
-extern uint16_t detect_FLAG;
-extern uint16_t finish_time;
-
 extern const int lo_limit; //ms - 200 
 extern const int hi_limit; //ms - 30
-
-extern uint8_t en_butt_flag;
-extern uint8_t en_butt_count;
 
 extern uint8_t UART1_buff[200];
 extern uint8_t UART1_count;
 
 extern uint8_t UART0_buff[200];
 extern uint8_t UART0_count;
-
-extern uint8_t FLAG_CONT_CH;
-
-extern int slim_sr;
-extern int slim_sr_final;
-extern int slim_sr_OLD;
-extern uint8_t slim_count;
-extern float slim_K;
 
 extern int16_t detect_level_start;
 extern double detect_level;
@@ -233,26 +222,20 @@ extern double global_max;
 extern uint8_t wave_detect_flag;
 extern int16_t Wave_detect_time;
 extern int16_t Wave_detect_time_OLD;
-extern int16_t T_Wave;
 extern uint8_t wave_ind_flag;
 extern bool show_heart;
 extern bool erase_heart;
 extern int16_t silence_time_start;
-extern int16_t MAX_dir_wave;
 extern int16_t puls_buff[50];
 extern uint8_t puls_counter;
-extern int16_t sector_scan;
-extern int16_t sector_start_scan;
-extern uint8_t finish_6_flag;
 
-extern double puls_out;
-extern uint8_t puls_cur_counter;
+extern double pulse;
 
 extern uint32_t *ptrd;
 extern uint32_t address;
 extern uint32_t SERIAL[9];
 /* calculate the number of page to be programmed/erased */
-extern uint32_t PageNum;
+extern uint32_t page_num;
 
 extern int16_t puls_buff_NEW[50];
 extern int16_t puls_buff_NEW_MIN[50];
@@ -279,12 +262,9 @@ extern int indexPSys;
 extern int indexPDia;
 extern int16_t XMax;
 
-extern int DerivativeShift;
-extern int DerivativeAverageWidth;
-
 extern int16_t current_pressure;
-extern int16_t ArrayForAver[AVER_SIZE];
-extern int8_t ArrayForAverIndex;
+extern int16_t array_for_aver[AVER_SIZE];
+extern int8_t array_for_aver_index;
 
 extern int16_t i2c_out;
 extern int i2c_out_K;
@@ -293,14 +273,10 @@ extern uint8_t indicate_charge_counter;
 
 extern uint16_t cur_day, cur_month, cur_year;
 extern uint32_t cur_thh,cur_tmm,cur_tss;
-extern uint32_t cur_tim;
+extern uint32_t cur_time;
 
 extern uint8_t bluetooth_status;
 extern uint8_t bonus_byte;
-
-
-//extern uint32_t MAX_counter;
-extern uint16_t Time_measurement; 
 
 extern int16_t dc_array_window;
 extern int16_t ac_array_window;
@@ -333,7 +309,7 @@ extern uint32_t main_index;
 extern uint32_t total_size;
 extern uint32_t first_max;
 extern short int pressure_pulsation_array[MAIN_ARRAY_SIZE];
-extern short int EnvelopeArray[MAIN_ARRAY_SIZE];
+extern short int envelope_array[MAIN_ARRAY_SIZE];
 
 extern uint32_t send_counter;
 

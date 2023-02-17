@@ -7,43 +7,54 @@
 
 uint16_t CountPulse(void)
 {
+    uint8_t decrease_size = 3; //Количество отбрасываемых интервалов слева и справа
+    uint8_t num_of_intervals = 10; //Количество интервалов для оценки аритмии
     double level = 0.06;
     uint16_t intervals[50]={0};
-    double first_puls=0;
-    int16_t cur_puls=0;
-    puls_out=0;
-    puls_cur_counter=0;
+    double first_pulse = 0;
+    double second_pulse = 0;
+    int32_t cur_puls=0;
+    uint32_t puls_cur_counter=0;
+    uint16_t pcounter;
     if (puls_counter<10) return 0;
-    for (int m = 3; m < puls_counter - 3; m++)
+    for (int m = decrease_size; m < puls_counter - decrease_size; m++)
     {
         cur_puls = puls_buff[m] - puls_buff[m-1];
         if (cur_puls > lo_limit & cur_puls < hi_limit)
         {
-            first_puls+=cur_puls;
+            first_pulse += cur_puls;
             puls_cur_counter++;
         }
     }        
-    first_puls=first_puls / puls_cur_counter;
+    first_pulse /= puls_cur_counter;
+    first_pulse /= frequency;
+    first_pulse = 60 / first_pulse;
+    
+    if (puls_counter < num_of_intervals)
+    {
+        arrhythmia = false;
+        return first_pulse;
+    }
     
     puls_cur_counter = 0;
-    for (int m=1;m<puls_counter;m++)
+    for (int m = 0; m <= num_of_intervals; m++)
     {
-        cur_puls=puls_buff[m]-puls_buff[m-1];
-        if (cur_puls > lo_limit & cur_puls < hi_limit & cur_puls * 1.5 > first_puls & cur_puls / 1.5 < first_puls)
+        cur_puls = puls_buff[puls_counter - m - 1] - puls_buff[puls_counter - m - 2];
+        if (cur_puls > lo_limit & cur_puls < hi_limit & cur_puls * 1.5 > first_pulse & cur_puls / 1.5 < first_pulse)
         {
-            puls_out+=cur_puls;
+            second_pulse += cur_puls;
             intervals[puls_cur_counter]=cur_puls;
             puls_cur_counter++;    
         }
     }
     
-    double Aver=puls_out / puls_cur_counter;
-    double TwentyFivePercent = Aver / 4;
+    double aver= second_pulse / puls_cur_counter;
+    double TwentyFivePercent = aver / 4;
     int Counter = 0;
     double SumSqr = 0;
     for (int i = 0; i < puls_cur_counter; i++)
     {
-        double Diff = intervals[i] - Aver;
+        double Diff = intervals[i] - aver;
         if (abs(Diff) < TwentyFivePercent)
         {
             SumSqr += Diff * Diff;
@@ -51,35 +62,35 @@ uint16_t CountPulse(void)
         }
     }
     
-    double SKO = sqrt(SumSqr/Counter);
-    arrhythmia = (SKO/Aver)>level;
+    double SKO = sqrt(SumSqr / Counter);
+    arrhythmia = (SKO / aver)>level;
     
-    puls_out=60/(puls_out/(puls_cur_counter*frequency));
-    return puls_out;
+    return first_pulse;
 }
 
-
-int16_t GetAver(int16_t nextValue) {
-    ArrayForAver[ArrayForAverIndex] = nextValue;
-    ArrayForAverIndex++;
-    if (ArrayForAverIndex > AVER_SIZE - 1) ArrayForAverIndex = 0;
+int16_t GetAver(int16_t nextValue) 
+{
+    array_for_aver[array_for_aver_index] = nextValue;
+    array_for_aver_index++;
+    if (array_for_aver_index > AVER_SIZE - 1) array_for_aver_index = 0;
     int16_t sum = 0;
-    for (int i = 0; i < AVER_SIZE; i++) sum += ArrayForAver[i];
+    for (int i = 0; i < AVER_SIZE; i++) sum += array_for_aver[i];
     return sum / AVER_SIZE;
 }
 
 int16_t GetDerivative(int16_t *dataArr, int32_t Ind){
-   if (Ind < (DerivativeAverageWidth+DerivativeShift)){
+   if (Ind < (DERIVATIVE_AVER_WIDTH + DERIVATIVE_SHIFT))
+   {
        return 0;
    }
    int32_t val1 = 0;
    int32_t val2 = 0;
-   for (int i = 0; i < DerivativeAverageWidth; i++){
-       val1 += dataArr[Ind - DerivativeAverageWidth + i];
-       val2 += dataArr[Ind - DerivativeAverageWidth - DerivativeShift + i];
+   for (int i = 0; i < DERIVATIVE_AVER_WIDTH; i++){
+       val1 += dataArr[Ind - DERIVATIVE_AVER_WIDTH + i];
+       val2 += dataArr[Ind - DERIVATIVE_AVER_WIDTH - DERIVATIVE_SHIFT + i];
    }
-   val1 /= DerivativeAverageWidth;
-   val2 /= DerivativeAverageWidth;
+   val1 /= DERIVATIVE_AVER_WIDTH;
+   val2 /= DERIVATIVE_AVER_WIDTH;
    return (int16_t)(val1 - val2);
 }
 
@@ -194,7 +205,7 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues)
             {
                 break;
             }
-            EnvelopeArray[i + j] = y1 + coeff * (j - x1);
+            envelope_array[i + j] = y1 + coeff * (j - x1);
         }                
     }
 }
@@ -233,7 +244,7 @@ void GetSysDia(void)
     
     for (int i = XMax; i >= 0; i--)
     {
-        if (EnvelopeArray[i] < ValueSys)
+        if (envelope_array[i] < ValueSys)
         {
             PSys = GetAverAroundPoint(pressure_array, i)/rate;
             indexPSys = i;
@@ -247,7 +258,7 @@ void GetSysDia(void)
 
     for (int i = XMax; i < main_index; i++)
     {
-        if (EnvelopeArray[i] < ValueDia)
+        if (envelope_array[i] < ValueDia)
         {
             PDia = GetAverAroundPoint(pressure_array, i)/rate;
             indexPDia = i;

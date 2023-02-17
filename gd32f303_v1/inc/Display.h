@@ -2,9 +2,9 @@
 #include "stdbool.h"
 
 void TFT_print(void);
-void print_num_H(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color);
+void PrintNum(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color);
 void ClearScreen(void);
-void print_time(uint32_t timevar);
+void PrintTime(uint32_t timevar);
 void PrintError(uint8_t K);
 void print_battery(void);
 void PrintBattCharge(void);
