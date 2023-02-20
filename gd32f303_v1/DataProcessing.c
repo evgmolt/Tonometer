@@ -13,8 +13,8 @@ uint16_t CountPulse(void)
     uint16_t intervals[50]={0};
     double first_pulse = 0;
     double second_pulse = 0;
-    int32_t cur_puls=0;
-    uint32_t puls_cur_counter=0;
+    double cur_puls=0;
+    uint32_t counter=0;
     uint16_t pcounter;
     if (puls_counter<10) return 0;
     for (int m = decrease_size; m < puls_counter - decrease_size; m++)
@@ -23,10 +23,10 @@ uint16_t CountPulse(void)
         if (cur_puls > lo_limit & cur_puls < hi_limit)
         {
             first_pulse += cur_puls;
-            puls_cur_counter++;
+            counter++;
         }
     }        
-    first_pulse /= puls_cur_counter;
+    first_pulse /= counter;
     first_pulse /= frequency;
     first_pulse = 60 / first_pulse;
     
@@ -36,33 +36,31 @@ uint16_t CountPulse(void)
         return first_pulse;
     }
     
-    puls_cur_counter = 0;
-    for (int m = 0; m <= num_of_intervals; m++)
+    counter = 0;
+    for (int m = 0; m < num_of_intervals; m++)
     {
         cur_puls = puls_buff[puls_counter - m - 1] - puls_buff[puls_counter - m - 2];
         if (cur_puls > lo_limit & cur_puls < hi_limit & cur_puls * 1.5 > first_pulse & cur_puls / 1.5 < first_pulse)
         {
             second_pulse += cur_puls;
-            intervals[puls_cur_counter]=cur_puls;
-            puls_cur_counter++;    
+            intervals[counter]=cur_puls;
+            counter++;    
         }
     }
     
-    double aver= second_pulse / puls_cur_counter;
+    double aver= second_pulse / counter;
     double TwentyFivePercent = aver / 4;
-    int Counter = 0;
     double SumSqr = 0;
-    for (int i = 0; i < puls_cur_counter; i++)
+    for (int i = 0; i < counter; i++)
     {
         double Diff = intervals[i] - aver;
         if (abs(Diff) < TwentyFivePercent)
         {
             SumSqr += Diff * Diff;
-            Counter++;
         }
     }
     
-    double SKO = sqrt(SumSqr / Counter);
+    double SKO = sqrt(SumSqr / counter);
     arrhythmia = (SKO / aver)>level;
     
     return first_pulse;
@@ -212,10 +210,14 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues)
 
 int16_t GetAverAroundPoint(int16_t *in_array, int point)
 {
-    int aver_size_half = 8;
+    int aver_size_half = 150;
     int index = 0;
     int32_t sum = 0;
-    for (int i = point - aver_size_half; i < point + aver_size_half; i++)
+    int start = point - aver_size_half;
+    int stop = point + aver_size_half;
+    if (start < 0) start = 0;
+    if (stop > total_size - 1) stop = total_size - 1;
+    for (int i = start; i < stop; i++)
     {
         sum += in_array[i];
         index++;

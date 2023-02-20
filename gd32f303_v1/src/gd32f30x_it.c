@@ -228,7 +228,7 @@ void TIMER1_IRQHandler(void)
         if (process_counter == pwrkey_up_time)   
             SIM800_PWRKEY_UP;
             if (process_counter == 300) 
-                my_send_string_UART_1("AT",strlen("AT"));            
+                send_buf_UART_1("AT",strlen("AT"));            
         }*/
         
         if (heart_counter > 0)
@@ -281,7 +281,8 @@ void TIMER1_IRQHandler(void)
                 mode = PRESSURE_TEST;
             }
         }
-        else {
+        else 
+        {
             if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
                 mode = KEY_OFF;
             }

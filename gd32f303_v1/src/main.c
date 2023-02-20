@@ -289,7 +289,7 @@ int main(void)
                 TFT_print();
                 if (button_released) 
                 {
-                    my_send_string_UART_1("AT\0\n",strlen("AT\0\n"));            
+                    send_buf_UART_1("AT\r", 3);            
                     
                     ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);                            
                     ILI9341_FillRectangle(100, 270, 140, 50, ILI9341_WHITE);                        
@@ -337,7 +337,7 @@ int main(void)
                 break;
             case USB_CHARGING:
                 shutdown_counter = 0;
-                if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1;
+                if (gpio_input_bit_get(GPIOB, GPIO_PIN_8)==0) indicate_charge_toggle=1; //Не работает
                 PrintBattCharge();                
                 delay_1ms(1500);                
                 if (gpio_input_bit_get(GPIOC, GPIO_PIN_10)==0) DeviceOff();                        
@@ -379,7 +379,7 @@ int main(void)
                         c_summ+=cur_buff_ble[f];
                     }
                     cur_buff_ble[BLE_PACKET_SIZE * 2 + 6] = c_summ;
-                    my_send_string_UART_0(cur_buff_ble, BLE_PACKET_SIZE * 2 + 6 + 1);
+                    send_buf_UART_0(cur_buff_ble, BLE_PACKET_SIZE * 2 + 6 + 1);
                     count_send_bluetooth++;
                 }
                 if (current_pressure <= STOP_MEAS_LEVEL || stop_meas)
@@ -829,9 +829,9 @@ void usart_config_0(void)
     usart_enable(USART0);
 }
 
-void my_send_string_UART_0(char *buf, uint8_t num)
+void send_buf_UART_0(uint8_t *buf, uint8_t num)
 {
-    for(int j1=0;j1<num;j1++)
+    for(int j1=0; j1 < num; j1++)
     {
         usart_data_transmit(USART0, (uint8_t)buf[j1]);
         while(RESET == usart_flag_get(USART0, USART_FLAG_TBE));            
@@ -861,7 +861,7 @@ void usart_config_1(void){
     usart_enable(USART1);
 }
 
-void my_send_string_UART_1(char *buf, uint8_t num)
+void send_buf_UART_1(uint8_t *buf, uint8_t num)
 {
     for(int j1=0;j1<num;j1++)
     {
@@ -1068,7 +1068,7 @@ void BluetoothCheck(void)
             bluetooth_status = CONNECTED;    
         }
     }
-//    my_send_string_UART_0("AT\0\n",strlen("AT\0\n"));            
+//    send_buf_UART_0("AT\0\n",strlen("AT\0\n"));            
 }
 
 uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num)
@@ -1272,7 +1272,7 @@ void FmcSerialCheck(void)
     }        
     strncat(cur_buff,cur_SERIAL,7);
     strncat(cur_buff,"\0\n",2);
-    my_send_string_UART_0(cur_buff,strlen(cur_buff));
+    send_buf_UART_0(cur_buff,strlen(cur_buff));
 }
 
 void WriteBackupRegister(uint16_t day, uint16_t month, uint16_t year)
@@ -1298,6 +1298,6 @@ void SendMeasurementResult(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8
        c_summ+=cur_buff[q];
     }            
     cur_buff[13]=c_summ;
-    my_send_string_UART_0(cur_buff,14);
+    send_buf_UART_0(cur_buff,14);
 }
 

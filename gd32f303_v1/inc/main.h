@@ -5,15 +5,15 @@
 #include "usbd_conf.h"
 #include "stdbool.h"
 
-#define GREEN     0x1
-#define RED         0x2
-#define YELLOW     0x3
-#define BLACK     0x4
+#define GREEN   0x1
+#define RED     0x2
+#define YELLOW  0x3
+#define BLACK   0x4
 
 #define YELLOW_LEVEL_SYS 140
-#define RED_LEVEL_SYS 160
+#define RED_LEVEL_SYS    160
 #define YELLOW_LEVEL_DIA 90
-#define RED_LEVEL_DIA 100
+#define RED_LEVEL_DIA    100
 
 #define PUMP_ON             gpio_bit_set(GPIOC, GPIO_PIN_11)
 #define PUMP_OFF            gpio_bit_reset(GPIOC, GPIO_PIN_11)
@@ -38,12 +38,12 @@
 
 #define STOP_MEAS_LEVEL 60
 #define MIN_PRESSURE 130    
+#define MAX_ALLOWED_PRESSURE 200
 #define SEC_AFTER_MAX 8
 #define DELAY_AFTER_PUMPING 50
 #define DELAY_AFTER_START 400
 #define DELAY_FOR_ERROR 1000
 #define PRESSURE_FOR_ERROR 12
-#define MAX_ALLOWED_PRESSURE 176
 #define AVER_SIZE 10
 
 #define DEBONCE_INTERVAL 4
@@ -122,10 +122,10 @@ void i2c_convers(void);
 void TFT_print(void);
 
 void usart_config_0(void);
-void my_send_string_UART_0(char *buf, uint8_t num);
+void send_buf_UART_0(uint8_t *buf, uint8_t num);
 
 void usart_config_1(void);
-void my_send_string_UART_1(char *buf, uint8_t num);
+void send_buf_UART_1(uint8_t *buf, uint8_t num);
 void SIM_recieve_OK(void);
 int16_t GetAver(int16_t nextValue);
 void PrintNum(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color);
