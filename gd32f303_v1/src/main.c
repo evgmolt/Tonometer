@@ -54,11 +54,11 @@ OF SUCH DAMAGE.
 #define BKP_DATA_REG_NUM        42
 
 #define FMC_SERIAL_PAGE_SIZE    ((uint16_t)0x30U)
-#define FMC_SERIAL_START_ADDR   ((uint32_t)0x0807E000U)
+#define FMC_SERIAL_START_ADDR   ((uint32_t)0x082FF000U) //((uint32_t)0x0807E000U)
 #define FMC_SERIAL_END_ADDR     FMC_SERIAL_START_ADDR + FMC_SERIAL_PAGE_SIZE
 
 #define FMC_RATE_PAGE_SIZE      8
-#define FMC_RATE_START_ADDR     ((uint32_t)0x0807F800U)
+#define FMC_RATE_START_ADDR     ((uint32_t)0x082FE000U) //((uint32_t)0x0807F800U)
 #define FMC_RATE_END_ADDR       FMC_RATE_START_ADDR + FMC_RATE_PAGE_SIZE
 
 
@@ -246,7 +246,7 @@ int main(void)
         
     i2cCalibration();    
     
-    FmcSerialCheck();
+//    FmcSerialCheck();
     delay_1ms(200);
     memset(UART0_buff, 0, 200);
     /* PMU lock enable */
@@ -259,7 +259,7 @@ int main(void)
     bkp_flag_clear(BKP_FLAG_TAMPER); 
 
     rate = ReadRateFromFmc();
-        
+//    rate = 18.1;    
     Timer1Start();
 
     SIM800_PWRKEY_UP;

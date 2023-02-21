@@ -246,7 +246,7 @@ void ILI9341_DrawPixel(uint16_t x, uint16_t y, uint16_t color) {
 
     ILI9341_Unselect();
 }
-
+/*
 static void ILI9341_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor) {
     uint32_t i, b, j;
 
@@ -286,6 +286,57 @@ void ILI9341_WriteString(uint16_t x, uint16_t y, const char* str, FontDef font, 
 
         ILI9341_WriteChar(x, y, *str, font, color, bgcolor);
         x += font.width;
+        str++;
+    }
+    ILI9341_Unselect();
+}
+
+*/
+static uint8_t ILI9341_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor) 
+{
+    uint32_t i, b, j;
+    uint8_t char_width;
+    
+    ILI9341_SetAddressWindow(x, y, x+font.width-1, y+font.height-1);
+    
+    char_width = font.data[(ch - 32) * (font.height + 1)];
+    for(i = 0; i < font.height; i++) 
+    {
+        b = font.data[(ch - 32) * (font.height + 1) + 1 + i];
+        for(j = 0; j < font.width; j++) 
+        {
+            if((b << j) & 0x8000)  
+            {
+                uint8_t data[] = { color >> 8, color & 0xFF };
+                ILI9341_WriteData(data, sizeof(data));
+            } else 
+            {
+                uint8_t data[] = { bgcolor >> 8, bgcolor & 0xFF };
+                ILI9341_WriteData(data, sizeof(data));
+            }
+        }
+    }
+    return char_width;
+}
+
+void ILI9341_WriteString(uint16_t x, uint16_t y, const char* str, FontDef font, uint16_t color, uint16_t bgcolor) {
+    ILI9341_Select();
+    const uint8_t space = 3;
+    while(*str) {
+        if(x + font.width >= ILI9341_WIDTH) {
+            x = 0;
+            y += font.height;
+            if(y + font.height >= ILI9341_HEIGHT) {
+                break;
+            }
+
+            if(*str == ' ') {
+                // skip spaces in the beginning of the new line
+                str++;
+                continue;
+            }
+        }
+        x += ILI9341_WriteChar(x, y, *str, font, color, bgcolor) + space;
         str++;
     }
     ILI9341_Unselect();

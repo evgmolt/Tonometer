@@ -163,25 +163,31 @@ void PrintBattCharge(void)
 }
 
 void PrintError(uint8_t K){
-        ILI9341_FillRectangle(SYS_DIA_LEFT, SYS_TOP, 180, 106, ILI9341_WHITE);
-        ILI9341_FillRectangle(SYS_DIA_LEFT, 120, 180, 106, ILI9341_WHITE);
-        ILI9341_FillRectangle(PULSE_LEFT, PULSE_TOP, 123, 64, ILI9341_WHITE);    
-        uint8_t _buff[15]={0};
-        if (K==ERROR_CUFF)
-        {
-            sprintf(_buff,"majetta error");        
-            ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);            
-        }
-        if (K==ERROR_TIME)
-        {
-            sprintf(_buff,"time fail");        
-            ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);            
-        }
-        if (K==ERROR_MEAS)
-        {
-            sprintf(_buff,"measurement error");        
-            ILI9341_WriteString(1, 30, _buff, Font_11x18, ILI9341_BLACK, ILI9341_WHITE);            
-        }        
+    ILI9341_FillRectangle(SYS_DIA_LEFT, SYS_TOP, 180, 106, ILI9341_WHITE);
+    ILI9341_FillRectangle(SYS_DIA_LEFT, 120, 180, 106, ILI9341_WHITE);
+    ILI9341_FillRectangle(PULSE_LEFT, PULSE_TOP, 123, 64, ILI9341_WHITE);    
+
+    uint8_t _buff[20]={0};
+    uint8_t left_margin = 5;
+    uint8_t top_margin = 30;
+    
+    if (K==ERROR_CUFF)
+    {
+        sprintf(_buff,"ÎØÈÁÊÀ ÍÀÊÀ×ÊÈ");        
+        ILI9341_WriteString(left_margin, top_margin, _buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);            
+        sprintf(_buff,"ÏÐÎÂÅÐÜÒÅ ÌÀÍÆÅÒÓ");        
+        ILI9341_WriteString(left_margin, top_margin + Font_Arial.height + 2, _buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);            
+    }
+    if (K==ERROR_TIME)
+    {
+        sprintf(_buff,"ÎØÈÁÊÀ ÈÇÌÅÐÅÍÈß");        
+        ILI9341_WriteString(left_margin, top_margin, _buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);            
+    }
+    if (K==ERROR_MEAS)
+    {
+        sprintf(_buff,"ÎØÈÁÊÀ ÈÇÌÅÐÅÍÈß");        
+        ILI9341_WriteString(left_margin, top_margin, _buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);            
+    }        
 }
 
 void ClearScreen(void)
@@ -234,18 +240,18 @@ void PrintTime(uint32_t timevar){
                 WriteBackupRegister(cur_day, cur_month, cur_year);
         }
         sprintf(buff,"%02d:",thh);
-        ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
+        ILI9341_WriteString(30, 230, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
         sprintf(buff,"%02d:",tmm);
-        ILI9341_WriteString(160, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
+        ILI9341_WriteString(60, 230, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
         sprintf(buff,"%02d",tss);
-        ILI9341_WriteString(190, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);    
+        ILI9341_WriteString(90, 230, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);    
         
         sprintf(buff,"%02d.",cur_day);
-        ILI9341_WriteString(130, 260, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
+        ILI9341_WriteString(30, 260, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
         sprintf(buff,"%02d.",cur_month);
-        ILI9341_WriteString(160, 260, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
+        ILI9341_WriteString(60, 260, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
         sprintf(buff,"%04d",cur_year);
-        ILI9341_WriteString(190, 260, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
+        ILI9341_WriteString(90, 260, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
 }
 
 
@@ -260,8 +266,8 @@ void TFT_print(void)
 
     uint8_t buff[20]={0};
 //    sprintf(buff,"%04d:",adc_1);
-    sprintf(buff, "Ready / Ãîòîâ");
-    ILI9341_WriteString(10, 240, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
+    sprintf(buff, "ÃÎÒÎÂ");
+    ILI9341_WriteString(10, 240, buff, Font_Arial, ILI9341_BLACK, ILI9341_WHITE);
 
     if (adc_1> BATT_RANG_MAX)                    rang_batt=5;
     else if (adc_1 < BATT_RANG_MAX & adc_1 > BATT_RANG_5) rang_batt=5;
