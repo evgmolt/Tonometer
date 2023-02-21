@@ -258,9 +258,10 @@ void TFT_print(void)
     delay_1ms(100);        
     adc_1=adc_value[0]*3300/(0xFFF);
 
-    uint8_t buff[5]={0};
-    sprintf(buff,"%04d:",adc_1);
-//        ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
+    uint8_t buff[20]={0};
+//    sprintf(buff,"%04d:",adc_1);
+    sprintf(buff, "Ready / Готов");
+    ILI9341_WriteString(10, 240, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
 
     if (adc_1> BATT_RANG_MAX)                    rang_batt=5;
     else if (adc_1 < BATT_RANG_MAX & adc_1 > BATT_RANG_5) rang_batt=5;
