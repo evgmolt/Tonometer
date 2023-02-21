@@ -11,7 +11,7 @@ typedef struct {
 } FontDef;
 
 
-extern FontDef Font_7x10;
+extern FontDef Font_Arial;
 extern FontDef Font_11x18;
 
 #endif // __FONTS_H__
