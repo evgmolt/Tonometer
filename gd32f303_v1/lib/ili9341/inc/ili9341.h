@@ -14,70 +14,43 @@
 #define ILI9341_MADCTL_MH  0x04
 
 /*** Redefine if necessary ***/
-#define ILI9341_SPI_PORT SPI0
-#define ILI9341_RCU_SPI     RCU_SPI0
+#define ILI9341_SPI_PORT        SPI0
+#define ILI9341_RCU_SPI         RCU_SPI0
 
-#define ILI9341_CLK_Pin           GPIO_PIN_5
-#define ILI9341_CLK_GPIO_Port     GPIOA
-#define ILI9341_CLK_RCU                 RCU_GPIOA
+#define ILI9341_CLK_Pin         GPIO_PIN_5
+#define ILI9341_CLK_GPIO_Port   GPIOA
+#define ILI9341_CLK_RCU         RCU_GPIOA
 
-#define ILI9341_MISO_Pin          GPIO_PIN_6
-#define ILI9341_MISO_GPIO_Port     GPIOA
-#define ILI9341_MISO_RCU                 RCU_GPIOA
+#define ILI9341_MISO_Pin        GPIO_PIN_6
+#define ILI9341_MISO_GPIO_Port  GPIOA
+#define ILI9341_MISO_RCU        RCU_GPIOA
 
-#define ILI9341_MOSI_Pin           GPIO_PIN_7
-#define ILI9341_MOSI_GPIO_Port     GPIOA
-#define ILI9341_MOSI_RCU                 RCU_GPIOA
+#define ILI9341_MOSI_Pin        GPIO_PIN_7
+#define ILI9341_MOSI_GPIO_Port  GPIOA
+#define ILI9341_MOSI_RCU        RCU_GPIOA
 
-#define ILI9341_RES_Pin       GPIO_PIN_3
-#define ILI9341_RES_GPIO_Port GPIOC
-#define ILI9341_RES_RCU             RCU_GPIOC
+#define ILI9341_RES_Pin         GPIO_PIN_3
+#define ILI9341_RES_GPIO_Port   GPIOC
+#define ILI9341_RES_RCU         RCU_GPIOC
 
-#define ILI9341_CS_Pin        GPIO_PIN_2
-#define ILI9341_CS_GPIO_Port  GPIOC
-#define ILI9341_CS_RCU                 RCU_GPIOC
+#define ILI9341_CS_Pin          GPIO_PIN_2
+#define ILI9341_CS_GPIO_Port    GPIOC
+#define ILI9341_CS_RCU          RCU_GPIOC
 
-#define ILI9341_DC_Pin        GPIO_PIN_4
-#define ILI9341_DC_GPIO_Port  GPIOC
-#define ILI9341_DC_RCU                 RCU_GPIOC
-
-//#define ILI9341_LED_Pin            GPIO_PIN_8
-//#define ILI9341_LED_GPIO_Port      GPIOC
-//#define ILI9341_LED_RCU                 RCU_GPIOC
+#define ILI9341_DC_Pin          GPIO_PIN_4
+#define ILI9341_DC_GPIO_Port    GPIOC
+#define ILI9341_DC_RCU          RCU_GPIOC
 
 // default orientation
 #define ILI9341_WIDTH  240
 #define ILI9341_HEIGHT 320
 #define ILI9341_ROTATION (ILI9341_MADCTL_MX | ILI9341_MADCTL_BGR)
 
-// rotate right
-/*
-#define ILI9341_WIDTH  320
-#define ILI9341_HEIGHT 240
-#define ILI9341_ROTATION (ILI9341_MADCTL_MX | ILI9341_MADCTL_MY | ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR)
-*/
-
-// rotate left
-/*
-#define ILI9341_WIDTH  320
-#define ILI9341_HEIGHT 240
-#define ILI9341_ROTATION (ILI9341_MADCTL_MV | ILI9341_MADCTL_BGR)
-*/
-
-// upside down
-
-//#define ILI9341_WIDTH  240
-//#define ILI9341_HEIGHT 320
-//#define ILI9341_ROTATION (ILI9341_MADCTL_MY | ILI9341_MADCTL_BGR)
-
-
-/****************************/
-
 // Color definitions
-#define    ILI9341_BLACK   0x0000
-#define    ILI9341_BLUE    0x001F
-#define    ILI9341_RED     0xF800
-#define    ILI9341_GREEN   0x07E0
+#define ILI9341_BLACK   0x0000
+#define ILI9341_BLUE    0x001F
+#define ILI9341_RED     0xF800
+#define ILI9341_GREEN   0x07E0
 #define ILI9341_CYAN    0x07FF
 #define ILI9341_MAGENTA 0xF81F
 #define ILI9341_YELLOW  0xFFE0
@@ -96,7 +69,6 @@ void ILI9341_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uin
 void ILI9341_InvertColors(bool invert);
 
 void SPI_Transmit(uint32_t SPI_, uint8_t *pData, uint16_t Size, int Timeout);
-void ILI9341_my_line(uint16_t x1, uint16_t y1,uint16_t x2, uint16_t y2, uint16_t color);
 
 void spi_config(void);
 void spi_gpio_config(void);

@@ -3,49 +3,55 @@
 #include "ili9341.h"
 #include "gd32f30x_it.h"
 
-#define set_RES              gpio_bit_set(ILI9341_RES_GPIO_Port,ILI9341_RES_Pin);
-#define reset_RES         gpio_bit_reset(ILI9341_RES_GPIO_Port,ILI9341_RES_Pin);
-#define set_CS              gpio_bit_set(ILI9341_CS_GPIO_Port,ILI9341_CS_Pin);
-#define reset_CS          gpio_bit_reset(ILI9341_CS_GPIO_Port,ILI9341_CS_Pin);
-#define set_DC              gpio_bit_set(ILI9341_DC_GPIO_Port,ILI9341_DC_Pin);
-#define reset_DC          gpio_bit_reset(ILI9341_DC_GPIO_Port,ILI9341_DC_Pin);
-//#define set_LED              gpio_bit_set(ILI9341_LED_GPIO_Port,ILI9341_LED_Pin);
-//#define reset_LED         gpio_bit_reset(ILI9341_LED_GPIO_Port,ILI9341_LED_Pin);
+#define set_RES     gpio_bit_set(ILI9341_RES_GPIO_Port,ILI9341_RES_Pin);
+#define reset_RES   gpio_bit_reset(ILI9341_RES_GPIO_Port,ILI9341_RES_Pin);
+#define set_CS      gpio_bit_set(ILI9341_CS_GPIO_Port,ILI9341_CS_Pin);
+#define reset_CS    gpio_bit_reset(ILI9341_CS_GPIO_Port,ILI9341_CS_Pin);
+#define set_DC      gpio_bit_set(ILI9341_DC_GPIO_Port,ILI9341_DC_Pin);
+#define reset_DC    gpio_bit_reset(ILI9341_DC_GPIO_Port,ILI9341_DC_Pin);
 
 #define SPI_DELAY         1
 
-void SPI_Transmit(uint32_t SPI_, uint8_t *pData, uint16_t Size, int Timeout){
-        for (int j=0;j<Size;j++){
-                spi_i2s_data_transmit(SPI_, pData[j]);
-                my_delay(Timeout);
-        }
+void SPI_Transmit(uint32_t SPI_, uint8_t *pData, uint16_t Size, int Timeout)
+{
+    for (int j = 0; j < Size; j++)
+    {
+        spi_i2s_data_transmit(SPI_, pData[j]);
+        my_delay(Timeout);
+    }
 }
 
-void ILI9341_Select() {
-        reset_CS
+void ILI9341_Select() 
+{
+    reset_CS
 }
 
-void ILI9341_Unselect() {
+void ILI9341_Unselect() 
+{
     set_CS 
 }
 
-static void ILI9341_Reset() {
+static void ILI9341_Reset() 
+{
     reset_RES
     my_delay(5);
     set_RES
 }
 
-void ILI9341_WriteCommand(uint8_t cmd) {
-        uint8_t data[]={cmd,2,3};
+void ILI9341_WriteCommand(uint8_t cmd) 
+{
+    uint8_t data[]={cmd, 2, 3};
     reset_DC        
     SPI_Transmit(ILI9341_SPI_PORT, &cmd, sizeof(cmd), SPI_DELAY);
 }
 
-void ILI9341_WriteData(uint8_t* buff, int buff_size) {
+void ILI9341_WriteData(uint8_t* buff, int buff_size) 
+{
     set_DC
 
     // split data in small chunks because HAL can't send more then 64K at once
-    while(buff_size > 0) {
+    while(buff_size > 0) 
+    {
         uint16_t chunk_size = buff_size > 32768 ? 32768 : buff_size;
         SPI_Transmit(ILI9341_SPI_PORT, buff, chunk_size, SPI_DELAY);
         buff += chunk_size;
@@ -53,7 +59,8 @@ void ILI9341_WriteData(uint8_t* buff, int buff_size) {
     }
 }
 
-static void ILI9341_SetAddressWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
+static void ILI9341_SetAddressWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) 
+{
     // column address set
     ILI9341_WriteCommand(0x2A); // CASET
     {
@@ -72,14 +79,15 @@ static void ILI9341_SetAddressWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint
     ILI9341_WriteCommand(0x2C); // RAMWR
 }
 
-void ILI9341_Init() {    
-        //set_LED
-        spi_rcu_config();
-        spi_gpio_config();    
+void ILI9341_Init() 
+{    
+    //set_LED
+    spi_rcu_config();
+    spi_gpio_config();    
     spi_config();
-        spi_enable(ILI9341_SPI_PORT);
+    spi_enable(ILI9341_SPI_PORT);
 
-        ILI9341_Unselect();
+    ILI9341_Unselect();
     ILI9341_Select();
     ILI9341_Reset();
 
@@ -234,9 +242,9 @@ void ILI9341_Init() {
     ILI9341_Unselect();
 }
 
-void ILI9341_DrawPixel(uint16_t x, uint16_t y, uint16_t color) {
-    if((x >= ILI9341_WIDTH) || (y >= ILI9341_HEIGHT))
-        return;
+void ILI9341_DrawPixel(uint16_t x, uint16_t y, uint16_t color) 
+{
+    if((x >= ILI9341_WIDTH) || (y >= ILI9341_HEIGHT)) return;
 
     ILI9341_Select();
 
@@ -246,60 +254,15 @@ void ILI9341_DrawPixel(uint16_t x, uint16_t y, uint16_t color) {
 
     ILI9341_Unselect();
 }
-/*
-static void ILI9341_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor) {
-    uint32_t i, b, j;
 
-    ILI9341_SetAddressWindow(x, y, x+font.width-1, y+font.height-1);
-
-    for(i = 0; i < font.height; i++) {
-        b = font.data[(ch - 32) * font.height + i];
-        for(j = 0; j < font.width; j++) {
-            if((b << j) & 0x8000)  {
-                uint8_t data[] = { color >> 8, color & 0xFF };
-                ILI9341_WriteData(data, sizeof(data));
-            } else {
-                uint8_t data[] = { bgcolor >> 8, bgcolor & 0xFF };
-                ILI9341_WriteData(data, sizeof(data));
-            }
-        }
-    }
-}
-
-void ILI9341_WriteString(uint16_t x, uint16_t y, const char* str, FontDef font, uint16_t color, uint16_t bgcolor) {
-    ILI9341_Select();
-
-    while(*str) {
-        if(x + font.width >= ILI9341_WIDTH) {
-            x = 0;
-            y += font.height;
-            if(y + font.height >= ILI9341_HEIGHT) {
-                break;
-            }
-
-            if(*str == ' ') {
-                // skip spaces in the beginning of the new line
-                str++;
-                continue;
-            }
-        }
-
-        ILI9341_WriteChar(x, y, *str, font, color, bgcolor);
-        x += font.width;
-        str++;
-    }
-    ILI9341_Unselect();
-}
-
-*/
 static uint8_t ILI9341_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, uint16_t color, uint16_t bgcolor) 
 {
     uint32_t i, b, j;
     uint8_t char_width;
     
-    ILI9341_SetAddressWindow(x, y, x+font.width-1, y+font.height-1);
+    ILI9341_SetAddressWindow(x, y, x + font.width - 1, y + font.height - 1);
     
-    char_width = font.data[(ch - 32) * (font.height + 1)];
+    char_width = font.data[(ch - 32) * (font.height + 1)]; //font.height + 1 - потому что в файле шрифта для каждого символа первый байт - ширина символа
     for(i = 0; i < font.height; i++) 
     {
         b = font.data[(ch - 32) * (font.height + 1) + 1 + i];
@@ -309,7 +272,8 @@ static uint8_t ILI9341_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, 
             {
                 uint8_t data[] = { color >> 8, color & 0xFF };
                 ILI9341_WriteData(data, sizeof(data));
-            } else 
+            } 
+            else 
             {
                 uint8_t data[] = { bgcolor >> 8, bgcolor & 0xFF };
                 ILI9341_WriteData(data, sizeof(data));
@@ -319,18 +283,23 @@ static uint8_t ILI9341_WriteChar(uint16_t x, uint16_t y, char ch, FontDef font, 
     return char_width;
 }
 
-void ILI9341_WriteString(uint16_t x, uint16_t y, const char* str, FontDef font, uint16_t color, uint16_t bgcolor) {
+void ILI9341_WriteString(uint16_t x, uint16_t y, const char* str, FontDef font, uint16_t color, uint16_t bgcolor) 
+{
     ILI9341_Select();
     const uint8_t space = 3;
-    while(*str) {
-        if(x + font.width >= ILI9341_WIDTH) {
+    while(*str) 
+    {
+        if(x + font.width >= ILI9341_WIDTH) 
+        {
             x = 0;
             y += font.height;
-            if(y + font.height >= ILI9341_HEIGHT) {
+            if(y + font.height >= ILI9341_HEIGHT) 
+            {
                 break;
             }
 
-            if(*str == ' ') {
+            if(*str == ' ') 
+            {
                 // skip spaces in the beginning of the new line
                 str++;
                 continue;
@@ -342,7 +311,8 @@ void ILI9341_WriteString(uint16_t x, uint16_t y, const char* str, FontDef font, 
     ILI9341_Unselect();
 }
 
-void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) {
+void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color) 
+{
     // clipping
     if((x >= ILI9341_WIDTH) || (y >= ILI9341_HEIGHT)) return;
     if((x + w - 1) >= ILI9341_WIDTH) w = ILI9341_WIDTH - x;
@@ -353,31 +323,36 @@ void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint1
 
     uint8_t data[] = { color >> 8, color & 0xFF };
     set_DC
-    for(y = h; y > 0; y--) {
-        for(x = w; x > 0; x--) {
+    for(y = h; y > 0; y--) 
+    {
+        for(x = w; x > 0; x--) 
+        {
             SPI_Transmit(ILI9341_SPI_PORT, data, sizeof(data), SPI_DELAY);
         }
     }
     ILI9341_Unselect();
 }
 
-void ILI9341_FillScreen(uint16_t color) {
+void ILI9341_FillScreen(uint16_t color) 
+{
     ILI9341_FillRectangle(0, 0, ILI9341_WIDTH, ILI9341_HEIGHT, color);
 }
 
-void ILI9341_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t* data) {
+void ILI9341_DrawImage(uint16_t x, uint16_t y, uint16_t w, uint16_t h, const uint16_t* data) 
+{
     if((x >= ILI9341_WIDTH) || (y >= ILI9341_HEIGHT)) return;
     if((x + w - 1) >= ILI9341_WIDTH) return;
     if((y + h - 1) >= ILI9341_HEIGHT) return;
 
     ILI9341_Select();
-    ILI9341_SetAddressWindow(x, y, x+w-1, y+h-1);
+    ILI9341_SetAddressWindow(x, y, x + w-1, y + h - 1);
         //SPI_Transmit(ILI9341_SPI_PORT, (uint8_t*)data, 0xFA, 20);
-    ILI9341_WriteData((uint8_t*)data, w*h*2);
+    ILI9341_WriteData((uint8_t*)data, w * h * 2);
     ILI9341_Unselect();
 }
 
-void ILI9341_InvertColors(bool invert) {
+void ILI9341_InvertColors(bool invert) 
+{
     ILI9341_Select();
     ILI9341_WriteCommand(invert ? 0x21 /* INVON */ : 0x20 /* INVOFF */);
     ILI9341_Unselect();
@@ -385,26 +360,24 @@ void ILI9341_InvertColors(bool invert) {
 
 void spi_rcu_config(void)
 {
-        rcu_periph_clock_enable(ILI9341_CLK_RCU);
-        rcu_periph_clock_enable(ILI9341_MISO_RCU);
-        rcu_periph_clock_enable(ILI9341_MOSI_RCU);
-        rcu_periph_clock_enable(ILI9341_RES_RCU);
-        rcu_periph_clock_enable(ILI9341_CS_RCU);
-        rcu_periph_clock_enable(ILI9341_DC_RCU);
-//        rcu_periph_clock_enable(ILI9341_LED_RCU);
+    rcu_periph_clock_enable(ILI9341_CLK_RCU);
+    rcu_periph_clock_enable(ILI9341_MISO_RCU);
+    rcu_periph_clock_enable(ILI9341_MOSI_RCU);
+    rcu_periph_clock_enable(ILI9341_RES_RCU);
+    rcu_periph_clock_enable(ILI9341_CS_RCU);
+    rcu_periph_clock_enable(ILI9341_DC_RCU);
     rcu_periph_clock_enable(ILI9341_RCU_SPI);
     rcu_periph_clock_enable(RCU_AF);
 }
 
 void spi_gpio_config(void)
 {
-        gpio_init(ILI9341_CLK_GPIO_Port,     GPIO_MODE_AF_PP,                 GPIO_OSPEED_50MHZ, ILI9341_CLK_Pin);
-        gpio_init(ILI9341_MOSI_GPIO_Port, GPIO_MODE_AF_PP,                 GPIO_OSPEED_50MHZ, ILI9341_MOSI_Pin);    
-    gpio_init(ILI9341_MISO_GPIO_Port, GPIO_MODE_IN_FLOATING,     GPIO_OSPEED_50MHZ, ILI9341_MISO_Pin);      
-        gpio_init(ILI9341_RES_GPIO_Port,     GPIO_MODE_OUT_PP,             GPIO_OSPEED_50MHZ, ILI9341_RES_Pin);
-        gpio_init(ILI9341_CS_GPIO_Port,     GPIO_MODE_OUT_PP,             GPIO_OSPEED_50MHZ, ILI9341_CS_Pin);
-        gpio_init(ILI9341_DC_GPIO_Port,     GPIO_MODE_OUT_PP,             GPIO_OSPEED_50MHZ, ILI9341_DC_Pin);
-//        gpio_init(ILI9341_LED_GPIO_Port,     GPIO_MODE_OUT_PP,             GPIO_OSPEED_50MHZ, ILI9341_LED_Pin);    
+    gpio_init(ILI9341_CLK_GPIO_Port,  GPIO_MODE_AF_PP,       GPIO_OSPEED_50MHZ, ILI9341_CLK_Pin);
+    gpio_init(ILI9341_MOSI_GPIO_Port, GPIO_MODE_AF_PP,       GPIO_OSPEED_50MHZ, ILI9341_MOSI_Pin);    
+    gpio_init(ILI9341_MISO_GPIO_Port, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, ILI9341_MISO_Pin);      
+    gpio_init(ILI9341_RES_GPIO_Port,  GPIO_MODE_OUT_PP,      GPIO_OSPEED_50MHZ, ILI9341_RES_Pin);
+    gpio_init(ILI9341_CS_GPIO_Port,   GPIO_MODE_OUT_PP,      GPIO_OSPEED_50MHZ, ILI9341_CS_Pin);
+    gpio_init(ILI9341_DC_GPIO_Port,   GPIO_MODE_OUT_PP,      GPIO_OSPEED_50MHZ, ILI9341_DC_Pin);
 }
 
 void spi_config(void)
@@ -418,22 +391,7 @@ void spi_config(void)
     spi_init_struct.clock_polarity_phase = SPI_CK_PL_LOW_PH_1EDGE;
 
     spi_init_struct.nss                  = SPI_NSS_SOFT;
-        spi_init_struct.prescale             = SPI_PSC_8;
+    spi_init_struct.prescale             = SPI_PSC_8;
     spi_init_struct.endian               = SPI_ENDIAN_MSB;
     spi_init(ILI9341_SPI_PORT, &spi_init_struct);
 }
-
-void ILI9341_my_line(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color){
-        uint16_t arg_m1=y1;
-        uint16_t arg=0;    
-
-        ILI9341_DrawPixel(x1,y1, color);
-        for (uint16_t j=x1+1;j<=x2;j++){                
-                    arg=(((j-x1)*(y2-y1)/(x2-x1))+y1);
-                    ILI9341_DrawPixel(j,arg, color);
-                    for(int k=arg_m1;k<=arg;k++){
-                            ILI9341_DrawPixel(j,k, color);
-                    }
-        }    
-}
-

@@ -54,13 +54,10 @@ OF SUCH DAMAGE.
 #define BKP_DATA_REG_NUM        42
 
 #define FMC_SERIAL_PAGE_SIZE    ((uint16_t)0x30U)
-#define FMC_SERIAL_START_ADDR   ((uint32_t)0x082FF000U) //((uint32_t)0x0807E000U)
+#define FMC_SERIAL_START_ADDR ((uint32_t)0x0807F000U)   //Предпоследняя страница 2KB
 #define FMC_SERIAL_END_ADDR     FMC_SERIAL_START_ADDR + FMC_SERIAL_PAGE_SIZE
 
-#define FMC_RATE_PAGE_SIZE      8
-#define FMC_RATE_START_ADDR     ((uint32_t)0x082FE000U) //((uint32_t)0x0807F800U)
-#define FMC_RATE_END_ADDR       FMC_RATE_START_ADDR + FMC_RATE_PAGE_SIZE
-
+#define FMC_RATE_START_ADDR     ((uint32_t)0x0807F800U) //Последняя страница 2KB
 
 /* enter the second interruption,set the second interrupt flag to 1 */
 __IO uint32_t timedisplay;
@@ -83,9 +80,8 @@ double pulse=0;
 
 uint32_t *ptrd;
 uint32_t address = 0x00000000U;
-uint32_t SERIAL[9]   = {'0','2','0','2','2','2','0','0','1'};
+uint32_t SERIAL[SERIAL_NUM_SIZE]   = {'0','2','0','2','2','2','0','0','1'};
 /* calculate the number of page to be programmed/erased */
-uint32_t page_num = (FMC_SERIAL_END_ADDR - FMC_SERIAL_START_ADDR) / FMC_SERIAL_PAGE_SIZE;
 
 extern uint8_t UART0_flag;
 
@@ -215,6 +211,14 @@ int main(void)
     else ILI9341_FillScreen(ILI9341_WHITE);
     
     ButtonInterruptConfig();
+
+    rate = ReadRateFromFmc();
+//    rate = 18.1;    
+
+    Timer1Start();
+    
+    button_released = 0;
+    button_pressed_counter = 0;
     
     if (mode == INIT_START){        
         PrintHeart(true);
@@ -223,9 +227,9 @@ int main(void)
         PrintHeartX3(true);
         PrintSYS_label(true);
         PrintDIA_label(true);
-        PrintNum(888,BIG_NUM_RIGHT,SYS_TOP,YELLOW);
-        PrintNum(888,BIG_NUM_RIGHT,DIA_TOP,RED);
-        PrintNum(888,BIG_NUM_RIGHT,PULSE_TOP,BLACK);        
+        PrintNum(888, BIG_NUM_RIGHT, SYS_TOP, YELLOW);
+        PrintNum(888, BIG_NUM_RIGHT, DIA_TOP, RED);
+        PrintNum(888, BIG_NUM_RIGHT, PULSE_TOP, BLACK);        
     }
     else if (mode == PRESSURE_TEST)
     {
@@ -233,9 +237,9 @@ int main(void)
     }    
     
     // waiting for button release, or sitting mode?
-    while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}    
+/*    while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}    
     delay_1ms(300);
-    while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}
+    while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}*/
     
     if (sim800_FLAG) {}      //GSM module ...        
     delay_1ms(1000);
@@ -245,6 +249,7 @@ int main(void)
     }        
         
     i2cCalibration();    
+
     
 //    FmcSerialCheck();
     delay_1ms(200);
@@ -257,11 +262,7 @@ int main(void)
     pmu_backup_write_enable();
     /* clear the bit flag of tamper event */
     bkp_flag_clear(BKP_FLAG_TAMPER); 
-
-    rate = ReadRateFromFmc();
-//    rate = 18.1;    
-    Timer1Start();
-
+    
     SIM800_PWRKEY_UP;
     SIM800_EXT_DOWN;
     delay_1ms(200);
@@ -272,8 +273,12 @@ int main(void)
     SIM800_PWRKEY_UP;
     delay_1ms(100);   
     
+    fwdgt_prescaler_value_config(FWDGT_PSC_DIV64);
+    fwdgt_enable();
+    
     while (1) 
     {    
+        fwdgt_counter_reload();
         switch (mode)
         {
             case INIT_START:
@@ -322,7 +327,7 @@ int main(void)
                 if (show_pressure_counter == 0)
                 {
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
-                    if (current_pressure>=0 & current_pressure<400) PrintNum(current_pressure, BIG_NUM_RIGHT, DIA_TOP, GREEN);
+                    if (current_pressure >= 0 & current_pressure<400) PrintNum(current_pressure, BIG_NUM_RIGHT, DIA_TOP, GREEN);
                 }
             
                 if (current_pressure >= MAX_ALLOWED_PRESSURE && process_counter > MIN_PUMPING_INTERVAL) 
@@ -371,8 +376,8 @@ int main(void)
                     for (int f = 0; f < BLE_PACKET_SIZE; f++)
                     {
                         int16_t cur_press = ble_buffer[f];
-                        cur_buff_ble[6+f*2]=cur_press&0xFF;
-                        cur_buff_ble[6+f*2+1]=(cur_press>>8)&0xFF;
+                        cur_buff_ble[6 + f * 2] = cur_press & 0xFF;
+                        cur_buff_ble[6+f*2+1] = (cur_press >> 8) & 0xFF;
                     }                            
                     for (int f=0; f < BLE_PACKET_SIZE * 2 + 6; f++)
                     {
@@ -987,10 +992,10 @@ void DeviceOff(void)
 void i2cCalibration(void)
 {
     i2c_out_K=0;
-    for (int g=0;g<20;g++)
+    for (int g=0 ; g<20; g++)
     {
-        while (ADS1115_read_IT()==0){}
-        i2c_out_K+=((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF);                
+        while (ADS1115_read_IT() == 0){}
+        i2c_out_K += ((i2c_receiver[0] << 8) & 0xFF00) + (i2c_receiver[1] & 0xFF);                
     }
     i2c_out_K = i2c_out_K/20;
 }
@@ -998,17 +1003,16 @@ void i2cCalibration(void)
 void usb_send_i2c_convers(void)
 {
     i2c_convers();    
-    uint8_t send_buff[3]={25,i2c_receiver[1],i2c_receiver[0]};
-    i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-    current_pressure=i2c_out/rate;
+    uint8_t send_buff[3] = {25, i2c_receiver[1] ,i2c_receiver[0]};
+    i2c_out = (((i2c_receiver[0] << 8) & 0xFF00) + (i2c_receiver[1] & 0xFF) - i2c_out_K);
+    current_pressure = i2c_out / rate;
     usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 3);
 }
 
-
 short int convert_save_16(void)
 {            
-    if (ADS1115_read_IT()==0) return 0;
-    pressure_array[main_index]= (((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
+    if (ADS1115_read_IT() == 0) return 0;
+    pressure_array[main_index] = (((i2c_receiver[0] << 8) & 0xFF00) + (i2c_receiver[1] & 0xFF) - i2c_out_K);
     if (pressure_array[main_index] < 0) pressure_array[main_index] = 0;
     main_index++;            
     return 1;
@@ -1017,18 +1021,18 @@ short int convert_save_16(void)
 short int convert_NO_save(void)
 {
     if (ADS1115_read_IT()==0) return 0;
-    i2c_out=(((i2c_receiver[0]<<8)&0xFF00)+(i2c_receiver[1]&0xFF)-i2c_out_K);
-    current_pressure=i2c_out/rate;    
+    i2c_out = (((i2c_receiver[0] << 8) & 0xFF00) + (i2c_receiver[1] & 0xFF) - i2c_out_K);
+    current_pressure = i2c_out / rate;    
     return i2c_out;
 }
 
 void usb_send_16(short int T1, short int T2)
 {
-    uint8_t send_H1=(T1>>8)&0xFF;
-    uint8_t send_L1=T1&0xFF;
-    uint8_t send_H2=(T2>>8)&0xFF;
-    uint8_t send_L2=T2&0xFF;
-    uint8_t send_buff[5]={25,send_L1,send_H1,send_L2,send_H2};
+    uint8_t send_H1 = (T1 >> 8) & 0xFF;
+    uint8_t send_L1 = T1 & 0xFF;
+    uint8_t send_H2 = (T2 >> 8) & 0xFF;
+    uint8_t send_L2 = T2 & 0xFF;
+    uint8_t send_buff[5] = {25, send_L1, send_H1, send_L2, send_H2};
     usbd_ep_send (&usbd_cdc, CDC_IN_EP, send_buff, 5);
 }
 
@@ -1052,7 +1056,7 @@ void BootMode(void)
 
 void BluetoothCheck(void)
 { 
-    if (finder(UART0_buff,"OK",0,0)) 
+    if (finder(UART0_buff, "OK", 0, 0)) 
     {
         if (bluetooth_status == CONNECTED) 
         {
@@ -1074,23 +1078,23 @@ void BluetoothCheck(void)
 uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num)
 {    
     uint8_t _flag=0;
-    for (int j=0;j<200;j++)
+    for (int j = 0; j<200; j++)
     {
-        if (buff[j]==_string[0])
+        if (buff[j] == _string[0])
         {
-            _flag=1;
-            for (int k=0;k<strlen(_string);k++)
+            _flag = 1;
+            for (int k = 0; k < strlen(_string); k++)
             {
-                if (buff[j+k]!=_string[k]) \
+                if (buff[j + k]!=_string[k]) 
                 {
-                    _flag=0;
-                    k=strlen(_string);
+                    _flag = 0;
+                    k = strlen(_string);
                 }                                    
             }                        
         }
         if (_flag) {
-                *num=j;
-                buff[j]=_char;
+                *num = j;
+                buff[j] = _char;
                 return 1;
         }
     }
@@ -1100,33 +1104,33 @@ uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num)
 uint8_t finder_msg(uint8_t *buff)
 {    
     uint8_t _flag=0;
-    uint8_t _string[20]={'0','2'};
+    uint8_t _string[20]={'0', '2'};
 
     //ILI9341_WriteString(1, 30, _string, Font_11x18, ILI9341_RED, ILI9341_WHITE);
-    for (int j=0;j<200;j++)
+    for (int j = 0; j < 200; j++)
     {
-        if (buff[j]==_string[0] & buff[j+1]==_string[1])
+        if (buff[j] == _string[0] & buff[j + 1] == _string[1])
         {
-            _flag=1;                                                
+            _flag = 1;
         }
         if (_flag) 
         {
-            if (buff[j+2]==0x04)
+            if (buff[j + 2] == 0x04)
             {
-                uint8_t check_sum=0;
-                for (int a=0;a<10;a++)
+                uint8_t check_sum = 0;
+                for (int a = 0; a < 10; a++)
                 {
-                    check_sum+=buff[j+a];
+                    check_sum += buff[j + a];
                 }                                
-                if (buff[j+10]==check_sum)
+                if (buff[j+10] == check_sum)
                 {
-                    SERIAL[2] = buff[j+3];
-                    SERIAL[3] = buff[j+4];
-                    SERIAL[4] = buff[j+5];
-                    SERIAL[5] = buff[j+6];
-                    SERIAL[6] = buff[j+7];
-                    SERIAL[7] = buff[j+8];
-                    SERIAL[8] = buff[j+9];
+                    SERIAL[2] = buff[j + 3];
+                    SERIAL[3] = buff[j + 4];
+                    SERIAL[4] = buff[j + 5];
+                    SERIAL[5] = buff[j + 6];
+                    SERIAL[6] = buff[j + 7];
+                    SERIAL[7] = buff[j + 8];
+                    SERIAL[8] = buff[j + 9];
                     
                     FmcProgramSerial();                        
                 
@@ -1138,27 +1142,27 @@ uint8_t finder_msg(uint8_t *buff)
                     return 1;
                 }
             }
-            else if (buff[j+2]==0x03)
+            else if (buff[j + 2] == 0x03)
             {
-                uint8_t check_sum=0;
-                for (int a=0;a<10;a++)
+                uint8_t check_sum = 0;
+                for (int a = 0; a < 10; a++)
                 {
-                    check_sum+=buff[j+a];
+                    check_sum += buff[j + a];
                 }                                
-                if (buff[j+10]==check_sum)
+                if (buff[j + 10] == check_sum)
                 {
-                    cur_day=cur_month=cur_month=cur_year=cur_tss=cur_tmm=cur_thh=0;
-                    cur_day=(uint16_t)buff[j+3];
-                    cur_month=(uint16_t)buff[j+4];
-                    cur_year=(uint16_t)(2000+buff[j+5]);
-                    cur_tss=(uint32_t)buff[j+6];
-                    cur_tmm=(uint32_t)buff[j+7];
-                    cur_thh=(uint32_t)buff[j+8];    
+                    cur_day = cur_month = cur_month = cur_year = cur_tss = cur_tmm = cur_thh = 0;
+                    cur_day = (uint16_t)buff[j + 3];
+                    cur_month = (uint16_t)buff[j + 4];
+                    cur_year = (uint16_t)(2000 + buff[j + 5]);
+                    cur_tss = (uint32_t)buff[j + 6];
+                    cur_tmm = (uint32_t)buff[j + 7];
+                    cur_thh = (uint32_t)buff[j + 8];    
                 
-                    TimeSet((uint32_t)cur_thh,(uint32_t)cur_tmm,(uint32_t)cur_tss);
+                    TimeSet((uint32_t)cur_thh, (uint32_t)cur_tmm, (uint32_t)cur_tss);
                     WriteBackupRegister((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
                 
-                    buff[j]=0xFF;
+                    buff[j] = 0xFF;
                     return 2;                    
                 }
             }
@@ -1190,16 +1194,15 @@ void FmcProgramSerial(void)
 {
     FmcErasePage(FMC_SERIAL_START_ADDR);  
 
-    uint8_t cur_count=0;
     /* unlock the flash program/erase controller */
     fmc_unlock();
 
     address = FMC_SERIAL_START_ADDR;
 
     /* program flash */
-    while(address < FMC_SERIAL_END_ADDR)
+    for (int i = 0; i < SERIAL_NUM_SIZE; i++)
     {
-        fmc_word_program(address, SERIAL[cur_count++]);
+        fmc_word_program(address, SERIAL[i]);
         address += 4;
         FmcFlagsClear();
     }
@@ -1241,38 +1244,38 @@ double ReadRateFromFmc()
 
 void FmcSerialCheck(void)
 {
-    uint8_t cur_SERIAL[7]={0};
-    uint8_t cur_buff[30]={'A','T','+','N','A','M','E','=','T','O','N','0','2'};
+    uint8_t cur_SERIAL[7] = {0};
+    uint8_t cur_buff[30] = {'A','T','+','N','A','M','E','=','T','O','N','0','2'};
 
     ptrd = (uint32_t *)FMC_SERIAL_START_ADDR;
         
-    if((*ptrd) == '0' & (*(ptrd+1)) == '2')
+    if((*ptrd) == '0' & (*(ptrd + 1)) == '2')
     {
-        SERIAL[2]=cur_SERIAL[0]=*(ptrd+2);    
-        SERIAL[3]=cur_SERIAL[1]=*(ptrd+3);
-        SERIAL[4]=cur_SERIAL[2]=*(ptrd+4);
-        SERIAL[5]=cur_SERIAL[3]=*(ptrd+5);
-        SERIAL[6]=cur_SERIAL[4]=*(ptrd+6);
-        SERIAL[7]=cur_SERIAL[5]=*(ptrd+7);
-        SERIAL[8]=cur_SERIAL[6]=*(ptrd+8);                
+        SERIAL[2] = cur_SERIAL[0] = *(ptrd + 2);    
+        SERIAL[3] = cur_SERIAL[1] = *(ptrd + 3);
+        SERIAL[4] = cur_SERIAL[2] = *(ptrd + 4);
+        SERIAL[5] = cur_SERIAL[3] = *(ptrd + 5);
+        SERIAL[6] = cur_SERIAL[4] = *(ptrd + 6);
+        SERIAL[7] = cur_SERIAL[5] = *(ptrd + 7);
+        SERIAL[8] = cur_SERIAL[6] = *(ptrd + 8);                
     }        
     else
     {
-        SERIAL[0]='0';
-        SERIAL[1]='2'; 
-        SERIAL[2]='0';    cur_SERIAL[0]='0';
-        SERIAL[3]='0';    cur_SERIAL[1]='0';
-        SERIAL[4]='0';    cur_SERIAL[2]='0';
-        SERIAL[5]='0';    cur_SERIAL[3]='0';
-        SERIAL[6]='0';    cur_SERIAL[4]='0';
-        SERIAL[7]='0';    cur_SERIAL[5]='0';
-        SERIAL[8]='0';    cur_SERIAL[6]='0';
+        SERIAL[0] = '0';
+        SERIAL[1] = '2'; 
+        SERIAL[2] = '0';    cur_SERIAL[0] = '0';
+        SERIAL[3] = '0';    cur_SERIAL[1] = '0';
+        SERIAL[4] = '0';    cur_SERIAL[2] = '0';
+        SERIAL[5] = '0';    cur_SERIAL[3] = '0';
+        SERIAL[6] = '0';    cur_SERIAL[4] = '0';
+        SERIAL[7] = '0';    cur_SERIAL[5] = '0';
+        SERIAL[8] = '0';    cur_SERIAL[6] = '0';
         FmcErasePage(FMC_SERIAL_START_ADDR);
         FmcProgramSerial();                
     }        
-    strncat(cur_buff,cur_SERIAL,7);
-    strncat(cur_buff,"\0\n",2);
-    send_buf_UART_0(cur_buff,strlen(cur_buff));
+    strncat(cur_buff, cur_SERIAL, 7);
+    strncat(cur_buff, "\0\n", 2);
+    send_buf_UART_0(cur_buff, strlen(cur_buff));
 }
 
 void WriteBackupRegister(uint16_t day, uint16_t month, uint16_t year)
@@ -1293,11 +1296,11 @@ void SendMeasurementResult(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8
 {
     uint8_t cur_buff[13]={'0','2', 0x01, c_day, c_month, c_year, c_ss, c_mm, c_hh, sis, dia, pressure, bonus};        
     uint8_t c_summ=0;        
-    for (int q=0;q<13;q++)
+    for (int q = 0; q < 13; q++)
     {
-       c_summ+=cur_buff[q];
+       c_summ += cur_buff[q];
     }            
-    cur_buff[13]=c_summ;
-    send_buf_UART_0(cur_buff,14);
+    cur_buff[13] = c_summ;
+    send_buf_UART_0(cur_buff, 14);
 }
 

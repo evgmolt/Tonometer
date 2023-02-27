@@ -97,6 +97,8 @@
 #define DERIVATIVE_SHIFT 13
 #define DERIVATIVE_AVER_WIDTH 4
 
+#define SERIAL_NUM_SIZE 9
+
 /* function declarations */
 
 void i2c_config(void);

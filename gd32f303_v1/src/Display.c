@@ -94,7 +94,7 @@ void PrintDIA_label(bool show)
     }
     else
     {
-        ILI9341_FillRectangle(LEFT_MIN, DIA_TOP, 45, 35, ILI9341_WHITE);//DIA label
+        ILI9341_FillRectangle(LEFT_MIN, DIA_TOP, 45, 35, ILI9341_WHITE);
     }
 }
 
@@ -125,17 +125,18 @@ void print_battery(void)
 void PrintBattCharge(void)
 {
     uint8_t num_of_segments = 6;
-    uint16_t adc_1;
+    uint16_t batt_level;
 
     adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL);
     delay_1ms(100);        
-    adc_1 = adc_value[0]*3300/(0xFFF);
+    batt_level = adc_value[0] * 3300 / 0xFFF;
 
-    uint8_t buff[5]={0};
-    sprintf(buff,"%04d:",adc_1);
+    uint8_t buff[5] = {0};
+    sprintf(buff, "%04d:", batt_level);
 //        ILI9341_WriteString(130, 230, buff, Font_11x18, ILI9341_RED, ILI9341_WHITE);
 
-    if (adc_1 > BATT_RANG_MAX) {
+    if (batt_level > BATT_RANG_MAX) 
+    {
         for (int i=1; i < num_of_segments; i++)
         {
            ILI9341_FillRectangle(200-i*29, 154, 25, 62, ILI9341_GREEN);                                    
@@ -146,7 +147,8 @@ void PrintBattCharge(void)
     if(indicate_charge_toggle) 
     {
         indicate_charge_counter++;
-        if (indicate_charge_counter > num_of_segments) {
+        if (indicate_charge_counter > num_of_segments) 
+        {
             indicate_charge_counter = 1;
             ILI9341_FillRectangle(52, 152, 146, 66, ILI9341_WHITE);
         }
@@ -164,7 +166,7 @@ void PrintBattCharge(void)
 
 void PrintError(uint8_t K){
     ILI9341_FillRectangle(SYS_DIA_LEFT, SYS_TOP, 180, 106, ILI9341_WHITE);
-    ILI9341_FillRectangle(SYS_DIA_LEFT, 120, 180, 106, ILI9341_WHITE);
+    ILI9341_FillRectangle(SYS_DIA_LEFT, DIA_TOP, 180, 106, ILI9341_WHITE);
     ILI9341_FillRectangle(PULSE_LEFT, PULSE_TOP, 123, 64, ILI9341_WHITE);    
 
     uint8_t _buff[20]={0};
@@ -180,7 +182,7 @@ void PrintError(uint8_t K){
     }
     if (K==ERROR_TIME)
     {
-        sprintf(_buff,"ÎØÈÁÊÀ ÈÇÌÅÐÅÍÈß");        
+        sprintf(_buff,"ÎØÈÁÊÀ ÈÇÌÅÐÅÍÈß 2");        
         ILI9341_WriteString(left_margin, top_margin, _buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);            
     }
     if (K==ERROR_MEAS)
@@ -257,25 +259,25 @@ void PrintTime(uint32_t timevar){
 
 void TFT_print(void)
 {
-    uint16_t adc_1=0;
+    uint16_t batt_level=0;
     uint8_t rang_batt=0;
 
     adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL);
     delay_1ms(100);        
-    adc_1=adc_value[0]*3300/(0xFFF);
+    batt_level=adc_value[0] * 3300 / 0xFFF;
 
     uint8_t buff[20]={0};
-//    sprintf(buff,"%04d:",adc_1);
+//    sprintf(buff,"%04d:",batt_level);
     sprintf(buff, "ÃÎÒÎÂ");
     ILI9341_WriteString(10, 240, buff, Font_Arial, ILI9341_BLACK, ILI9341_WHITE);
 
-    if (adc_1> BATT_RANG_MAX)                    rang_batt=5;
-    else if (adc_1 < BATT_RANG_MAX & adc_1 > BATT_RANG_5) rang_batt=5;
-    else if (adc_1 < BATT_RANG_5 & adc_1 > BATT_RANG_4) rang_batt=4;
-    else if (adc_1 < BATT_RANG_4 & adc_1 > BATT_RANG_3) rang_batt=3;
-    else if (adc_1 < BATT_RANG_3 & adc_1 > BATT_RANG_2) rang_batt=2;
-    else if (adc_1 < BATT_RANG_2 & adc_1 > BATT_RANG_1) rang_batt=1;
-    else if (adc_1 < BATT_RANG_1)    rang_batt=0;
+    if (batt_level> BATT_RANG_MAX)                    rang_batt=5;
+    else if (batt_level < BATT_RANG_MAX & batt_level > BATT_RANG_5) rang_batt=5;
+    else if (batt_level < BATT_RANG_5 & batt_level > BATT_RANG_4) rang_batt=4;
+    else if (batt_level < BATT_RANG_4 & batt_level > BATT_RANG_3) rang_batt=3;
+    else if (batt_level < BATT_RANG_3 & batt_level > BATT_RANG_2) rang_batt=2;
+    else if (batt_level < BATT_RANG_2 & batt_level > BATT_RANG_1) rang_batt=1;
+    else if (batt_level < BATT_RANG_1)    rang_batt=0;
             
     if (rang_batt_old!=rang_batt)
     {    
