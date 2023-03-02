@@ -283,7 +283,8 @@ void TIMER1_IRQHandler(void)
         }
         else 
         {
-            if (button_pressed_counter > SWITCH_OFF_INTERVAL) {
+            if (button_pressed_counter > SWITCH_OFF_INTERVAL && mode != USB_CHARGING) 
+            {
                 mode = KEY_OFF;
             }
         }
