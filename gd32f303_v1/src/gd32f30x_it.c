@@ -414,13 +414,13 @@ void TIMER2_IRQHandler(void)
                     }
                     current_value = GetDerivative(pressure_pulsation_array, main_index-1);
                     usb_send_16(current_value, current_max); 
-                    if (current_value>detect_level & (main_index-1)>(silence_time_start+lock_interval)) wave_detect_flag=1;
-                    if (wave_detect_flag==1 & (main_index-1)>(silence_time_start +lock_interval))
+                    if (current_value > detect_level & (main_index - 1) > (silence_time_start + lock_interval)) wave_detect_flag = 1;
+                    if (wave_detect_flag == 1 & (main_index-1)>(silence_time_start + lock_interval))
                     {
                         if (current_value > current_max) 
                         {
                             current_max = current_value;
-                            max_index=main_index-1;
+                            max_index = main_index - 1;
                         }
                         else if (current_value < detect_level)
                         {
@@ -436,8 +436,8 @@ void TIMER2_IRQHandler(void)
                             heart_counter = HEART_INTERVAL;
                             wave_ind_flag = 1; 
                             show_heart = true;    
-                            lock_interval=(Wave_detect_time - Wave_detect_time_OLD) / 2;
-                            if (lock_interval > hi_limit | lock_interval < lo_limit) lock_interval = 50;
+                            lock_interval = (Wave_detect_time - Wave_detect_time_OLD) / 2;
+//                            if (lock_interval > hi_limit | lock_interval < lo_limit) lock_interval = 50;
                             silence_time_start = max_index - 1;
                             detect_level = current_max * detect_levelCoeff;
                             if (detect_level < detect_level_start) detect_level = detect_level_start;
@@ -517,7 +517,7 @@ void Detect(int32_t x_max, uint16_t index)
         detect_level = detect_level_start;
     }
     current_value = GetDerivative(pressure_pulsation_array, index - 1);
-    if (current_value>detect_level & (index-1)>(silence_time_start+lock_interval)) wave_detect_flag = 1;
+    if (current_value > detect_level & (index - 1) > (silence_time_start + lock_interval)) wave_detect_flag = 1;
     if (wave_detect_flag == 1 & (index - 1) > (silence_time_start + lock_interval))
     {
         if (current_value > current_max) 
@@ -529,10 +529,9 @@ void Detect(int32_t x_max, uint16_t index)
         {
             global_max = fmax(global_max, current_max);
             Wave_detect_time_OLD = Wave_detect_time;
-            Wave_detect_time = index_of_max-1;                                                                                                                        
+            Wave_detect_time = index_of_max - 1;                                                                                                                        
             puls_buff[puls_counter++] = index_of_max-1;
             lock_interval=(Wave_detect_time - Wave_detect_time_OLD) / 2;
-//            if (lock_interval > hi_limit | lock_interval < lo_limit) lock_interval = 50;
             silence_time_start = index_of_max - 1;
             if (index < x_max) coeff = detect_levelCoeff; else coeff = detect_levelCoeffDia;
             detect_level = current_max * coeff;
@@ -721,8 +720,10 @@ void RTC_IRQHandler(void)
 void EXTI5_9_IRQHandler(void)
 {
     if (RESET != exti_interrupt_flag_get(EXTI_8)){
-        int statusBtn = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
-            if (statusBtn){
+        int statusBtn = gpio_input_bit_get(GPIOC, GPIO_PIN_10);
+            if (statusBtn)
+            {
+//                DeviceOff();
 //                    en_butt_flag=1;
 //                    en_butt_count=0;
             }

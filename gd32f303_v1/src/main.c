@@ -159,7 +159,7 @@ bool stop_meas = false;
 int main(void)
 {
     nvic_configuration();      // RTC
-    TimeInit();                        // RTC
+    TimeInit();                // RTC
 
     GPIO_config();    
     systick_config();
@@ -167,11 +167,11 @@ int main(void)
     BootMode();        
 
     rcu_config();                                   // USB
-    gpio_config();                                  // USB    
+//    gpio_config();                                  // USB    
     usbd_init(&usbd_cdc, &cdc_desc, &cdc_class);    // USB 
     nvic_config();                                  // USB     
-    usbd_connect(&usbd_cdc);                        // USB 
 
+    usbd_connect(&usbd_cdc);                        // USB 
     NvicConfig1();         // timer 1
     TimerConfig1();        // timer 1
 
@@ -188,7 +188,7 @@ int main(void)
     ADC_gpio_config();  // ADC0
     dma_config();       // ADC0
     adc_config();       // ADC0
-    adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL); // ADC0
+    adc_software_trigger_enable(ADC0, ADC_REGULAR_CHANNEL); // ADC0    
     
     nvic_irq_enable(USART1_IRQn, 0, 0);             // UART1
     usart_config_1();                               // UART1
@@ -201,7 +201,7 @@ int main(void)
     //while (USBD_CONFIGURED != usbd_cdc.cur_status) {/* wait for standard USB enumeration is finished */}    
         
     ILI9341_Init();
-    ILI9341_Touch_init();
+    ILI9341_Touch_init();       
     
     if (mode == USB_CHARGING)
     {
@@ -235,12 +235,7 @@ int main(void)
     {
         ILI9341_FillRectangle(70, 150, 100, 50, ILI9341_WHITE);
     }    
-    
-    // waiting for button release, or sitting mode?
-/*    while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}    
-    delay_1ms(300);
-    while (gpio_input_bit_get(GPIOC, GPIO_PIN_8)==1){}*/
-    
+        
     if (sim800_FLAG) {}      //GSM module ...        
     delay_1ms(1000);
     if (mode != USB_CHARGING) 
@@ -273,8 +268,8 @@ int main(void)
     SIM800_PWRKEY_UP;
     delay_1ms(100);   
     
-    fwdgt_prescaler_value_config(FWDGT_PSC_DIV64);
-    fwdgt_enable();
+//    fwdgt_prescaler_value_config(FWDGT_PSC_DIV64);
+//    fwdgt_enable();
     
     while (1) 
     {    
@@ -292,6 +287,14 @@ int main(void)
             case START_SCREEN:
                 BluetoothCheck();
                 TFT_print();
+// Переход в режим зарядки при подключении USB разъема           
+                if (gpio_input_bit_get(GPIOC, GPIO_PIN_10))
+                {
+                    ILI9341_FillScreen(ILI9341_BLACK);
+                    print_battery();
+                    mode = USB_CHARGING;
+                }
+
                 if (button_released) 
                 {
                     send_buf_UART_1("AT\r", 3);            
@@ -724,6 +727,7 @@ void GPIO_config(void)
     gpio_init(GPIOC, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_8);          //KEY IN
     gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_9);       //POWER_ON
     gpio_init(GPIOC, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, GPIO_PIN_10); //USB_ON    
+//    gpio_init(GPIOC, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, GPIO_PIN_10); //USB_ON    
     gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_11);      //COMP_ON/OFF
     gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_12);      //VALVE1_OP/CL
     gpio_init(GPIOC, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, GPIO_PIN_13);      //VALVE2_OP/CL            

@@ -300,7 +300,6 @@ extern uint8_t send_buff[100];
 extern uint8_t buff097[10];
 extern uint16_t adc_value[8];
 
-
 extern uint16_t num_string;
 
 extern uint16_t count_send_bluetooth;
