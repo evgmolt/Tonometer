@@ -2,4 +2,3 @@ Start connect
 port.GetValueNames
 new Serial port
 new Serial port
-new Serial port

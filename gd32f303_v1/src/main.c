@@ -288,12 +288,12 @@ int main(void)
                 BluetoothCheck();
                 TFT_print();
 // Переход в режим зарядки при подключении USB разъема           
-                if (gpio_input_bit_get(GPIOC, GPIO_PIN_10))
+/*                if (gpio_input_bit_get(GPIOC, GPIO_PIN_10))
                 {
                     ILI9341_FillScreen(ILI9341_BLACK);
                     print_battery();
                     mode = USB_CHARGING;
-                }
+                }*/
 
                 if (button_released) 
                 {

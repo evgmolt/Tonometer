@@ -187,7 +187,7 @@ void PrintError(uint8_t K){
     }
     if (K==ERROR_MEAS)
     {
-        sprintf(_buff,"ньхайю хглепемхъ");        
+        sprintf(_buff,"ньхайю %d %d %d", PSys, PDia, pulse);        
         ILI9341_WriteString(left_margin, top_margin, _buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);            
     }        
 }
