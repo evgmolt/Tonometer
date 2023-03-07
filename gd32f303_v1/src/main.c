@@ -65,7 +65,6 @@ __IO uint32_t timedisplay;
 #define I2C0_OWN_ADDRESS7      0x72 
 #define I2C0_SLAVE_ADDRESS7    0x91 
 
-extern uint8_t wave_ind_flag;
 extern uint8_t wave_detect_flag;
 extern double detect_level;
 extern int16_t silence_time_start;
@@ -112,8 +111,6 @@ int indexPSys = 0;
 int indexPDia = 0;
 int16_t XMax = 0;
 int16_t current_pressure=0;
-int16_t array_for_aver[AVER_SIZE] = {0};
-int8_t array_for_aver_index = 0;
 int16_t i2c_out=0;
 int i2c_out_K=0;
 uint8_t indicate_charge_toggle=1;
@@ -155,6 +152,7 @@ double rate_fract;
 
 bool arrhythmia = false;
 bool stop_meas = false;
+bool overpumping = false;
 
 int main(void)
 {
@@ -332,6 +330,11 @@ int main(void)
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
                     if (current_pressure >= 0 & current_pressure<400) PrintNum(current_pressure, BIG_NUM_RIGHT, DIA_TOP, GREEN);
                 }
+                
+                if (button_pressed)
+                {
+                    overpumping = true;
+                }
             
                 if (current_pressure >= MAX_ALLOWED_PRESSURE && process_counter > MIN_PUMPING_INTERVAL) 
                 {
@@ -404,11 +407,6 @@ int main(void)
                         Detect(first_max, i);
                     }
                     
-                    for (int i = 0; i < AVER_SIZE; i++) 
-                    {
-                        array_for_aver[i] = 0;
-                    }
-                
                     ILI9341_FillRectangle(SYS_DIA_LEFT, SYS_TOP, 180, 106, ILI9341_WHITE);
                     ILI9341_FillRectangle(SYS_DIA_LEFT, DIA_TOP, 180, 106, ILI9341_WHITE);
                     ILI9341_FillRectangle(PULSE_LEFT, PULSE_TOP, 123, 64, ILI9341_WHITE);    

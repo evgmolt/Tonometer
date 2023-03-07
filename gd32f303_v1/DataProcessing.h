@@ -1,6 +1,5 @@
 #include "main.h"
 
-int16_t GetAver(int16_t nextValue);
 int16_t GetDerivative(int16_t *dataArr, int32_t Ind);
 void GetArrayOfWaveIndexes(int16_t *valuesArray, int16_t *indexesArray, int16_t *indexes);
 int GetMaxIndexInRegion(int16_t *sourceArray, int index);

@@ -283,7 +283,7 @@ void TIMER1_IRQHandler(void)
         }
         else 
         {
-            if (button_pressed_counter > SWITCH_OFF_INTERVAL && mode != USB_CHARGING) 
+            if ((button_pressed_counter > SWITCH_OFF_INTERVAL) && (mode != USB_CHARGING) && (!overpumping)) 
             {
                 mode = KEY_OFF;
             }
@@ -435,7 +435,6 @@ void TIMER2_IRQHandler(void)
                             Wave_detect_time = max_index - 1;                                                                                                                        
                             puls_buff[puls_counter++]= max_index - 1;
                             heart_counter = HEART_INTERVAL;
-                            wave_ind_flag = 1; 
                             show_heart = true;    
                             lock_interval = (Wave_detect_time - Wave_detect_time_OLD) / 2;
 //                            if (lock_interval > hi_limit | lock_interval < lo_limit) lock_interval = 50;

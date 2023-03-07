@@ -66,16 +66,6 @@ uint16_t CountPulse(void)
     return first_pulse;
 }
 
-int16_t GetAver(int16_t nextValue) 
-{
-    array_for_aver[array_for_aver_index] = nextValue;
-    array_for_aver_index++;
-    if (array_for_aver_index > AVER_SIZE - 1) array_for_aver_index = 0;
-    int16_t sum = 0;
-    for (int i = 0; i < AVER_SIZE; i++) sum += array_for_aver[i];
-    return sum / AVER_SIZE;
-}
-
 int16_t GetDerivative(int16_t *dataArr, int32_t Ind){
    if (Ind < (DERIVATIVE_AVER_WIDTH + DERIVATIVE_SHIFT))
    {

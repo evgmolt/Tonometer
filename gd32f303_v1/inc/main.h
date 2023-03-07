@@ -44,7 +44,6 @@
 #define DELAY_AFTER_START 400
 #define DELAY_FOR_ERROR 1000
 #define PRESSURE_FOR_ERROR 12
-#define AVER_SIZE 10
 
 #define DEBONCE_INTERVAL 4
 #define GO_TO_TEST_INTERVAL 500
@@ -129,7 +128,6 @@ void send_buf_UART_0(uint8_t *buf, uint8_t num);
 void usart_config_1(void);
 void send_buf_UART_1(uint8_t *buf, uint8_t num);
 void SIM_recieve_OK(void);
-int16_t GetAver(int16_t nextValue);
 void PrintNum(int16_t num, uint16_t X0, uint16_t Y0, uint8_t color);
 void TimeSet(uint32_t tmp_hh,uint32_t tmp_mm,uint32_t tmp_ss);
 void TimeInit(void);
@@ -202,6 +200,7 @@ double ReadRateFromFmc();
 
 extern bool arrhythmia;
 extern bool stop_meas;
+extern bool overpumping;
 
 extern const int lo_limit; //ms - 200 
 extern const int hi_limit; //ms - 30
@@ -224,7 +223,6 @@ extern double global_max;
 extern uint8_t wave_detect_flag;
 extern int16_t Wave_detect_time;
 extern int16_t Wave_detect_time_OLD;
-extern uint8_t wave_ind_flag;
 extern bool show_heart;
 extern bool erase_heart;
 extern int16_t silence_time_start;
@@ -265,8 +263,6 @@ extern int indexPDia;
 extern int16_t XMax;
 
 extern int16_t current_pressure;
-extern int16_t array_for_aver[AVER_SIZE];
-extern int8_t array_for_aver_index;
 
 extern int16_t i2c_out;
 extern int i2c_out_K;
