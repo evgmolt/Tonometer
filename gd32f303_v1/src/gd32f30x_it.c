@@ -241,7 +241,9 @@ void TIMER1_IRQHandler(void)
         if (shutdown_counter > SHUTDOWN_INTERVAL) 
         {
             shutdown_counter = 0;
-//            mode = KEY_OFF;                    
+#ifndef DEBUG
+            mode = KEY_OFF;                    
+#endif
         }
     
         button_touched = gpio_input_bit_get(GPIOC, GPIO_PIN_8);
@@ -262,6 +264,7 @@ void TIMER1_IRQHandler(void)
         {
             button_pressed_counter++;
             shutdown_counter = 0;
+//            if (mode = PUMPING_MANAGEMENT) overpumping = true;
         }
         else 
         {
@@ -283,7 +286,7 @@ void TIMER1_IRQHandler(void)
         }
         else 
         {
-            if ((button_pressed_counter > SWITCH_OFF_INTERVAL) && (mode != USB_CHARGING) && (!overpumping)) 
+            if ((button_pressed_counter > SWITCH_OFF_INTERVAL) && (mode != USB_CHARGING) && (mode != PUMPING_MANAGEMENT)) 
             {
                 mode = KEY_OFF;
             }
@@ -449,6 +452,7 @@ void TIMER2_IRQHandler(void)
                 }                        
             }
         }
+#ifdef DEBUG        
         else if (mode == SEND_SAVE_BUFF_MSG) 
         {
             if (button_released) 
@@ -470,6 +474,7 @@ void TIMER2_IRQHandler(void)
                     send_counter=0;
             }
         } 
+#endif       
         else if (mode == PRESSURE_TEST)
         {
             VALVE_FAST_CLOSE;
@@ -659,16 +664,17 @@ void ADS115_config(void){
 //    my_i2c_send(0xA3);
 }
 
-void USART0_IRQHandler(void)            //CH-08
+void USART0_IRQHandler(void)            //HC-08
 {
-        uint8_t cur_buff[5]={0};
-    if(RESET != usart_interrupt_flag_get(USART0, USART_INT_FLAG_RBNE)){            
+    if(RESET != usart_interrupt_flag_get(USART0, USART_INT_FLAG_RBNE))
+    {            
             UART0_buff[UART0_count]=usart_data_receive(USART0);
-            cur_buff[0]=usart_data_receive(USART0);
-            usbd_ep_send (&usbd_cdc, CDC_IN_EP, cur_buff, 1);
             UART0_count++;        
             UART0_flag=1;
-            if (UART0_count>=200) UART0_count=0;    
+            if (UART0_count>=200) 
+            {
+                UART0_count=0;    
+            }
             usart_interrupt_flag_clear(USART0, USART_INT_FLAG_RBNE);                        
     }
 }

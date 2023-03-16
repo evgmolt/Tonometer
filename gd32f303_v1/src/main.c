@@ -75,7 +75,7 @@ extern int16_t detect_level_start;
 extern uint8_t UART0_buff[200];
 extern uint8_t UART0_count;
 
-double pulse=0;
+double pulse = 0;
 
 uint32_t *ptrd;
 uint32_t address = 0x00000000U;
@@ -165,7 +165,6 @@ int main(void)
     BootMode();        
 
     rcu_config();                                   // USB
-//    gpio_config();                                  // USB    
     usbd_init(&usbd_cdc, &cdc_desc, &cdc_class);    // USB 
     nvic_config();                                  // USB     
 
@@ -266,8 +265,10 @@ int main(void)
     SIM800_PWRKEY_UP;
     delay_1ms(100);   
     
-//    fwdgt_prescaler_value_config(FWDGT_PSC_DIV64);
-//    fwdgt_enable();
+#ifndef DEBUG    
+    fwdgt_prescaler_value_config(FWDGT_PSC_DIV64);
+    fwdgt_enable();
+#endif
     
     while (1) 
     {    
@@ -285,14 +286,15 @@ int main(void)
             case START_SCREEN:
                 BluetoothCheck();
                 TFT_print();
-// Переход в режим зарядки при подключении USB разъема           
-/*                if (gpio_input_bit_get(GPIOC, GPIO_PIN_10))
+// Переход в режим зарядки при подключении USB разъема      
+#ifndef DEBUG            
+                if (gpio_input_bit_get(GPIOC, GPIO_PIN_10))
                 {
                     ILI9341_FillScreen(ILI9341_BLACK);
                     print_battery();
                     mode = USB_CHARGING;
-                }*/
-
+                }
+#endif
                 if (button_released) 
                 {
                     send_buf_UART_1("AT\r", 3);            
@@ -330,12 +332,7 @@ int main(void)
                     show_pressure_counter = SHOW_PRESSURE_INTERVAL;
                     if (current_pressure >= 0 & current_pressure<400) PrintNum(current_pressure, BIG_NUM_RIGHT, DIA_TOP, GREEN);
                 }
-                
-                if (button_pressed)
-                {
-                    overpumping = true;
-                }
-            
+                            
                 if (current_pressure >= MAX_ALLOWED_PRESSURE && process_counter > MIN_PUMPING_INTERVAL) 
                 {
                     ResetDetector();
@@ -450,8 +447,11 @@ int main(void)
                     
                     VALVE_FAST_OPEN;
                     VALVE_SLOW_OPEN;
+#ifdef DEBUG                    
                     mode = SEND_SAVE_BUFF_MSG;   
-//                        mode = INIT_START;
+#else                   
+                        mode = INIT_START;
+#endif                    
                 }                    
                 break;
             case SEND_SAVE_BUFF_MSG:
@@ -459,17 +459,11 @@ int main(void)
                 break;
         }
         
-        if (UART0_flag==1){                    
-            for (int w=0;w<200;w++)
+        if (UART0_flag==1)
+        {                    
+//            for (int w=0; w<20; w++)
             {
-                if (finder_msg(UART0_buff))
-                {                                                                    
-                        ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_RED);                                                            
-                }
-                if (finder(UART0_buff, "OFF",0,&num_string)) 
-                {
-                        ILI9341_FillRectangle(1, 1, 100, 100, ILI9341_WHITE);
-                }
+                BLECommandsReceiver(UART0_buff);
             }
             UART0_flag=0;
         }
@@ -499,12 +493,13 @@ int main(void)
 
 void AbortMeas(void) 
 {
+    button_released = 0;
+    button_pressed_counter = 0;
+    if (overpumping) return;
     mode = START_SCREEN;
     PUMP_OFF;
     VALVE_FAST_OPEN;
     VALVE_SLOW_OPEN;
-    button_released = 0;
-    button_pressed_counter = 0;
 }
 
 void i2c_config(void){
@@ -1103,12 +1098,19 @@ uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num)
     return 0;
 }
 
-uint8_t finder_msg(uint8_t *buff)
+uint8_t BLECommandsReceiver(uint8_t *buff)
 {    
     uint8_t _flag=0;
     uint8_t _string[20]={'0', '2'};
+    uint8_t command;
+    uint8_t check_sum = 0;
+    uint8_t index = 0;
+    const uint8_t top = 20;
+    const uint8_t left = 20;
+    const uint8_t step = 20;
+    
+    static uint8_t indexUrl;
 
-    //ILI9341_WriteString(1, 30, _string, Font_11x18, ILI9341_RED, ILI9341_WHITE);
     for (int j = 0; j < 200; j++)
     {
         if (buff[j] == _string[0] & buff[j + 1] == _string[1])
@@ -1117,36 +1119,11 @@ uint8_t finder_msg(uint8_t *buff)
         }
         if (_flag) 
         {
-            if (buff[j + 2] == 0x04)
+            command = buff[j + 2];
+//            ClearScreen();
+            switch (command)
             {
-                uint8_t check_sum = 0;
-                for (int a = 0; a < 10; a++)
-                {
-                    check_sum += buff[j + a];
-                }                                
-                if (buff[j+10] == check_sum)
-                {
-                    SERIAL[2] = buff[j + 3];
-                    SERIAL[3] = buff[j + 4];
-                    SERIAL[4] = buff[j + 5];
-                    SERIAL[5] = buff[j + 6];
-                    SERIAL[6] = buff[j + 7];
-                    SERIAL[7] = buff[j + 8];
-                    SERIAL[8] = buff[j + 9];
-                    
-                    FmcProgramSerial();                        
-                
-                    buff[j]=0xFF;
-                
-                    delay_1ms(200);                                    
-                    DeviceOff();
-                
-                    return 1;
-                }
-            }
-            else if (buff[j + 2] == 0x03)
-            {
-                uint8_t check_sum = 0;
+            case BLE_CMD_DATETIME:
                 for (int a = 0; a < 10; a++)
                 {
                     check_sum += buff[j + a];
@@ -1167,7 +1144,117 @@ uint8_t finder_msg(uint8_t *buff)
                     buff[j] = 0xFF;
                     return 2;                    
                 }
+                break;
+            case BLE_CMD_SERIAL:
+                for (int a = 0; a < 10; a++)
+                {
+                    check_sum += buff[j + a];
+                }                                
+                if (buff[j+10] == check_sum)
+                {
+                    SERIAL[2] = buff[j + 3];
+                    SERIAL[3] = buff[j + 4];
+                    SERIAL[4] = buff[j + 5];
+                    SERIAL[5] = buff[j + 6];
+                    SERIAL[6] = buff[j + 7];
+                    SERIAL[7] = buff[j + 8];
+                    SERIAL[8] = buff[j + 9];
+                    
+                    FmcProgramSerial();                        
+                
+                    delay_1ms(200);                                    
+                    DeviceOff();
+                
+                    return 1;
+                }
+                break;
+            case BLE_CMD_SETLOGIN:
+                while (buff[index + 3] != 0)
+                {
+                    send_buff[index] = buff[j + index + 3];
+                    index++;
+                }
+                send_buff[index] = 0;
+                ILI9341_WriteString(left, top, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                UART0_count = 0;
+                return BLE_CMD_SETLOGIN;
+                break;
+            case BLE_CMD_GETLOGIN:
+                break;
+            case BLE_CMD_SETPASSWORD:
+                while (buff[index + 3] != 0)
+                {
+                    send_buff[index] = buff[j + index + 3];
+                    index++;
+                }
+                send_buff[index] = 0;
+                ILI9341_WriteString(left, top + step, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                UART0_count = 0;
+                return BLE_CMD_SETLOGIN;
+                break;
+            case BLE_CMD_GETPASSWORD:
+                break;
+            case BLE_CMD_SETURL:
+                while (buff[index + 3] != 0 || index == BLE_PACKET_SIZE)
+                {
+                    if (index + 3 != BLE_PACKET_SIZE - 1)
+                    {
+                        send_buff[indexUrl] = buff[j + index + 3];
+                        indexUrl++;
+                    }
+                    index++;
+                }
+                if (buff[index + 3] == 0)
+                {
+                    UART0_count = 0;
+                    indexUrl = 0;
+                    ILI9341_WriteString(left, top + step * 2, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                }
+                return BLE_CMD_SETLOGIN;
+                break;
+            case BLE_CMD_GETURL:
+                break;
+            case BLE_CMD_SETPORT:
+                while (buff[index + 3] != 0)
+                {
+                    send_buff[index] = buff[j + index + 3];
+                    index++;
+                }
+                send_buff[index] = 0;
+                ILI9341_WriteString(left, top + step * 3, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                UART0_count = 0;
+                return BLE_CMD_SETLOGIN;
+                break;
+            case BLE_CMD_GETPORT:
+                break;
+            case BLE_CMD_SETPOINT:
+                while (buff[index + 3] != 0)
+                {
+                    send_buff[index] = buff[j + index + 3];
+                    index++;
+                }
+                send_buff[index] = 0;
+                ILI9341_WriteString(left, top + step * 4, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                UART0_count = 0;
+                return BLE_CMD_SETLOGIN;
+                break;
+            case BLE_CMD_GETPOINT:
+                break;
+            case BLE_CMD_SETID:
+                while (buff[index + 3] != 0)
+                {
+                    send_buff[index] = buff[j + index + 3];
+                    index++;
+                }
+                send_buff[index] = 0;
+                ILI9341_WriteString(left, top + step * 5, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                UART0_count = 0;
+                return BLE_CMD_SETLOGIN;
+                break;
+            case BLE_CMD_GETID:
+                break;
             }
+            UART0_count = 0;
         }
     }
     return 0;

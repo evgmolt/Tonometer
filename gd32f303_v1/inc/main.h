@@ -1,3 +1,4 @@
+#define DEBUG
 
 #ifndef __MAIN_H
 #define __MAIN_H
@@ -38,7 +39,7 @@
 
 #define STOP_MEAS_LEVEL 60
 #define MIN_PRESSURE 130    
-#define MAX_ALLOWED_PRESSURE 200
+#define MAX_ALLOWED_PRESSURE 182
 #define SEC_AFTER_MAX 8
 #define DELAY_AFTER_PUMPING 50
 #define DELAY_AFTER_START 400
@@ -98,6 +99,21 @@
 
 #define SERIAL_NUM_SIZE 9
 
+#define BLE_CMD_DATETIME 3
+#define BLE_CMD_SERIAL 4
+#define BLE_CMD_SETLOGIN 6
+#define BLE_CMD_GETLOGIN 7
+#define BLE_CMD_SETPASSWORD 8
+#define BLE_CMD_GETPASSWORD 9
+#define BLE_CMD_SETURL 10
+#define BLE_CMD_GETURL 11
+#define BLE_CMD_SETPORT 12
+#define BLE_CMD_GETPORT 13
+#define BLE_CMD_SETPOINT 14
+#define BLE_CMD_GETPOINT 15
+#define BLE_CMD_SETID 16
+#define BLE_CMD_GETID 17
+
 /* function declarations */
 
 void i2c_config(void);
@@ -111,7 +127,6 @@ void GPIO_config(void);
     
 void spi_rcu_config(void);
 void spi_gpio_config(void);    
-
 void spi_config(void);
 
 void nvic_configuration(void);
@@ -150,25 +165,9 @@ short int convert_save_16(void);
 
 uint8_t usb_send_save(int16_t *mass1, int16_t *mass2);
 
-int16_t GetDerivative(int16_t *dataArr, int32_t Ind);
-
-int GetMaxIndexInRegion(int16_t *sourceArray, int index);
-void GetArrayOfWaveIndexes(int16_t *valuesArray, int16_t *indexesArray, int16_t *indexes);
-
-int GetMaxIndexInRegion(int16_t *sourceArray, int index);
-int GetMinIndexInRegion(int16_t *sourceArray_MIN,int index);
-    
-void f_sorting_MAX(void);
-void GetSysDia(void);
-
-uint16_t CountPulse(void);
 void ClearScreen(void);
 void usb_send_16(short int T1, short int T2);
 short int convert_NO_save(void);
-int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC);
-
-void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues);
-
 void ADS1115_config(uint8_t pointer, uint8_t byte1, uint8_t byte2);
 uint8_t ADS1115_read_IT(void);
 void PrintError(uint8_t K);
@@ -176,7 +175,7 @@ void BootMode(void);
 void PrintBattCharge(void);
 void BluetoothCheck(void);
 uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num);
-uint8_t finder_msg(uint8_t *buff);
+uint8_t BLECommandsReceiver(uint8_t *buff);
 
 /* erase fmc page from FMC_WRITE_START_ADDR */
 void FmcErasePage(uint32_t page_address);
