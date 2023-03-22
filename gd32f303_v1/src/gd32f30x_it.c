@@ -553,6 +553,8 @@ void ResetDetector(void)
     process_counter = 0;
     main_index=0;        
     wave_detect_flag=0;    
+    Wave_detect_time = 0;
+    Wave_detect_time_OLD = 0;
     current_max=0;        
     global_max=0;        
     detect_level=detect_level_start;
