@@ -1100,11 +1100,12 @@ uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num)
 
 bool FillBuff(uint8_t *buff, uint8_t ind) //переписываем из UART буфера в другой глобальный, убираем маркеры и признак действия
 {
+    uint8_t indexOfStartData = 4;
     uint8_t checksum = 0;    
     uint8_t index = 0;
-    while (buff[index + 3] != 0)
+    while (buff[index + indexOfStartData] != 0)
     {
-        send_buff[index] = buff[ind + index + 3];
+        send_buff[index] = buff[ind + index + indexOfStartData];
         index++;
     }
     send_buff[index] = 0;
@@ -1112,10 +1113,8 @@ bool FillBuff(uint8_t *buff, uint8_t ind) //переписываем из UART буфера в другой
     {
         checksum += send_buff[i];
     }
-    send_buff[index + 1] = buff[ind + index + 3 + 1]; //Контрольная сумма
+    send_buff[index + 1] = buff[ind + index + indexOfStartData + 1]; //Контрольная сумма
     UART0_count = 0;
-       UART0_count = 0;
-
     return checksum == send_buff[index + 1];
 }
 
@@ -1124,13 +1123,18 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
     uint8_t _flag=0;
     uint8_t _string[20]={'0', '2'};
     uint8_t command;
+    uint8_t num_of_packet;
     uint8_t check_sum = 0;
     uint8_t index = 0;
+    uint8_t index_of_start_data = 4;
+    uint8_t data_size = 15;
     const uint8_t top = 20;
     const uint8_t left = 20;
     const uint8_t step = 20;
     
     static uint8_t indexUrl;
+    static uint8_t last_packet_num;
+    static already_packets;
 
     for (int j = 0; j < 200; j++)
     {
@@ -1141,7 +1145,9 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
         if (_flag) 
         {
             command = buff[j + 2];
-//            ClearScreen();
+            num_of_packet = buff[j + 3];
+            indexUrl = num_of_packet * data_size;
+            already_packets++;
             switch (command)
             {
             case BLE_CMD_DATETIME:
@@ -1190,18 +1196,29 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
                 }
                 break;
             case BLE_CMD_SETURL:
-                for (index = 3; index < BLE_PACKET_SIZE - 1; index++)
+                for (index = index_of_start_data; index < BLE_PACKET_SIZE - 1; index++)
                 {
                     send_buff[indexUrl] = buff[j + index];
                     indexUrl++;
                     if (buff[j + index] == 0)
                     {
                         UART0_count = 0;
-                        indexUrl = 0;
-                        ILI9341_WriteString(left, top, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                        last_packet_num = num_of_packet;
+                        break;
+                    }
+                }
+                if (last_packet_num > 0)
+                {
+                    if (already_packets == last_packet_num + 1)
+                    {
+                        last_packet_num = 0;
+                        already_packets = 0;
+                        _flag = 0;
+                        ILI9341_WriteString(left, top, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);                          
                         return BLE_CMD_SETURL;
                     }
                 }
+                _flag = 0;
                 break;
             case BLE_CMD_GETURL:
                 break;
