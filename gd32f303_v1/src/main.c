@@ -154,6 +154,10 @@ bool arrhythmia = false;
 bool stop_meas = false;
 bool overpumping = false;
 
+uint8_t indexUrl = 0;
+uint8_t last_packet_num = 0;
+uint8_t already_packets = 0;
+
 int main(void)
 {
     nvic_configuration();      // RTC
@@ -1132,9 +1136,6 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
     const uint8_t left = 20;
     const uint8_t step = 20;
     
-    static uint8_t indexUrl;
-    static uint8_t last_packet_num;
-    static already_packets;
 
     for (int j = 0; j < 200; j++)
     {
@@ -1213,6 +1214,7 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
                     {
                         last_packet_num = 0;
                         already_packets = 0;
+                        indexUrl = 0;
                         _flag = 0;
                         ILI9341_WriteString(left, top, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);                          
                         return BLE_CMD_SETURL;

@@ -201,6 +201,11 @@ extern bool arrhythmia;
 extern bool stop_meas;
 extern bool overpumping;
 
+extern uint8_t indexUrl;
+extern uint8_t last_packet_num;
+extern uint8_t already_packets;
+
+
 extern const int lo_limit; //ms - 200 
 extern const int hi_limit; //ms - 30
 
