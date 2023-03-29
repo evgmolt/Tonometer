@@ -74,7 +74,6 @@
 #define ERROR_MEAS 4
 
 #define NO_WAVE_INTERVAL 250
-#define BLE_PACKET_SIZE 20
 
 //Координаты
 #define LEFT_MIN 5
@@ -98,6 +97,7 @@
 #define DERIVATIVE_AVER_WIDTH 4
 
 #define SERIAL_NUM_SIZE 9
+#define BLE_PACKET_SIZE 20
 
 #define BLE_CMD_DATETIME 3
 #define BLE_CMD_SERIAL 4
@@ -175,7 +175,7 @@ void BootMode(void);
 void PrintBattCharge(void);
 void BluetoothCheck(void);
 uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num);
-uint8_t BLECommandsReceiver(uint8_t *buff);
+uint8_t BLECommandsReceiver(uint8_t *buff, count);
 
 /* erase fmc page from FMC_WRITE_START_ADDR */
 void FmcErasePage(uint32_t page_address);
@@ -203,7 +203,7 @@ extern bool overpumping;
 
 extern uint8_t indexUrl;
 extern uint8_t last_packet_num;
-extern uint8_t already_packets;
+extern uint8_t current_packet_num;
 
 
 extern const int lo_limit; //ms - 200 
