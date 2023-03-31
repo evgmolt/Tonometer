@@ -11,10 +11,10 @@
 #define YELLOW  0x3
 #define BLACK   0x4
 
-#define YELLOW_LEVEL_SYS 140
-#define RED_LEVEL_SYS    160
-#define YELLOW_LEVEL_DIA 90
-#define RED_LEVEL_DIA    100
+#define YELLOW_LEVEL_SYS 130
+#define RED_LEVEL_SYS    140
+#define YELLOW_LEVEL_DIA 85
+#define RED_LEVEL_DIA    90
 
 #define PUMP_ON             gpio_bit_set(GPIOC, GPIO_PIN_11)
 #define PUMP_OFF            gpio_bit_reset(GPIOC, GPIO_PIN_11)

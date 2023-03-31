@@ -467,11 +467,11 @@ void TIMER2_IRQHandler(void)
             else
             if (usb_send_save(pressure_pulsation_array,envelope_array))
             {            
-                    mode = INIT_START;
-                    Timer2Stop();
-                    main_index=0;
-                    ble_buffer_counter = 0;
-                    send_counter=0;
+                mode = INIT_START;
+                Timer2Stop();
+                main_index=0;
+                ble_buffer_counter = 0;
+                send_counter=0;
             }
         } 
 #endif       

@@ -1192,6 +1192,10 @@ uint8_t BLECommandsReceiver(uint8_t *buff, count)
                         byte_num = 0;
                     }
                     break;
+                case BLE_CMD_GETLOGIN:
+                    sprintf(send_buff,"Login222");
+                    send_buf_UART_0(send_buff, 9);
+                    break;
             }
             if (buff[index] == 0)
             {
@@ -1208,7 +1212,7 @@ uint8_t BLECommandsReceiver(uint8_t *buff, count)
     UART0_count = 0;
 }
 
-//Остатки. Не используется
+//Остатки
 uint8_t OLD_BLECommandsReceiver(uint8_t *buff, count)
 {    
     uint8_t _flag=0;
@@ -1282,75 +1286,6 @@ uint8_t OLD_BLECommandsReceiver(uint8_t *buff, count)
                 
                     return 1;
                 }
-                break;
-            case BLE_CMD_SETURL:
-                for (index = index_of_start_data; index < BLE_PACKET_SIZE - 1; index++)
-                {
-                    send_buff[indexUrl] = buff[j + index];
-                    indexUrl++;
-                    if (buff[j + index] == 0)
-                    {
-                        UART0_count = 0;
-                        last_packet_num = num_of_packet;
-                        if (current_packet_num == last_packet_num + 1)
-                        {
-                            last_packet_num = 0;
-                            current_packet_num = 0;
-                            indexUrl = 0;
-                            _flag = 0;
-                            ILI9341_WriteString(left, top, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);                          
-                            return BLE_CMD_SETURL;
-                        }
-                        break;
-                    }
-                }
-                if (last_packet_num > 0)
-                {
-                    if (current_packet_num == last_packet_num + 1)
-                    {
-                        last_packet_num = 0;
-                        current_packet_num = 0;
-                        indexUrl = 0;
-                        _flag = 0;
-                        ILI9341_WriteString(left, top, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);                          
-                        return BLE_CMD_SETURL;
-                    }
-                }
-                _flag = 0;
-                break;
-            case BLE_CMD_GETURL:
-                break;
-            case BLE_CMD_SETPORT:
-                if (FillBuff(buff, j)) ILI9341_WriteString(left, top + step * 2, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
-                return BLE_CMD_SETPORT;
-                break;
-            case BLE_CMD_GETPORT:
-                break;
-            case BLE_CMD_SETLOGIN:
-                if (FillBuff(buff, j)) ILI9341_WriteString(left, top + step * 3, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
-                return BLE_CMD_SETLOGIN;
-                break;
-            case BLE_CMD_GETLOGIN:
-                sprintf(send_buff,"Login2");
-                send_buf_UART_0(send_buff, 7);
-                break;
-            case BLE_CMD_SETPASSWORD:
-                if (FillBuff(buff, j)) ILI9341_WriteString(left, top + step * 4, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
-                return BLE_CMD_SETPASSWORD;
-                break;
-            case BLE_CMD_GETPASSWORD:
-                break;
-            case BLE_CMD_SETPOINT:
-                if (FillBuff(buff, j)) ILI9341_WriteString(left, top + step * 5, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
-                return BLE_CMD_SETPOINT;
-                break;
-            case BLE_CMD_GETPOINT:
-                break;
-            case BLE_CMD_SETID:
-                if (FillBuff(buff, j)) ILI9341_WriteString(left, top + step * 6, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
-                return BLE_CMD_SETID;
-                break;
-            case BLE_CMD_GETID:
                 break;
             }
         }
