@@ -82,7 +82,6 @@ uint32_t address = 0x00000000U;
 uint32_t SERIAL[SERIAL_NUM_SIZE]   = {'0','2','0','2','2','2','0','0','1'};
 /* calculate the number of page to be programmed/erased */
 
-extern uint8_t UART0_flag;
 
 int16_t puls_buff_NEW[50]={0};
 int16_t puls_buff_NEW_MIN[50]={0};
@@ -154,9 +153,15 @@ bool arrhythmia = false;
 bool stop_meas = false;
 bool overpumping = false;
 
-uint8_t indexUrl = 0;
-uint8_t last_packet_num = 0;
+uint8_t num_of_packet = 0;
 uint8_t current_packet_num = 0;
+uint8_t command;
+uint8_t byte_num = 0;
+uint8_t result_index = 0;
+uint8_t index_in_packet = 0;
+uint8_t checksum = 0;    
+uint8_t receiv_counter = 0;
+
 
 int main(void)
 {
@@ -463,13 +468,9 @@ int main(void)
                 break;
         }
         
-        if (UART0_flag==1)
+        if (UART0_count > 0)
         {                    
-//            for (int w=0; w<20; w++)
-            {
-                BLECommandsReceiver(UART0_buff, UART0_count);
-            }
-            UART0_flag=0;
+           BLECommandsReceiver(UART0_buff);
         }
         
         if (show_heart)
@@ -1122,41 +1123,33 @@ bool FillBuff(uint8_t *buff, uint8_t ind) //переписываем из UART буфера в другой
     return checksum == send_buff[index + 1];
 }
 
-uint8_t BLECommandsReceiver(uint8_t *buff, count)
+uint8_t BLECommandsReceiver(uint8_t *buff)
 {
     const uint8_t top = 20;
     const uint8_t left = 20;
     const uint8_t step = 20;
 
-    uint8_t index = 0;
-    uint8_t result_index = 0;
-    uint8_t byte_num = 0;
-    uint8_t index_in_packet = 0;
-    uint8_t command = 0;
-    uint8_t num_of_packet = 0;
     uint8_t data_size = 15;    
-    uint8_t checksum = 0;    
-    
-    while (index < count)
+    receiv_counter++;
+    for (int i = 0; i < UART0_count; i++)
     {
-        checksum += buff[index];
+        checksum += buff[i];
         switch (byte_num)
         {
             case 0:
-                if (buff[index] == '0') byte_num = 1;
-                checksum = buff[index];
+                if (buff[i] == '0') byte_num = 1;
+                checksum = buff[i];
                 index_in_packet = 0;
                 break;
             case 1:
-                if (buff[index] == '2') byte_num = 2;
+                if (buff[i] == '2') byte_num = 2;
                 break;
             case 2:
-                command = buff[index];
+                command = buff[i];
                 byte_num = 3;
                 break;
             case 3:
-                num_of_packet = buff[index];
-                indexUrl = num_of_packet * data_size;
+                num_of_packet = buff[i];
                 current_packet_num++;
                 byte_num = 4;
                 break;
@@ -1166,14 +1159,14 @@ uint8_t BLECommandsReceiver(uint8_t *buff, count)
         }
         if (byte_num == 5)
         {
-            send_buff[result_index] = buff[index];
+            send_buff[result_index] = buff[i];
             result_index++;
             switch (command)
             {
                 case BLE_CMD_SERIAL:
                     if (result_index == 6) //длина номера -1 без '0' и '2'
                     {
-                        if (checksum == buff[index + 1])
+                        if (checksum == buff[i + 1])
                         {
                             for (uint8_t i = 0; i < 7; i++)
                             {
@@ -1197,16 +1190,21 @@ uint8_t BLECommandsReceiver(uint8_t *buff, count)
                     send_buf_UART_0(send_buff, 9);
                     break;
             }
-            if (buff[index] == 0)
+            if (buff[i] == 0)
             {
-                if (checksum == buff[index + 1])
+                if (checksum == buff[i + 1])
                 {
                     ILI9341_WriteString(left, (command - 6)  * step, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                    receiv_counter = 0;
                     checksum = 0;
+                    byte_num = 0;
+                    index_in_packet = 0;
+                    current_packet_num = 0;
+                    result_index = 0;
+                    UART0_count = 0;
                 }
             }
         }
-        index++;
         index_in_packet++;
     }
     UART0_count = 0;
@@ -1218,7 +1216,6 @@ uint8_t OLD_BLECommandsReceiver(uint8_t *buff, count)
     uint8_t _flag=0;
     uint8_t _string[20]={'0', '2'};
     uint8_t command;
-    uint8_t num_of_packet;
     uint8_t check_sum = 0;
     uint8_t index = 0;
     uint8_t index_of_start_data = 4;
@@ -1238,7 +1235,6 @@ uint8_t OLD_BLECommandsReceiver(uint8_t *buff, count)
         {
             command = buff[j + 2];
             num_of_packet = buff[j + 3]; //Номер из посылки
-            indexUrl = num_of_packet * data_size;
             current_packet_num++; //Счетчик посылок
             switch (command)
             {

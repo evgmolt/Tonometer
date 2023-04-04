@@ -670,14 +670,14 @@ void USART0_IRQHandler(void)            //HC-08
 {
     if(RESET != usart_interrupt_flag_get(USART0, USART_INT_FLAG_RBNE))
     {            
-            UART0_buff[UART0_count]=usart_data_receive(USART0);
-            UART0_count++;        
-            UART0_flag=1;
-            if (UART0_count>=200) 
-            {
-                UART0_count=0;    
-            }
-            usart_interrupt_flag_clear(USART0, USART_INT_FLAG_RBNE);                        
+        UART0_buff[UART0_count]=usart_data_receive(USART0);
+        UART0_count++;        
+        UART0_flag=1;
+        if (UART0_count>=200) 
+        {
+            UART0_count=0;    
+        }
+        usart_interrupt_flag_clear(USART0, USART_INT_FLAG_RBNE);                        
     }
 }
 

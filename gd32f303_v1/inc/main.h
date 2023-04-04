@@ -175,7 +175,7 @@ void BootMode(void);
 void PrintBattCharge(void);
 void BluetoothCheck(void);
 uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num);
-uint8_t BLECommandsReceiver(uint8_t *buff, count);
+uint8_t BLECommandsReceiver(uint8_t *buff);
 
 /* erase fmc page from FMC_WRITE_START_ADDR */
 void FmcErasePage(uint32_t page_address);
@@ -201,10 +201,12 @@ extern bool arrhythmia;
 extern bool stop_meas;
 extern bool overpumping;
 
-extern uint8_t indexUrl;
-extern uint8_t last_packet_num;
+extern uint8_t num_of_packet;
 extern uint8_t current_packet_num;
-
+extern uint8_t command;
+extern uint8_t byte_num;
+extern uint8_t checksum;    
+extern uint8_t receiv_counter;
 
 extern const int lo_limit; //ms - 200 
 extern const int hi_limit; //ms - 30
@@ -332,6 +334,8 @@ extern int button_touched_counter;
 extern int button_pressed_counter;
 
 extern uint8_t usb_command;
+
+
 
 
 #endif /* __MAIN_H */

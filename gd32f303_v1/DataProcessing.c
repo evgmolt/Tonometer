@@ -224,7 +224,7 @@ void GetSysDia(void)
         if (puls_buff_AMP[i] > MaximumAmplitude)
         {
             MaximumAmplitude = puls_buff_AMP[i];
-            XMax=puls_buff_NEW[i];                    
+            XMax = puls_buff_NEW[i];                    
         }        
     }        
     
@@ -238,21 +238,21 @@ void GetSysDia(void)
     {
         if (envelope_array[i] < ValueSys)
         {
-            PSys = GetAverAroundPoint(pressure_array, i)/rate;
+            PSys = GetAverAroundPoint(pressure_array, i) / rate;
             indexPSys = i;
             break;
         }
     }
     if (PSys == 0)
     {
-        PSys = pressure_array[0]/rate;        
+        PSys = pressure_array[0] / rate;        
     }
 
     for (int i = XMax; i < main_index; i++)
     {
         if (envelope_array[i] < ValueDia)
         {
-            PDia = GetAverAroundPoint(pressure_array, i)/rate;
+            PDia = GetAverAroundPoint(pressure_array, i) / rate;
             indexPDia = i;
             break;
         }
@@ -263,53 +263,25 @@ void GetSysDia(void)
     }
 }
 
-int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC){
-        int32_t DCLevel = 0;
-        int32_t ACLevel = 0;                    
-        for(int r=0;r<DC;r++){
-                DCLevel+=mass_in[main_index-1-r];
-        }
-        DCLevel/=DC;    
-        for (int j=0;j<AC;j++){
-       ACLevel+=mass_in[main_index-1-j];
+int16_t SmoothAndRemoveDC(uint16_t *mass_in, int16_t DC, int16_t AC)
+{
+    int32_t DCLevel = 0;
+    int32_t ACLevel = 0;                    
+    for(int r = 0; r < DC; r++)
+    {
+        DCLevel += mass_in[main_index - 1 - r];
     }
-    ACLevel/=AC;
+    DCLevel /= DC;    
+    for (int j = 0; j < AC; j++)
+    {
+       ACLevel += mass_in[main_index - 1 - j];
+    }
+    ACLevel /= AC;
     i2c_out = (int16_t)ACLevel;
-    current_pressure=(int16_t)(i2c_out/rate);
-    if (current_pressure<0 & main_index<500) current_pressure=0;
-    mass_in[main_index-1] = (uint16_t)ACLevel;    
-        
-/*    
-    float ACoef[N_COEF+1] = { 
-        0.97913295295553560000, 
-        -1.95826590591107120000, 
-        0.97913295295553560000 
-    }; 
- 
-    float BCoef[N_COEF+1] = { 
-        1.00000000000000000000, 
-        -1.95778812550116580000, 
-        0.95837795232608958000 
-    }; 
- 
-    static float y[N_COEF+1]; //output samples 
-    static float x[N_COEF+1]; //input samples 
-    int n; 
- 
-    //shift the old samples 
-    for(n=N_COEF; n>0; n--) { 
-       x[n] = x[n-1]; 
-       y[n] = y[n-1]; 
-    } 
- 
-    //Calculate the new output 
-    x[0] = ACLevel; 
-    y[0] = ACoef[0] * x[0]; 
-    for(n=1; n<=N_COEF; n++) 
-        y[0] += ACoef[n] * x[n] - BCoef[n] * y[n]; 
-        
-//    return (int16_t)y[0];*/
+    current_pressure=(int16_t)(i2c_out / rate);
+    if (current_pressure < 0 & main_index < 500) current_pressure = 0;
+    mass_in[main_index-1] = (uint16_t)ACLevel;            
     
-    return ACLevel-DCLevel;
+    return ACLevel - DCLevel;
 }
 
