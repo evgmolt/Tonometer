@@ -160,8 +160,6 @@ uint8_t byte_num = 0;
 uint8_t result_index = 0;
 uint8_t index_in_packet = 0;
 uint8_t checksum = 0;    
-uint8_t receiv_counter = 0;
-
 
 int main(void)
 {
@@ -1128,10 +1126,9 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
     const uint8_t top = 20;
     const uint8_t left = 20;
     const uint8_t step = 20;
-    uint8_t posbuf[] = {0, 0, 0, 0, 0, 0, 5, 0, 7, 0, 1, 0, 3, 0, 9, 0, 11, 0, 13};
-
-    uint8_t data_size = 15;    
-    receiv_counter++;
+    bool print_allow = false; 
+    uint8_t posbuf[] = {0, 0, 0, 0, 0, 0, 4, 0, 5, 0, 1, 0, 3, 0, 6, 0, 7 }; //номер строки дл€ вывода.  оманда - индекс в массиве 
+//                                       log   pass  url   port  point  id
     for (int i = 0; i < UART0_count; i++)
     {
         checksum += buff[i];
@@ -1185,24 +1182,56 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
                         index_in_packet = 0;
                         byte_num = 0;
                     }
+                    print_allow = true;
+                    break;
+                case BLE_CMD_GETURL:
+                    sprintf(send_buff,"URL222");
+                    send_buf_UART_0(send_buff, 7);
+                    break;
+                case BLE_CMD_SETPORT:
+                    print_allow = true;
+                    break;
+                case BLE_CMD_GETPORT:
+                    sprintf(send_buff,"8080");
+                    send_buf_UART_0(send_buff, 5);
+                    break;
+                case BLE_CMD_SETLOGIN:
+                    print_allow = true;
                     break;
                 case BLE_CMD_GETLOGIN:
                     sprintf(send_buff,"Login222");
                     send_buf_UART_0(send_buff, 9);
+                    break;
+                case BLE_CMD_SETPASSWORD:
+                    print_allow = true;
+                    break;
+                case BLE_CMD_GETPASSWORD:
+                    break;
+                case BLE_CMD_SETPOINT:
+                    print_allow = true;
+                    break;
+                case BLE_CMD_GETPOINT:
+                    sprintf(send_buff,"Point222");
+                    send_buf_UART_0(send_buff, 9);
+                    break;
+                case BLE_CMD_SETID:
+                    print_allow = true;
+                    break;
+                case BLE_CMD_GETID:
+                    sprintf(send_buff,"ID222");
+                    send_buf_UART_0(send_buff, 6);
                     break;
             }
             if (buff[i] == 0)
             {
                 if (checksum == buff[i + 1])
                 {
-                    ILI9341_WriteString(left, posbuf[command] * step, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
-                    receiv_counter = 0;
+                    if (print_allow) ILI9341_WriteString(left, posbuf[command] * step, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
                     checksum = 0;
                     byte_num = 0;
                     index_in_packet = 0;
                     current_packet_num = 0;
                     result_index = 0;
-//                    UART0_count = 0;
                 }
             }
         }

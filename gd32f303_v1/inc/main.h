@@ -207,7 +207,6 @@ extern uint8_t current_packet_num;
 extern uint8_t command;
 extern uint8_t byte_num;
 extern uint8_t checksum;    
-extern uint8_t receiv_counter;
 
 extern const int lo_limit; //ms - 200 
 extern const int hi_limit; //ms - 30
