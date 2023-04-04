@@ -114,6 +114,7 @@
 #define BLE_CMD_SETID 16
 #define BLE_CMD_GETID 17
 
+//uint_8t posbuf[] = {0, 0, 0, 0, 0, 0, 6, 0, 7, 0, 8, 0, 10, 0, 12, 0, 14, 0, 16}
 /* function declarations */
 
 void i2c_config(void);

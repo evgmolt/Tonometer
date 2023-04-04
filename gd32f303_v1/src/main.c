@@ -1128,6 +1128,7 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
     const uint8_t top = 20;
     const uint8_t left = 20;
     const uint8_t step = 20;
+    uint8_t posbuf[] = {0, 0, 0, 0, 0, 0, 5, 0, 7, 0, 1, 0, 3, 0, 9, 0, 11, 0, 13};
 
     uint8_t data_size = 15;    
     receiv_counter++;
@@ -1194,14 +1195,14 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
             {
                 if (checksum == buff[i + 1])
                 {
-                    ILI9341_WriteString(left, (command - 6)  * step, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                    ILI9341_WriteString(left, posbuf[command] * step, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
                     receiv_counter = 0;
                     checksum = 0;
                     byte_num = 0;
                     index_in_packet = 0;
                     current_packet_num = 0;
                     result_index = 0;
-                    UART0_count = 0;
+//                    UART0_count = 0;
                 }
             }
         }
@@ -1223,7 +1224,6 @@ uint8_t OLD_BLECommandsReceiver(uint8_t *buff, count)
     const uint8_t top = 20;
     const uint8_t left = 20;
     const uint8_t step = 20;
-    
 
     for (int j = 0; j < 200; j++)
     {
