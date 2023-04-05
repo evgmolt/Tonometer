@@ -99,20 +99,23 @@
 #define SERIAL_NUM_SIZE 9
 #define BLE_PACKET_SIZE 20
 
-#define BLE_CMD_DATETIME 3
-#define BLE_CMD_SERIAL 4
-#define BLE_CMD_SETLOGIN 6
-#define BLE_CMD_GETLOGIN 7
-#define BLE_CMD_SETPASSWORD 8
-#define BLE_CMD_GETPASSWORD 9
-#define BLE_CMD_SETURL 10
-#define BLE_CMD_GETURL 11
-#define BLE_CMD_SETPORT 12
-#define BLE_CMD_GETPORT 13
-#define BLE_CMD_SETPOINT 14
-#define BLE_CMD_GETPOINT 15
-#define BLE_CMD_SETID 16
-#define BLE_CMD_GETID 17
+//команды BLE
+#define BLE_CMD_DATETIME    3
+#define BLE_CMD_SERIAL      4
+//команды записи
+#define BLE_CMD_SETURL      6
+#define BLE_CMD_SETPORT     7
+#define BLE_CMD_SETLOGIN    8
+#define BLE_CMD_SETPASSWORD 9
+#define BLE_CMD_SETPOINT    10
+#define BLE_CMD_SETID       11
+//команды чтения
+#define BLE_CMD_GETURL      12
+#define BLE_CMD_GETPORT     13
+#define BLE_CMD_GETLOGIN    14
+#define BLE_CMD_GETPASSWORD 15
+#define BLE_CMD_GETPOINT    16
+#define BLE_CMD_GETID       17
 
 //uint_8t posbuf[] = {0, 0, 0, 0, 0, 0, 6, 0, 7, 0, 8, 0, 10, 0, 12, 0, 14, 0, 16}
 /* function declarations */
@@ -193,7 +196,7 @@ void SendMeasurementResult(uint8_t c_day, uint8_t c_month, uint8_t c_year, uint8
 
 void PrintSYS(int16_t IN);
 void PrintDIA(int16_t IN);
-
+void ResetBLEReceiver();
 void AbortMeas(void);
 
 double ReadRateFromFmc();

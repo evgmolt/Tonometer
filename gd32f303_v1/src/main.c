@@ -223,6 +223,10 @@ int main(void)
     
     button_released = 0;
     button_pressed_counter = 0;
+    byte_num = 0;
+    num_of_packet = 0;
+    current_packet_num = 0;
+    checksum = 0;
     
     if (mode == INIT_START){        
         PrintHeart(true);
@@ -1101,34 +1105,11 @@ uint8_t finder(uint8_t *buff, uint8_t *_string, uint8_t _char, uint16_t *num)
     return 0;
 }
 
-bool FillBuff(uint8_t *buff, uint8_t ind) //переписываем из UART буфера в другой глобальный, убираем маркеры и признак действи€
-{
-    uint8_t indexOfStartData = 4;
-    uint8_t checksum = 0;    
-    uint8_t index = 0;
-    while (buff[index + indexOfStartData] != 0)
-    {
-        send_buff[index] = buff[ind + index + indexOfStartData];
-        index++;
-    }
-    send_buff[index] = 0;
-    for (int i = 0; i < index + 1; i++)
-    {
-        checksum += send_buff[i];
-    }
-    send_buff[index + 1] = buff[ind + index + indexOfStartData + 1]; // онтрольна€ сумма
-    UART0_count = 0;
-    return checksum == send_buff[index + 1];
-}
-
 uint8_t BLECommandsReceiver(uint8_t *buff)
 {
     const uint8_t top = 20;
     const uint8_t left = 20;
-    const uint8_t step = 20;
-    bool print_allow = false; 
-    uint8_t posbuf[] = {0, 0, 0, 0, 0, 0, 4, 0, 5, 0, 1, 0, 3, 0, 6, 0, 7 }; //номер строки дл€ вывода.  оманда - индекс в массиве 
-//                                       log   pass  url   port  point  id
+    const uint8_t step = 35;
     for (int i = 0; i < UART0_count; i++)
     {
         checksum += buff[i];
@@ -1159,85 +1140,60 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
         {
             send_buff[result_index] = buff[i];
             result_index++;
-            switch (command)
+            if (command == BLE_CMD_SERIAL) 
             {
-                case BLE_CMD_SERIAL:
-                    if (result_index == 6) //длина номера -1 без '0' и '2'
-                    {
-                        if (checksum == buff[i + 1])
-                        {
-                            for (uint8_t i = 0; i < 7; i++)
-                            {
-                                SERIAL[i + 2] = send_buff[i];
-                            }
-                        }
-                    }
-                    FmcProgramSerial();                        
-                    delay_1ms(200);                                    
-                    DeviceOff();
-                    return 1;
-                case BLE_CMD_SETURL:
-                    if (index_in_packet == BLE_PACKET_SIZE - 2)
-                    {
-                        index_in_packet = 0;
-                        byte_num = 0;
-                    }
-                    print_allow = true;
-                    break;
-                case BLE_CMD_GETURL:
-                    sprintf(send_buff,"URL222");
-                    send_buf_UART_0(send_buff, 7);
-                    break;
-                case BLE_CMD_SETPORT:
-                    print_allow = true;
-                    break;
-                case BLE_CMD_GETPORT:
-                    sprintf(send_buff,"8080");
-                    send_buf_UART_0(send_buff, 5);
-                    break;
-                case BLE_CMD_SETLOGIN:
-                    print_allow = true;
-                    break;
-                case BLE_CMD_GETLOGIN:
-                    sprintf(send_buff,"Login222");
-                    send_buf_UART_0(send_buff, 9);
-                    break;
-                case BLE_CMD_SETPASSWORD:
-                    print_allow = true;
-                    break;
-                case BLE_CMD_GETPASSWORD:
-                    break;
-                case BLE_CMD_SETPOINT:
-                    print_allow = true;
-                    break;
-                case BLE_CMD_GETPOINT:
-                    sprintf(send_buff,"Point222");
-                    send_buf_UART_0(send_buff, 9);
-                    break;
-                case BLE_CMD_SETID:
-                    print_allow = true;
-                    break;
-                case BLE_CMD_GETID:
-                    sprintf(send_buff,"ID222");
-                    send_buf_UART_0(send_buff, 6);
-                    break;
-            }
-            if (buff[i] == 0)
-            {
-                if (checksum == buff[i + 1])
+                if (result_index == 7) //длина номера без '0' и '2'
                 {
-                    if (print_allow) ILI9341_WriteString(left, posbuf[command] * step, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
-                    checksum = 0;
-                    byte_num = 0;
+                    if (checksum == buff[i + 1])
+                    {
+                        for (uint8_t j = 0; j < 7; j++)
+                        {
+                            SERIAL[j + 2] = send_buff[j];
+                        }
+                        FmcProgramSerial();                        
+                        delay_1ms(200);                                    
+                        DeviceOff();
+                    }
+                }
+            }
+            if (command >= BLE_CMD_SETURL && command <= BLE_CMD_SETID)
+            {
+                if (index_in_packet == BLE_PACKET_SIZE - 2)
+                {
                     index_in_packet = 0;
-                    current_packet_num = 0;
-                    result_index = 0;
+                    byte_num = 0;
+                }
+                if (buff[i] == 0)
+                {
+                    if (checksum == buff[i + 1])
+                    {
+                        ILI9341_WriteString(left, step / 2 + (command - 6) * step, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                        ResetBLEReceiver();
+                    }
+                }
+            }
+            if (command >= BLE_CMD_GETURL && command <= BLE_CMD_GETID)
+            {
+                if (buff[i + 1] == checksum) 
+                {
+                    sprintf(send_buff,"Something");
+                    send_buf_UART_0(send_buff, 10);
+                    ResetBLEReceiver();
                 }
             }
         }
         index_in_packet++;
     }
     UART0_count = 0;
+}
+
+void ResetBLEReceiver()
+{
+    checksum = 0;
+    byte_num = 0;
+    index_in_packet = 0;
+    current_packet_num = 0;
+    result_index = 0;
 }
 
 //ќстатки
