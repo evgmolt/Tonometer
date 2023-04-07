@@ -1177,7 +1177,7 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
             {
                 if (result_index == 6) //длина буфера
                 {
-//                    if (checksum == buff[i + 1])
+                    if (checksum == buff[i + 2])
                     {
                         cur_year = send_buff[0];
                         cur_month = send_buff[1];
@@ -1187,7 +1187,7 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
                         cur_tss = send_buff[5];
                         TimeSet((uint32_t)cur_thh, (uint32_t)cur_tmm, (uint32_t)cur_tss);
                         WriteBackupRegister((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
-                        sprintf(timestr, "%02d:%02d:%02d  %02d.%02d.%d", cur_thh, cur_tmm, cur_tss, cur_day, cur_month, cur_year);
+                        sprintf(timestr, "%02d:%02d:%02d  %02d.%02d.20%d", cur_thh, cur_tmm, cur_tss, cur_day, cur_month, cur_year);
                         ILI9341_WriteString(left, 0, timestr, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
                         ResetBLEReceiver();
                         UART0_count = 0;
