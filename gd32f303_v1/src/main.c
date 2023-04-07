@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 #include "DataProcessing.h"
 #include "Display.h"
 #include "Timers.h"
+#include "jWrite.h"
 
 #define BKP_DATA_REG_NUM        42
 
@@ -228,7 +229,8 @@ int main(void)
     current_packet_num = 0;
     checksum = 0;
     
-    if (mode == INIT_START){        
+    if (mode == INIT_START)
+    {
         PrintHeart(true);
         PrintBluetooth(true);
         PrintGsm(true);
@@ -280,7 +282,7 @@ int main(void)
     fwdgt_prescaler_value_config(FWDGT_PSC_DIV64);
     fwdgt_enable();
 #endif
-    
+//    CreateJSON();
     while (1) 
     {    
         fwdgt_counter_reload();
@@ -291,7 +293,7 @@ int main(void)
                 {
                     mode = START_SCREEN;
                     button_released = 0;
-                    button_pressed_counter = 0;
+                    button_pressed_counter = 0;                    
                 }
                 break;
             case START_SCREEN:
@@ -497,7 +499,20 @@ int main(void)
         }            
     }
 }
-
+/*
+void CreateJSON()
+{
+	char datetimebuf[6];
+	datetimebuf[0] = 23;
+	datetimebuf[1] = 4;
+	datetimebuf[2] = 7;
+	datetimebuf[3] = 12;
+	datetimebuf[4] = 4;
+	datetimebuf[5] = 12;
+	MeasResult(send_buff, 111, 120, 70, 88, datetimebuf);
+    ILI9341_WriteString(10, 10, send_buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);   
+}
+*/
 void AbortMeas(void) 
 {
     button_released = 0;
@@ -1110,6 +1125,8 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
     const uint8_t top = 20;
     const uint8_t left = 20;
     const uint8_t step = 35;
+    uint8_t timestr[20]={0};
+
     for (int i = 0; i < UART0_count; i++)
     {
         checksum += buff[i];
@@ -1155,6 +1172,28 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
                         DeviceOff();
                     }
                 }
+            }
+            if (command == BLE_CMD_DATETIME)
+            {
+                if (result_index == 6) //длина буфера
+                {
+//                    if (checksum == buff[i + 1])
+                    {
+                        cur_year = send_buff[0];
+                        cur_month = send_buff[1];
+                        cur_day = send_buff[2];
+                        cur_thh = send_buff[3];
+                        cur_tmm = send_buff[4];
+                        cur_tss = send_buff[5];
+                        TimeSet((uint32_t)cur_thh, (uint32_t)cur_tmm, (uint32_t)cur_tss);
+                        WriteBackupRegister((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
+                        sprintf(timestr, "%02d:%02d:%02d  %02d.%02d.%d", cur_thh, cur_tmm, cur_tss, cur_day, cur_month, cur_year);
+                        ILI9341_WriteString(left, 0, timestr, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                        ResetBLEReceiver();
+                        UART0_count = 0;
+                        return 1;
+                    }
+                }                
             }
             if (command >= BLE_CMD_SETURL && command <= BLE_CMD_SETID)
             {

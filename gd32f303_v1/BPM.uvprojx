@@ -419,6 +419,16 @@
               <FileType>1</FileType>
               <FilePath>.\src\Timers.c</FilePath>
             </File>
+            <File>
+              <FileName>jWrite.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\jWrite.c</FilePath>
+            </File>
+            <File>
+              <FileName>GSM.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\GSM.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
