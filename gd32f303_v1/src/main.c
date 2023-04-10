@@ -161,6 +161,7 @@ uint8_t byte_num = 0;
 uint8_t result_index = 0;
 uint8_t index_in_packet = 0;
 uint8_t checksum = 0;    
+uint8_t view_time = 1;
 
 int main(void)
 {
@@ -310,6 +311,7 @@ int main(void)
 #endif
                 if (button_released) 
                 {
+                    view_time = 0;
                     send_buf_UART_1("AT\r", 3);            
                     
                     ILI9341_FillRectangle(0, 0, 240, 280, ILI9341_WHITE);                            
@@ -1188,7 +1190,7 @@ uint8_t BLECommandsReceiver(uint8_t *buff)
                         TimeSet((uint32_t)cur_thh, (uint32_t)cur_tmm, (uint32_t)cur_tss);
                         WriteBackupRegister((uint16_t)cur_day, (uint16_t)cur_month, (uint16_t)cur_year);
                         sprintf(timestr, "%02d:%02d:%02d  %02d.%02d.20%d", cur_thh, cur_tmm, cur_tss, cur_day, cur_month, cur_year);
-                        ILI9341_WriteString(left, 0, timestr, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
+                        ILI9341_WriteString(TIME_LEFT, TIME_TOP, timestr, Font_Arial, ILI9341_RED, ILI9341_WHITE);  
                         ResetBLEReceiver();
                         UART0_count = 0;
                         return 1;

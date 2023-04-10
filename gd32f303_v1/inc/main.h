@@ -90,6 +90,8 @@
 #define DIA_TOP 124
 #define PULSE_LEFT 107
 #define PULSE_TOP 240
+#define TIME_TOP 20
+#define TIME_LEFT 10
 
 #define MAIN_ARRAY_SIZE 10000
 
@@ -210,6 +212,7 @@ extern uint8_t current_packet_num;
 extern uint8_t command;
 extern uint8_t byte_num;
 extern uint8_t checksum;    
+extern uint8_t view_time;    
 
 extern const int lo_limit; //ms - 200 
 extern const int hi_limit; //ms - 30

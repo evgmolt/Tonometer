@@ -206,7 +206,8 @@ void ClearScreen(void)
     ILI9341_FillRectangle(PULSE_LEFT, PULSE_TOP, 123, 64, ILI9341_WHITE);	
 }
 
-void PrintTime(uint32_t timevar){
+void PrintTime(uint32_t timevar)
+{
         uint8_t buff[100]={0};
     uint32_t thh = 0, tmm = 0, tss = 0;
         
@@ -241,7 +242,10 @@ void PrintTime(uint32_t timevar){
                 cur_month=1;
                 WriteBackupRegister(cur_day, cur_month, cur_year);
         }
-        sprintf(buff,"%02d:",thh);
+        sprintf(buff, "%02d:%02d:%02d  %02d.%02d.20%d", thh, tmm, tss, cur_day, cur_month, cur_year);
+        ILI9341_WriteString(TIME_LEFT, TIME_TOP, buff, Font_Arial, ILI9341_BLACK, ILI9341_WHITE);  
+
+/*        sprintf(buff,"%02d:",thh);
         ILI9341_WriteString(30, 230, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
         sprintf(buff,"%02d:",tmm);
         ILI9341_WriteString(60, 230, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
@@ -253,7 +257,7 @@ void PrintTime(uint32_t timevar){
         sprintf(buff,"%02d.",cur_month);
         ILI9341_WriteString(60, 260, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
         sprintf(buff,"%04d",cur_year);
-        ILI9341_WriteString(90, 260, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);
+        ILI9341_WriteString(90, 260, buff, Font_Arial, ILI9341_RED, ILI9341_WHITE);*/
 }
 
 
@@ -287,7 +291,8 @@ void TFT_print(void)
                 ILI9341_DrawImage(42-i1*8, 286, 7, 22, (const uint16_t*)bat_dif);
         }
         rang_batt_old=rang_batt;
-    }        
+    }
+    if (view_time) PrintTime(rtc_counter_get());
 }
 
 
