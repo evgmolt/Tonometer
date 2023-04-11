@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 
 #ifndef __MAIN_H
 #define __MAIN_H
@@ -341,7 +341,7 @@ extern int button_pressed_counter;
 
 extern uint8_t usb_command;
 
-
+extern uint8_t mean_interval;
 
 
 #endif /* __MAIN_H */

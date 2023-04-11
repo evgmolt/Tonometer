@@ -27,6 +27,7 @@ uint16_t CountPulse(void)
         }
     }        
     first_pulse /= counter;
+    mean_interval = first_pulse;
     first_pulse /= frequency;
     first_pulse = 60 / first_pulse;
     
@@ -200,7 +201,7 @@ void CountEnvelopeArray(int16_t *arrayOfIndexes, int16_t *arrayOfValues)
 
 int16_t GetAverAroundPoint(int16_t *in_array, int point)
 {
-    int aver_size_half = 150;
+    int aver_size_half = mean_interval / 2;
     int index = 0;
     int32_t sum = 0;
     int start = point - aver_size_half;

@@ -163,6 +163,8 @@ uint8_t index_in_packet = 0;
 uint8_t checksum = 0;    
 uint8_t view_time = 1;
 
+uint8_t mean_interval;
+
 int main(void)
 {
     nvic_configuration();      // RTC
@@ -427,8 +429,9 @@ int main(void)
                     GetArrayOfWaveIndexes(pressure_pulsation_array, puls_buff, puls_buff_NEW);
                     f_sorting_MAX();
                     CountEnvelopeArray(puls_buff_NEW,puls_buff_AMP);
-                    GetSysDia();
+                    
                     pulse = CountPulse();    
+                    GetSysDia();
                     bonus_byte=0;
                     if (//main_index>1000 & 
                         PSys > MIN_SYS & 
