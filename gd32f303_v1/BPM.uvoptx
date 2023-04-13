@@ -158,27 +158,27 @@
         <Ww>
           <count>1</count>
           <WinNumber>1</WinNumber>
-          <ItemText>send_buff[result_index]</ItemText>
+          <ItemText>x1,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>2</count>
           <WinNumber>1</WinNumber>
-          <ItemText>buff[i + 3]</ItemText>
+          <ItemText>x2,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>buff[5]</ItemText>
+          <ItemText>xSys,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>command</ItemText>
+          <ItemText>puls_buff_AMP,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>5</count>
           <WinNumber>1</WinNumber>
-          <ItemText>indexUrl,0x0A</ItemText>
+          <ItemText>main_index,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>

@@ -85,9 +85,9 @@ uint32_t SERIAL[SERIAL_NUM_SIZE]   = {'0','2','0','2','2','2','0','0','1'};
 
 
 int16_t puls_buff_NEW[50]={0};
-int16_t puls_buff_NEW_MIN[50]={0};
 int16_t puls_buff_AMP[50]={0};
 int16_t puls_buff_AMP_MIN[50]={0};
+int16_t puls_buff_IND_MIN[50]={0};
 
 uint16_t frequency=128;
 
@@ -109,7 +109,7 @@ uint16_t m_mm;
 uint16_t m_hh;
 int indexPSys = 0;
 int indexPDia = 0;
-int16_t XMax = 0;
+int16_t XMax;
 int16_t current_pressure=0;
 int16_t i2c_out=0;
 int i2c_out_K=0;
@@ -433,8 +433,7 @@ int main(void)
                     pulse = CountPulse();    
                     GetSysDia();
                     bonus_byte=0;
-                    if (//main_index>1000 & 
-                        PSys > MIN_SYS & 
+                    if (PSys > MIN_SYS & 
                         PSys < MAX_SYS & 
                         PDia > MIN_DIA & 
                         PDia < MAX_DIA & 
@@ -1072,8 +1071,9 @@ void BootMode(void)
         }
         else if (gpio_input_bit_get(GPIOC, GPIO_PIN_10))
         {
-            //gpio_bit_set(GPIOC, GPIO_PIN_9);    
+#ifndef DEBUG
             mode = USB_CHARGING;
+#endif
         }
     }
 }

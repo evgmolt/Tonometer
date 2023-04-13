@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 
 #ifndef __MAIN_H
 #define __MAIN_H
@@ -250,9 +250,9 @@ extern uint32_t SERIAL[9];
 extern uint32_t page_num;
 
 extern int16_t puls_buff_NEW[50];
-extern int16_t puls_buff_NEW_MIN[50];
 extern int16_t puls_buff_AMP[50];
 extern int16_t puls_buff_AMP_MIN[50];
+extern int16_t puls_buff_IND_MIN[50];
 
 extern uint16_t frequency;
 

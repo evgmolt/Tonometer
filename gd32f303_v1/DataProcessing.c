@@ -83,13 +83,16 @@ int16_t GetDerivative(int16_t *dataArr, int32_t Ind){
    return (int16_t)(val1 - val2);
 }
 
-void GetArrayOfWaveIndexes(int16_t *valuesArray, int16_t *indexesArray, int16_t *indexes){    
+void GetArrayOfWaveIndexes(int16_t *valuesArray, int16_t *indexesArray, int16_t *indexes)
+{    
+    uint16_t index_of_min;
     for (int i=0; i<puls_counter; i++)
     {
-        puls_buff_NEW_MIN[i] = GetMinIndexInRegion(valuesArray, indexesArray[i]);
-                puls_buff_AMP_MIN[i] = valuesArray[puls_buff_NEW_MIN[i]];
-                indexes[i] = GetMaxIndexInRegion(valuesArray, indexesArray[i]);
-                puls_buff_AMP[i]=valuesArray[indexes[i]];                
+        index_of_min = GetMinIndexInRegion(valuesArray, indexesArray[i]);
+        puls_buff_IND_MIN[i] = index_of_min;
+        puls_buff_AMP_MIN[i] = valuesArray[index_of_min];
+        indexes[i] = GetMaxIndexInRegion(valuesArray, indexesArray[i]);
+        puls_buff_AMP[i]=valuesArray[indexes[i]];                
     }    
 }
 
@@ -218,23 +221,50 @@ int16_t GetAverAroundPoint(int16_t *in_array, int point)
 
 void GetSysDia(void)
 {
+    int16_t index_of_max;
     double MaximumAmplitude = -100;
     int skip = 3;
+    int x1;
+    int x2;
+    int p1;
+    int p2;
+    int xSys;
+    double deltaY;
+    double coeff;
+    
     for (int i = skip; i < puls_counter - skip; i++)
     {
         if (puls_buff_AMP[i] > MaximumAmplitude)
         {
             MaximumAmplitude = puls_buff_AMP[i];
-            XMax = puls_buff_NEW[i];                    
+            XMax = puls_buff_NEW[i];      
+            index_of_max = i;
         }        
     }        
     
     int16_t ValueSys = SYS_COEF * MaximumAmplitude;
-    int16_t ValueDia = DIA_COEF * MaximumAmplitude;    
+    int16_t ValueDia = DIA_COEF * MaximumAmplitude;
 
     PSys = 0;
     PDia = 0;
-    
+/*    
+    for (int i = index_of_max; i >= 0; i--)
+    {
+        if (puls_buff_AMP[i] <ValueSys)
+        {
+            x1 = puls_buff_IND_MIN[i];
+            x2 = puls_buff_IND_MIN[i + 1];
+            p1 = pressure_array[puls_buff_IND_MIN[i]];
+            p2 = pressure_array[puls_buff_IND_MIN[i + 1]];
+            coeff = (puls_buff_AMP[i + 1] - puls_buff_AMP[i]);
+            coeff = coeff / (x2 - x1);
+            xSys = x1 + ValueSys * coeff;
+            PSys = (p1 + coeff * (xSys - x1)) / rate;
+            indexPSys = i;
+            break;
+        }
+    }
+    */
     for (int i = XMax; i >= 0; i--)
     {
         if (envelope_array[i] < ValueSys)
